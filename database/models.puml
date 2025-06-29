@@ -1,0 +1,123 @@
+@startuml DocCentral
+skinparam classAttributeIconSize 0
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+}
+
+abstract class User {
+  +id: String
+  +name: String
+  +email: String
+  +createdAt: DateTime
+}
+
+class Doctor {
+  +phone: String
+  +specialty: String
+}
+
+class Assistant {
+  +doctorId: String
+  +role: String
+}
+
+class Patient {
+  +id: String
+  +doctorId: String
+  +name: String
+  +dob: Date
+  +gender: Gender
+  +email: String
+  +phone: String
+  +createdAt: DateTime
+}
+
+class MedicalHistory {
+  +id: String
+  +patientId: String
+  +recordDate: DateTime
+  +description: String
+  +notes: String
+}
+
+class Appointment {
+  +id: String
+  +doctorId: String
+  +patientId: String
+  +scheduledAt: DateTime
+  +status: String
+  +notes: String
+  +createdAt: DateTime
+}
+
+class Invoice {
+  +id: String
+  +patientId: String
+  +appointmentId: String
+  +issueDate: Date
+  +dueDate: Date
+  +totalAmount: Decimal
+  +status: InvoiceStatus
+  +createdAt: DateTime
+  +items: List<InvoiceItem>
+}
+
+class InvoiceItem {
+  +description: String
+  +quantity: int
+  +unitPrice: Decimal
+  +totalPrice: Decimal
+}
+
+class Payment {
+  +id: String
+  +invoiceId: String
+  +amount: Decimal
+  +paymentDate: Date
+  +status: PaymentStatus
+  +method: String
+  +createdAt: DateTime
+}
+
+class InventoryItem {
+  +id: String
+  +doctorId: String
+  +name: String
+  +category: String
+  +quantity: int
+  +unit: String
+  +expiryDate: Date
+  +lowStockThreshold: int
+  +createdAt: DateTime
+}
+
+User <|-- Doctor
+User <|-- Assistant
+
+Doctor "1" -- "0..*" Assistant : manages >
+Doctor "1" -- "0..*" Patient : owns >
+Patient "1" -- "0..*" MedicalHistory : has >
+Doctor "1" -- "0..*" Appointment : schedules >
+Patient "1" -- "0..*" Appointment : attends >
+Patient "1" -- "0..*" Invoice : billed for >
+Appointment "1" -- "0..1" Invoice : billed by >
+Invoice "1" *-- "0..*" InvoiceItem : includes >
+Invoice "1" -- "0..*" Payment : paid by >
+Doctor "1" -- "0..*" InventoryItem : owns >
+
+@enduml

@@ -1,0 +1,40 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "doccentral-c473b",
+          "appId": "1:548367256785:android:aca276e16751601c37c9f0",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "doccentral-c473b",
+          "configurations": {
+            "android": "1:548367256785:android:aca276e16751601c37c9f0",
+            "ios": "1:548367256785:ios:201e5a2e0f5ce5a837c9f0",
+            "macos": "1:548367256785:ios:201e5a2e0f5ce5a837c9f0",
+            "web": "1:548367256785:web:b46489b8727a4d5837c9f0",
+            "windows": "1:548367256785:web:c6078148992b926837c9f0"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8081
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+  }
+}

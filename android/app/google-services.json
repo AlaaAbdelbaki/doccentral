@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "548367256785",
+    "project_id": "doccentral-c473b",
+    "storage_bucket": "doccentral-c473b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:548367256785:android:aca276e16751601c37c9f0",
+        "android_client_info": {
+          "package_name": "com.codenest.docentral"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2AN7NOjJm8Yp6vS7y-l1QkGanQ47cfDs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
