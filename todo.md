@@ -1,73 +1,230 @@
-# DocCentral Project Todo List
+# 🦷 DocCentral – Development TODO (Feature-Based + Riverpod + GoRouter)
 
-## 1. Planning & Design
+This roadmap is structured for an offline-first dental clinic system using Flutter, Riverpod, GoRouter, and a feature-based architecture.
 
-- [x] Finalize app features and scope for MVP
-- [x] Design relational data model (entities, relationships, enums)
-- [x] Create UML class diagrams (with abstractions and enums)
-- [x] Define main use cases and user roles (Doctor, Assistant)
-- [x] Choose app name and branding elements
+---
 
-## 2. Project Setup
+# 🟢 PHASE 0 – Project Foundation
 
-- [x] Initialize Flutter project with recommended folder structure
-- [x] Setup Firebase project (prod, staging, emulator)
-- [x] Add essential dependencies (`flutter_riverpod`, `go_router`, `firebase_core`, etc.)
-- [x] Configure Firebase Emulator Suite for local development
+- [ ] Create Flutter desktop project
+- [ ] Setup feature-based architecture structure
+- [ ] Setup Riverpod (code generation optional)
+- [ ] Setup GoRouter
+- [ ] Setup local database (Drift recommended)
+- [ ] Setup UUID generation utility
+- [ ] Setup dependency injection (if needed)
+- [ ] Create base app shell (router + layout)
 
-## 3. Data Layer
+---
 
-- [ ] Implement Firestore data models and JSON serialization
-- [ ] Create repository classes abstracting Firebase SDK calls
-- [ ] Write seed scripts to populate emulator with test data
+# 🟢 PHASE 1 – Architecture Setup
 
-## 4. Domain Layer
+- [ ] Define folder structure:
+  - core/
+  - domain/
+  - features/
+  - shared/
+- [ ] Define domain models:
+  - Patient
+  - User
+  - Appointment
+  - Visit
+  - Treatment
+  - Invoice
+- [ ] Define enums:
+  - VisitStatus
+  - InvoiceStatus
+  - Roles
 
-- [ ] Define domain entities (Patient, Appointment, Invoice, Payment, etc.)
-- [ ] Implement use cases (e.g., ScheduleAppointment, AddPatient, CreateInvoice)
+---
 
-## 5. Presentation Layer
+# 🟢 PHASE 2 – Authentication & RBAC
 
-- [ ] Design and implement UI screens (Login, Dashboard, Patients, Appointments, Inventory, Billing)
-- [ ] Integrate Riverpod providers for state management
-- [ ] Setup routing with GoRouter
+- [ ] Create local authentication system
+- [ ] Implement login/logout flow
+- [ ] Create User model
+- [ ] Implement Role system (DB-based, not enum)
+- [ ] Implement Permission system (RBAC logic)
+- [ ] Create route guards using GoRouter + Riverpod
+- [ ] Restrict access by role
 
-## 6. Authentication & Security
+---
 
-- [ ] Implement Firebase Authentication for Doctors and Assistants
-- [ ] Setup Firestore security rules based on user roles
-- [ ] Test authentication flows and role-based access
+# 🟢 PHASE 3 – Patient Feature
 
-## 7. Features Implementation
+- [ ] Patient CRUD (local DB)
+- [ ] Patient list screen
+- [ ] Search & filtering
+- [ ] Patient profile screen
+- [ ] Display:
+  - Appointments
+  - Visits
+  - Invoices
+- [ ] Add patient notes
 
-- [ ] CRUD operations for Patients, Appointments, Inventory, Invoices, Payments
-- [ ] Link appointments to invoices and payments
-- [ ] Implement reminders and notifications (Firebase Messaging) — future
-- [ ] Add analytics dashboards — future
-- [ ] Plan AI integration — future
+---
 
-## 8. Testing
+# 🟢 PHASE 4 – Appointment Feature
 
-- [ ] Write unit tests for domain and data layers
-- [ ] Write widget tests for UI components
-- [ ] Setup integration tests using Firebase Emulator Suite
-- [ ] Perform manual testing on web, mobile, and desktop
+- [ ] Appointment CRUD
+- [ ] Calendar UI (daily / weekly)
+- [ ] Appointment statuses:
+  - Scheduled
+  - Cancelled
+  - Completed
+  - Missed
+- [ ] Link appointment to patient
+- [ ] Assign doctor/assistant to appointment
 
-## 9. Performance & Optimization
+---
 
-- [ ] Optimize Firestore queries and indexing
-- [ ] Implement offline support and data synchronization
-- [ ] Optimize app startup and screen transitions
+# 🟢 PHASE 5 – Visit Feature (CORE SYSTEM)
 
-## 10. Deployment
+- [ ] Create visit from appointment (check-in)
+- [ ] Visit lifecycle:
+  - CHECKED_IN
+  - IN_PROGRESS
+  - COMPLETED
+  - BILLED
+- [ ] Add diagnosis field
+- [ ] Add clinical notes
+- [ ] Add visit locking after completion
+- [ ] Prevent unauthorized edits
+- [ ] Allow dentist-only modifications
 
-- [ ] Prepare production Firebase project
-- [ ] Configure CI/CD pipelines (optional)
-- [ ] Publish Flutter app on Web, Play Store, App Store (as applicable)
+---
 
-## 11. Documentation & Maintenance
+# 🟢 PHASE 6 – Treatment Feature
 
-- [ ] Write README and developer documentation
-- [ ] Document API and data model specifications
-- [ ] Setup error monitoring and analytics tools
-- [ ] Plan for app updates and new features
+- [ ] Create treatment inside visit
+- [ ] Treatment fields:
+  - name
+  - tooth number
+  - quantity
+  - unit price
+  - total price (computed in app)
+- [ ] Edit/delete treatment (before visit completion)
+- [ ] Link treatments to visit
+- [ ] Ensure immutability after visit completion
+
+---
+
+# 🟢 PHASE 7 – Invoice Feature
+
+- [ ] Auto-create invoice on visit completion
+- [ ] Invoice includes all treatments
+- [ ] Invoice item system:
+  - treatments
+  - adjustments (discount/surcharge)
+- [ ] Invoice statuses:
+  - DRAFT
+  - UNPAID
+  - PARTIALLY_PAID
+  - PAID
+  - VOID
+- [ ] Ensure invoice total = sum of items
+- [ ] Prevent manual total editing
+
+---
+
+# 🟢 PHASE 8 – Financial Rules Engine
+
+- [ ] Implement invoice calculation logic
+- [ ] Add adjustment handling:
+  - discount
+  - surcharge
+- [ ] Ensure auditability of all changes
+- [ ] Validate invoice before finalization
+- [ ] Lock invoice after PAID (optional)
+
+---
+
+# 🟢 PHASE 9 – GoRouter Navigation
+
+- [ ] Setup route structure:
+  - /login
+  - /dashboard
+  - /patients
+  - /patients/:id
+  - /appointments
+  - /visits/:id
+  - /invoices/:id
+- [ ] Add route guards (RBAC)
+- [ ] Handle unauthorized access
+- [ ] Persist navigation state where needed
+
+---
+
+# 🟢 PHASE 10 – Riverpod State Management
+
+- [ ] Setup authProvider
+- [ ] Setup currentUserProvider
+- [ ] Setup patientsProvider
+- [ ] Setup appointmentsProvider
+- [ ] Setup activeVisitProvider
+- [ ] Setup invoiceDraftProvider
+- [ ] Setup permissionsProvider
+
+---
+
+# 🟢 PHASE 11 – UI Core Screens
+
+- [ ] Login screen
+- [ ] Dashboard (today overview)
+- [ ] Patient list + profile
+- [ ] Appointment calendar
+- [ ] Visit workflow screen
+- [ ] Treatment editor
+- [ ] Invoice screen
+
+---
+
+# 🟡 PHASE 12 – Data Integrity & UX
+
+- [ ] Input validation everywhere
+- [ ] Error handling system
+- [ ] Offline persistence reliability
+- [ ] Prevent invalid state transitions
+- [ ] Improve workflow UX (reduce clicks)
+
+---
+
+# 🔵 PHASE 13 – Export & Desktop Features
+
+- [ ] PDF invoice export
+- [ ] Print invoice
+- [ ] Local file storage handling
+- [ ] Backup/export database (optional)
+
+---
+
+# 🚫 FUTURE (NOT MVP)
+
+- Inventory management
+- Notifications (SMS/email)
+- AI suggestions
+- Analytics dashboard
+- Cloud sync
+- Multi-clinic SaaS system
+
+---
+
+# 🧠 CORE BUILD RULE
+
+Build in this order:
+
+1. Patient system
+2. Appointment system
+3. Visit system (MOST IMPORTANT)
+4. Treatments
+5. Invoice system
+6. RBAC security
+7. UI polish
+
+---
+
+# 🦷 IMPORTANT ARCHITECTURE RULE
+
+Appointment = scheduling  
+Visit = medical reality  
+Invoice = financial output
