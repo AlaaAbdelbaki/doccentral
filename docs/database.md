@@ -11,6 +11,8 @@ erDiagram
         string logo_path
         int created_at
         int updated_at
+        int deleted_at
+        string sync_status
     }
 
     USERS {
@@ -22,6 +24,8 @@ erDiagram
         string password_hash
         int created_at
         int updated_at
+        int deleted_at
+        string sync_status
     }
 
     ROLES {
@@ -29,6 +33,8 @@ erDiagram
         string clinic_id FK
         string name
         int created_at
+        int deleted_at
+        string sync_status
     }
 
     USER_ROLES {
@@ -47,6 +53,8 @@ erDiagram
         string notes
         int created_at
         int updated_at
+        int deleted_at
+        string sync_status
     }
 
     APPOINTMENTS {
@@ -61,6 +69,8 @@ erDiagram
         string notes
         int created_at
         int updated_at
+        int deleted_at
+        string sync_status
     }
 
     VISITS {
@@ -73,6 +83,9 @@ erDiagram
         string diagnosis
         string notes
         int created_at
+        int updated_at
+        int deleted_at
+        string sync_status
     }
 
     TREATMENTS {
@@ -86,6 +99,9 @@ erDiagram
         int quantity
         float total_price
         int created_at
+        int updated_at
+        int deleted_at
+        string sync_status
     }
 
     INVOICES {
@@ -98,6 +114,8 @@ erDiagram
         string created_by_user_id FK
         int created_at
         int updated_at
+        int deleted_at
+        string sync_status
     }
 
     INVOICE_ITEMS {
@@ -112,6 +130,9 @@ erDiagram
         string category
         string adjustment_type
         int created_at
+        int updated_at
+        int deleted_at
+        string sync_status
     }
 
     %% RELATIONSHIPS
