@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "DocCentral",
+  "project_id": "d62d71b2-243e-402d-92fa-7b5cc7aa43e5"
+}
