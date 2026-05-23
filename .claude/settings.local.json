@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bd stats *)",
+      "Bash(bd ready *)",
+      "WebSearch"
+    ]
+  }
+}
