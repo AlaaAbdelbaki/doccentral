@@ -41,4 +41,4 @@ DAOs may only:
 
 ## 🧠 Architecture Rule
 
-UI → Riverpod → Repository → Drift → Stream → UI
+UI → Provider → Service → Repository → DataSource → Stream → UI

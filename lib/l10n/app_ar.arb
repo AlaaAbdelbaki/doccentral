@@ -1,0 +1,17 @@
+{
+  "@@locale": "ar",
+
+  "appTitle": "DocCentral",
+  "loading": "جارٍ التحميل...",
+  "errorGeneric": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+  "retry": "إعادة المحاولة",
+  "cancel": "إلغاء",
+  "save": "حفظ",
+  "delete": "حذف",
+  "confirm": "تأكيد",
+  "close": "إغلاق",
+  "search": "بحث",
+  "noResults": "لا توجد نتائج.",
+  "unauthorized": "ليس لديك إذن لتنفيذ هذا الإجراء.",
+  "settingsLanguage": "اللغة"
+}

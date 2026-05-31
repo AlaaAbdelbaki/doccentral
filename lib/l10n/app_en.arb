@@ -1,0 +1,42 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "DocCentral",
+  "@appTitle": { "description": "Application name" },
+
+  "loading": "Loading...",
+  "@loading": { "description": "Generic loading message" },
+
+  "errorGeneric": "Something went wrong. Please try again.",
+  "@errorGeneric": { "description": "Generic error message" },
+
+  "retry": "Retry",
+  "@retry": { "description": "Retry button label" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel button label" },
+
+  "save": "Save",
+  "@save": { "description": "Save button label" },
+
+  "delete": "Delete",
+  "@delete": { "description": "Delete button label" },
+
+  "confirm": "Confirm",
+  "@confirm": { "description": "Confirm button label" },
+
+  "close": "Close",
+  "@close": { "description": "Close button label" },
+
+  "search": "Search",
+  "@search": { "description": "Search input hint" },
+
+  "noResults": "No results found.",
+  "@noResults": { "description": "Empty state message" },
+
+  "unauthorized": "You do not have permission to perform this action.",
+  "@unauthorized": { "description": "Permission denied message" },
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": { "description": "Language setting label" }
+}

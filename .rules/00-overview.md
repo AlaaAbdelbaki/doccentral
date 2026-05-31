@@ -24,4 +24,18 @@ This project uses:
 
 ## 🏗 Architecture Flow
 
-UI → Riverpod → Use Cases → Repositories → Drift → Streams → UI
+UI → Provider → Service → Repository → DataSource → Streams → UI
+
+---
+
+## 📁 Folder Structure
+
+```text
+lib/
+  shared/           ← shared logic, widgets, repositories, data sources
+  features/
+    <feature>/
+      domain/       ← entities, repository interfaces, services
+      data/         ← repository implementations, data sources (Drift DAOs, Supabase)
+      presentation/ ← pages, with private organisms/molecules/atoms co-located
+```

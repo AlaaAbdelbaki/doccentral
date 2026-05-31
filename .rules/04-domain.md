@@ -10,7 +10,7 @@ The domain layer defines **business logic independent of Flutter and DB**.
 
 * Entities
 * Repository interfaces
-* Use cases
+* Services (business logic — maps to the "Service" layer in the architecture flow)
 
 ---
 
@@ -26,9 +26,9 @@ The domain layer defines **business logic independent of Flutter and DB**.
 
 All business logic MUST live in:
 
-* Use cases
+* Services (domain layer)
 
-NOT in UI or DB layer
+NOT in UI, providers, or data layer
 
 ---
 

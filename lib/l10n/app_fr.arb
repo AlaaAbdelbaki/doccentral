@@ -1,0 +1,17 @@
+{
+  "@@locale": "fr",
+
+  "appTitle": "DocCentral",
+  "loading": "Chargement...",
+  "errorGeneric": "Une erreur est survenue. Veuillez réessayer.",
+  "retry": "Réessayer",
+  "cancel": "Annuler",
+  "save": "Enregistrer",
+  "delete": "Supprimer",
+  "confirm": "Confirmer",
+  "close": "Fermer",
+  "search": "Rechercher",
+  "noResults": "Aucun résultat trouvé.",
+  "unauthorized": "Vous n'avez pas la permission d'effectuer cette action.",
+  "settingsLanguage": "Langue"
+}

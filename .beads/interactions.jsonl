@@ -1,0 +1,4 @@
+{"id":"int-926c3e30","kind":"field_change","created_at":"2026-05-30T23:32:26.313578Z","actor":"AlaaAbdelbaki","issue_id":"DocCentral-3ok","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-2ba3f2f3","kind":"field_change","created_at":"2026-05-31T01:04:00.5822154Z","actor":"AlaaAbdelbaki","issue_id":"DocCentral-ap9","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-e18f0548","kind":"field_change","created_at":"2026-05-31T01:17:45.6301636Z","actor":"AlaaAbdelbaki","issue_id":"DocCentral-zgr","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-363be9a0","kind":"field_change","created_at":"2026-05-31T01:43:47.306789Z","actor":"AlaaAbdelbaki","issue_id":"DocCentral-82s","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}

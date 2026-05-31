@@ -1,0 +1,40 @@
+import 'dart:io';
+
+import 'package:docentral/shared/data/database/database_key_service.dart';
+import 'package:docentral/shared/data/database/tables/clinics_table.dart';
+import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+// sqlcipher_flutter_libs provides the SQLCipher native library; importing it
+// replaces the default sqlite3 with an encryption-capable build on all platforms.
+// ignore: unused_import
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+
+part 'app_database.g.dart';
+
+@DriftDatabase(tables: [Clinics])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openEncryptedConnection());
+
+  @override
+  int get schemaVersion => 1;
+}
+
+QueryExecutor _openEncryptedConnection() {
+  return LazyDatabase(() async {
+    const keyService = DatabaseKeyService(FlutterSecureStorage());
+    final encryptionKey = await keyService.getOrCreateKey();
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File(p.join(dir.path, 'docentral.sqlite'));
+
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (db) {
+        db.execute("PRAGMA key = '$encryptionKey'");
+      },
+    );
+  });
+}

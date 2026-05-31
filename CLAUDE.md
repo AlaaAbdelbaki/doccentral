@@ -55,16 +55,15 @@ bd close <id>         # Complete work
 
 _Add your build and test commands here_
 
-```bash
-# Example:
-# npm install
-# npm test
-```
-
 ## Architecture Overview
 
 _Add a brief overview of your project architecture_
-
+- This project uses the feature based architecture, the lib folder will contain a shared folder with any shared logic/widgets/repositories/... and for each feature, it must have a domain/data/presentation folder
+- Riverpod 3.x.x with code generation will be used as a state management solution for this project. Create class based providers if the state is mutable and function based providers if the state cannot be mutable. 
+- There must be separation of concerns, the code must follow the following structure UI -> Provider -> Service -> Repository -> DataSource
+- The UI must follow the atomic design principles. Each page must be composed of smaller organisms / molecules and atoms. Only the page can extend ConsumerWidget/ConsumerStatefulWidget if needed, State and Callbacks must be passed as parameters from the page down to its smaller organisms ... Organisms / Molecules / Atoms must be private widgets in the same file as the page. If a widget needs to be shared it must have a DocCentral prefix (example: DocCentralButton)
+- You must **never** use harcoded strings, always create English French and arabic strings and call AppLocalizations to use the localized strings.
+- For each developed feature, develop unit and integration tests, and ensure that tests do not have any issues at the end of a ticket. and for each new ticket developed, tests must always pass. 
 ## Conventions & Patterns
 
 _Add your project-specific conventions here_
