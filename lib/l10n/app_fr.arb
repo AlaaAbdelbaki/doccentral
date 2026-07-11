@@ -122,5 +122,7 @@
   "appointmentFilterAllStatuses": "Tous les statuts",
   "appointmentFilterAllStaff": "Tout le personnel",
   "appointmentFilterClearAll": "Tout effacer",
-  "appointmentFilterPickDateRange": "Choisir une période"
+  "appointmentFilterPickDateRange": "Choisir une période",
+  "appointmentStartVisitButton": "Démarrer la visite",
+  "visitNotEditableError": "Cette visite ne peut plus être modifiée."
 }

@@ -11,8 +11,10 @@ import 'package:docentral/features/appointment/presentation/providers/appointmen
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
+import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
+import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/features/visit/presentation/providers/visit_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
@@ -312,6 +314,9 @@ class _FakeVisitRepository implements VisitRepository {
 
   final void Function(String appointmentId) onCheckIn;
   final List<String> checkedInAppointmentIds = <String>[];
+  final Map<String, VisitRecord> _visitsByAppointmentId =
+      <String, VisitRecord>{};
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
   Future<String> checkIn({
@@ -320,7 +325,17 @@ class _FakeVisitRepository implements VisitRepository {
   }) async {
     checkedInAppointmentIds.add(appointmentId);
     onCheckIn(appointmentId);
-    return 'visit-${checkedInAppointmentIds.length}';
+    final String visitId = 'visit-${checkedInAppointmentIds.length}';
+    _visitsByAppointmentId[appointmentId] = VisitRecord(
+      id: visitId,
+      appointmentId: appointmentId,
+      patientId: 'p1',
+      dentistId: 'dentist-1',
+      status: VisitStatus.checkedIn,
+      startedAt: DateTime.now(),
+    );
+    _changes.add(null);
+    return visitId;
   }
 
   @override
@@ -329,6 +344,38 @@ class _FakeVisitRepository implements VisitRepository {
     required String patientId,
     int limit = 3,
   }) => Stream.value(const <VisitRecord>[]);
+
+  @override
+  Stream<VisitRecord?> watchVisitForAppointment({
+    required Role role,
+    required String appointmentId,
+  }) async* {
+    yield _visitsByAppointmentId[appointmentId];
+    await for (final _ in _changes.stream) {
+      yield _visitsByAppointmentId[appointmentId];
+    }
+  }
+
+  @override
+  Future<void> startProgress({
+    required Role role,
+    required String appointmentId,
+  }) async {
+    final VisitRecord? existing = _visitsByAppointmentId[appointmentId];
+    if (existing == null || existing.status != VisitStatus.checkedIn) {
+      throw const VisitNotEditableException();
+    }
+    _visitsByAppointmentId[appointmentId] = VisitRecord(
+      id: existing.id,
+      appointmentId: existing.appointmentId,
+      patientId: existing.patientId,
+      dentistId: existing.dentistId,
+      status: VisitStatus.inProgress,
+      startedAt: existing.startedAt,
+      inProgressAt: DateTime.now(),
+    );
+    _changes.add(null);
+  }
 }
 
 Future<_FakeAppointmentRepository> _pumpPage(
@@ -343,15 +390,17 @@ Future<_FakeAppointmentRepository> _pumpPage(
     assignableUsers: assignableUsers,
   );
   addTearDown(() => fakeRepository._changes.close());
+  final _FakeVisitRepository fakeVisitRepository = _FakeVisitRepository(
+    onCheckIn: fakeRepository.markCheckedIn,
+  );
+  addTearDown(() => fakeVisitRepository._changes.close());
   final ProviderContainer container = ProviderContainer(
     overrides: [
       appointmentRepositoryProvider.overrideWithValue(fakeRepository),
       patientRepositoryProvider.overrideWithValue(
         _FakePatientRepository(patients),
       ),
-      visitRepositoryProvider.overrideWithValue(
-        _FakeVisitRepository(onCheckIn: fakeRepository.markCheckedIn),
-      ),
+      visitRepositoryProvider.overrideWithValue(fakeVisitRepository),
     ],
   );
   addTearDown(container.dispose);
@@ -760,6 +809,36 @@ void main() {
       expect(find.text('Checked in'), findsOneWidget);
       expect(find.byIcon(Icons.how_to_reg_outlined), findsNothing);
       expect(find.byIcon(Icons.folder_open_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'starting a checked-in visit shows the in-progress indicator and hides the start control',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now();
+      await _pumpPage(tester, <AppointmentRecord>[
+        AppointmentRecord(
+          id: '1',
+          patientId: 'p1',
+          patientName: 'Amine Trabelsi',
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          status: AppointmentStatus.scheduled,
+        ),
+      ]);
+
+      await tester.tap(find.byIcon(Icons.how_to_reg_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.play_circle_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+      expect(find.text('In progress'), findsOneWidget);
     },
   );
 

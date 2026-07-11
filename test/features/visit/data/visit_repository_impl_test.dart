@@ -1,6 +1,7 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/visit/data/visit_repository_impl.dart';
+import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
@@ -160,5 +161,93 @@ void main() {
         );
       },
     );
+  });
+
+  group('VisitRepositoryImpl.startProgress', () {
+    test(
+      'transitions the Visit to in_progress and captures a non-null in_progress_at',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        final String visitId = await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        await repository.startProgress(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        final Visit visit = await (db.select(
+          db.visits,
+        )..where((t) => t.id.equals(visitId))).getSingle();
+        expect(visit.status, VisitStatus.inProgress.name);
+        expect(visit.inProgressAt, isNotNull);
+      },
+    );
+
+    test(
+      'throws VisitNotEditableException when the Visit is not checked_in',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+        await repository.startProgress(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        expect(
+          () => repository.startProgress(
+            role: Role.assistant,
+            appointmentId: appointmentId,
+          ),
+          throwsA(isA<VisitNotEditableException>()),
+        );
+      },
+    );
+  });
+
+  group('VisitRepositoryImpl.watchVisitForAppointment', () {
+    test('returns null when no Visit exists for the appointment', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String appointmentId = await seedAppointment(patientId: patientId);
+
+      final VisitRecord? visit = await repository
+          .watchVisitForAppointment(
+            role: Role.assistant,
+            appointmentId: appointmentId,
+          )
+          .first;
+
+      expect(visit, isNull);
+    });
+
+    test('returns the linked Visit once checked in', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String appointmentId = await seedAppointment(patientId: patientId);
+      final String visitId = await repository.checkIn(
+        role: Role.assistant,
+        appointmentId: appointmentId,
+      );
+
+      final VisitRecord? visit = await repository
+          .watchVisitForAppointment(
+            role: Role.assistant,
+            appointmentId: appointmentId,
+          )
+          .first;
+
+      expect(visit?.id, visitId);
+      expect(visit?.status, VisitStatus.checkedIn);
+    });
   });
 }

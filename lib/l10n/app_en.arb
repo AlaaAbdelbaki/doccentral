@@ -371,5 +371,11 @@
   "@appointmentFilterClearAll": { "description": "Button to remove all active appointment filters" },
 
   "appointmentFilterPickDateRange": "Pick date range",
-  "@appointmentFilterPickDateRange": { "description": "Button to open the date-range picker" }
+  "@appointmentFilterPickDateRange": { "description": "Button to open the date-range picker" },
+
+  "appointmentStartVisitButton": "Start visit",
+  "@appointmentStartVisitButton": { "description": "Button/tooltip to transition a checked-in visit to in-progress" },
+
+  "visitNotEditableError": "This visit can no longer be modified.",
+  "@visitNotEditableError": { "description": "Error shown when attempting an operation on a Visit in the wrong status" }
 }

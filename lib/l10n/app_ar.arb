@@ -122,5 +122,7 @@
   "appointmentFilterAllStatuses": "كل الحالات",
   "appointmentFilterAllStaff": "كل الموظفين",
   "appointmentFilterClearAll": "مسح الكل",
-  "appointmentFilterPickDateRange": "اختيار نطاق زمني"
+  "appointmentFilterPickDateRange": "اختيار نطاق زمني",
+  "appointmentStartVisitButton": "بدء الزيارة",
+  "visitNotEditableError": "لم يعد بالإمكان تعديل هذه الزيارة."
 }

@@ -1,5 +1,6 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
@@ -91,6 +92,56 @@ class VisitRepositoryImpl implements VisitRepository {
       dentistId: row.dentistId,
       status: VisitStatus.values.byName(row.status),
       startedAt: row.startedAt,
+      inProgressAt: row.inProgressAt,
     );
+  }
+
+  Future<Visit> _findByAppointmentId(String appointmentId) {
+    return (_db.select(
+      _db.visits,
+    )..where((Visits t) => t.appointmentId.equals(appointmentId))).getSingle();
+  }
+
+  @override
+  Stream<VisitRecord?> watchVisitForAppointment({
+    required Role role,
+    required String appointmentId,
+  }) {
+    requirePermission(role, Permission.canViewVisits);
+
+    final SimpleSelectStatement<$VisitsTable, Visit> select = _db.select(
+      _db.visits,
+    )..where((Visits t) => t.appointmentId.equals(appointmentId));
+
+    return select.watchSingleOrNull().map(
+      (Visit? row) => row == null ? null : _toRecord(row),
+    );
+  }
+
+  @override
+  Future<void> startProgress({
+    required Role role,
+    required String appointmentId,
+  }) async {
+    requirePermission(role, Permission.canEditVisit);
+
+    await _db.transaction(() async {
+      final Visit visit = await _findByAppointmentId(appointmentId);
+
+      if (visit.status != VisitStatus.checkedIn.name) {
+        throw const VisitNotEditableException();
+      }
+
+      final DateTime now = DateTime.now().toUtc();
+      await (_db.update(
+        _db.visits,
+      )..where((Visits t) => t.id.equals(visit.id))).write(
+        VisitsCompanion(
+          status: Value(VisitStatus.inProgress.name),
+          inProgressAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+    });
   }
 }

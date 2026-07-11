@@ -15,7 +15,11 @@ import 'package:docentral/features/appointment/presentation/providers/todays_app
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/presentation/providers/selected_patient_provider.dart';
+import 'package:docentral/features/visit/domain/visit_exceptions.dart';
+import 'package:docentral/features/visit/domain/visit_record.dart';
+import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/features/visit/presentation/providers/visit_controller_provider.dart';
+import 'package:docentral/features/visit/presentation/providers/visit_for_appointment_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
@@ -370,6 +374,15 @@ Widget _buildAppointmentRow(
   final bool canEdit =
       canManageAppointments &&
       appointment.status == AppointmentStatus.scheduled;
+
+  VisitRecord? visit;
+  if (appointment.status == AppointmentStatus.checkedIn) {
+    visit = ref.watch(visitForAppointmentProvider(appointment.id)).value;
+  }
+  final bool canEditVisit = ref.watch(permissionCheckerProvider)(
+    Permission.canEditVisit,
+  );
+
   return _AppointmentRow(
     appointment: appointment,
     onEdit: !canEdit
@@ -398,7 +411,30 @@ Widget _buildAppointmentRow(
             appointment.status != AppointmentStatus.completed
         ? null
         : () => _viewPatientFile(context, ref, appointment, patients),
+    visitStatus: visit?.status,
+    onStartVisit: !canEditVisit || visit?.status != VisitStatus.checkedIn
+        ? null
+        : () => _startVisitProgress(context, ref, appointment),
   );
+}
+
+Future<void> _startVisitProgress(
+  BuildContext context,
+  WidgetRef ref,
+  AppointmentRecord appointment,
+) async {
+  await ref
+      .read(visitControllerProvider.notifier)
+      .startProgress(appointmentId: appointment.id);
+
+  final Object? error = ref.read(visitControllerProvider).error;
+  if (error is VisitNotEditableException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+  }
 }
 
 void _viewPatientFile(

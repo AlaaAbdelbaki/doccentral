@@ -105,6 +105,18 @@ class _FakeVisitRepository implements VisitRepository {
   }) => Stream.value(
     visits.where((VisitRecord v) => v.patientId == patientId).toList(),
   );
+
+  @override
+  Stream<VisitRecord?> watchVisitForAppointment({
+    required Role role,
+    required String appointmentId,
+  }) => Stream.value(null);
+
+  @override
+  Future<void> startProgress({
+    required Role role,
+    required String appointmentId,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 class _FakePatientRepository implements PatientRepository {

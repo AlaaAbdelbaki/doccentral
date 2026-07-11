@@ -7,6 +7,8 @@ class _AppointmentRow extends StatelessWidget {
     this.onCancel,
     this.onCheckIn,
     this.onViewPatientFile,
+    this.visitStatus,
+    this.onStartVisit,
   });
 
   final AppointmentRecord appointment;
@@ -14,6 +16,8 @@ class _AppointmentRow extends StatelessWidget {
   final VoidCallback? onCancel;
   final VoidCallback? onCheckIn;
   final VoidCallback? onViewPatientFile;
+  final VisitStatus? visitStatus;
+  final VoidCallback? onStartVisit;
 
   // No Invoice/Payment data exists yet (Epic 7) — every patient's balance is
   // a genuine zero, so the "if applicable" indicator never renders yet.
@@ -97,6 +101,21 @@ class _AppointmentRow extends StatelessWidget {
                 onPressed: onViewPatientFile,
                 icon: const Icon(Icons.folder_open_outlined),
                 tooltip: l10n.appointmentViewPatientFileButton,
+              ),
+            ],
+            if (visitStatus == VisitStatus.inProgress) ...<Widget>[
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                l10n.visitStatusInProgress,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+            if (onStartVisit != null) ...<Widget>[
+              const SizedBox(width: AppSpacing.sm),
+              IconButton(
+                onPressed: onStartVisit,
+                icon: const Icon(Icons.play_circle_outline),
+                tooltip: l10n.appointmentStartVisitButton,
               ),
             ],
           ],

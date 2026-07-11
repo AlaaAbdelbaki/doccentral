@@ -16,4 +16,20 @@ abstract class VisitRepository {
     required String patientId,
     int limit = 3,
   });
+
+  /// Streams the Visit linked to [appointmentId], or null if none exists.
+  Stream<VisitRecord?> watchVisitForAppointment({
+    required Role role,
+    required String appointmentId,
+  });
+
+  /// Transitions the Visit linked to [appointmentId] from `checked_in` to
+  /// `in_progress`, capturing `in_progress_at` as UTC now().
+  ///
+  /// Throws [VisitNotEditableException] if the Visit is not currently
+  /// `checked_in`.
+  Future<void> startProgress({
+    required Role role,
+    required String appointmentId,
+  });
 }

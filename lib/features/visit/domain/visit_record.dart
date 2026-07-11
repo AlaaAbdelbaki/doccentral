@@ -10,6 +10,7 @@ class VisitRecord {
     required this.dentistId,
     required this.status,
     required this.startedAt,
+    this.inProgressAt,
   });
 
   final String id;
@@ -18,4 +19,5 @@ class VisitRecord {
   final String dentistId;
   final VisitStatus status;
   final DateTime startedAt;
+  final DateTime? inProgressAt;
 }

@@ -29,4 +29,22 @@ class VisitController extends _$VisitController {
           .checkIn(role: role, appointmentId: appointmentId),
     );
   }
+
+  Future<void> startProgress({required String appointmentId}) async {
+    final Role? role = ref.read(currentRoleProvider);
+    if (role == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canEditVisit),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(visitRepositoryProvider)
+          .startProgress(role: role, appointmentId: appointmentId),
+    );
+  }
 }
