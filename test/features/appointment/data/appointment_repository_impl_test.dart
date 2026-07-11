@@ -1,6 +1,8 @@
 import 'package:docentral/features/appointment/data/appointment_repository_impl.dart';
+import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -43,6 +45,54 @@ void main() {
           ),
         );
     return id;
+  }
+
+  Future<String> seedUser({
+    required String firstName,
+    required String lastName,
+    required Role role,
+  }) async {
+    final String userId = uuid.v4();
+    final String roleId = uuid.v4();
+    final DateTime now = DateTime.now();
+    const String clinicId = 'clinic-1';
+    await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            id: userId,
+            clinicId: clinicId,
+            firstName: firstName,
+            lastName: lastName,
+            email: '$firstName@example.com',
+            authUserId: 'auth-$userId',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.roles)
+        .insert(
+          RolesCompanion.insert(
+            id: roleId,
+            clinicId: clinicId,
+            name: role.name,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.userRoles)
+        .insert(
+          UserRolesCompanion.insert(
+            id: uuid.v4(),
+            userId: userId,
+            roleId: roleId,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return userId;
   }
 
   Future<String> seedAppointment({
@@ -174,5 +224,253 @@ void main() {
       expect(appointments.first.startTime, DateTime(2026, 6, 8, 9));
       expect(appointments.last.startTime, DateTime(2026, 6, 14, 17));
     });
+  });
+
+  group('AppointmentRepositoryImpl.watchAssignableUsers', () {
+    test('returns users with their role, excluding deleted users', () async {
+      final String dentistId = await seedUser(
+        firstName: 'Sami',
+        lastName: 'Gharbi',
+        role: Role.doctor,
+      );
+      await seedUser(
+        firstName: 'Nour',
+        lastName: 'Jlassi',
+        role: Role.assistant,
+      );
+
+      final List<AssignableUser> users = await repository
+          .watchAssignableUsers(role: Role.assistant)
+          .first;
+
+      expect(users.length, 2);
+      final AssignableUser dentist = users.firstWhere(
+        (AssignableUser u) => u.id == dentistId,
+      );
+      expect(dentist.name, 'Sami Gharbi');
+      expect(dentist.role, Role.doctor);
+    });
+  });
+
+  group('AppointmentRepositoryImpl.createAppointment', () {
+    test('creates a scheduled appointment', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final DateTime start = DateTime(2026, 6, 8, 9);
+
+      final String id = await repository.createAppointment(
+        role: Role.assistant,
+        patientId: patientId,
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        reason: 'Cleaning',
+      );
+
+      final List<AppointmentRecord> appointments = await repository
+          .watchRange(
+            role: Role.assistant,
+            start: start,
+            end: start.add(const Duration(days: 1)),
+          )
+          .first;
+      expect(appointments.single.id, id);
+      expect(appointments.single.status, AppointmentStatus.scheduled);
+    });
+
+    test(
+      'throws AppointmentOverlapException for the same assigned user without override',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        await seedAppointment(patientId: patientId, startTime: start);
+
+        expect(
+          () => repository.createAppointment(
+            role: Role.assistant,
+            patientId: patientId,
+            assignedUserId: 'dentist-1',
+            startTime: start.add(const Duration(minutes: 15)),
+            endTime: start.add(const Duration(minutes: 45)),
+          ),
+          throwsA(isA<AppointmentOverlapException>()),
+        );
+      },
+    );
+
+    test('creates the appointment when overrideOverlap is true', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final DateTime start = DateTime(2026, 6, 8, 9);
+      await seedAppointment(patientId: patientId, startTime: start);
+
+      final String id = await repository.createAppointment(
+        role: Role.assistant,
+        patientId: patientId,
+        assignedUserId: 'dentist-1',
+        startTime: start.add(const Duration(minutes: 15)),
+        endTime: start.add(const Duration(minutes: 45)),
+        overrideOverlap: true,
+      );
+
+      final List<AppointmentRecord> appointments = await repository
+          .watchRange(
+            role: Role.assistant,
+            start: start,
+            end: start.add(const Duration(days: 1)),
+          )
+          .first;
+      expect(appointments.length, 2);
+      expect(appointments.any((AppointmentRecord a) => a.id == id), isTrue);
+    });
+
+    test(
+      'does not treat overlap with a different assigned user as a conflict',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        await seedAppointment(patientId: patientId, startTime: start);
+
+        final String id = await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-2',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+        );
+
+        expect(id, isNotEmpty);
+      },
+    );
+
+    test(
+      'does not treat overlap with a cancelled appointment as a conflict',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+          status: 'cancelled',
+        );
+
+        final String id = await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+        );
+
+        expect(id, isNotEmpty);
+      },
+    );
+  });
+
+  group('AppointmentRepositoryImpl.updateAppointment', () {
+    test(
+      'creates an edit log entry with the correct actor and changed fields',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String id = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+          reason: 'Cleaning',
+        );
+
+        await repository.updateAppointment(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          appointmentId: id,
+          assignedUserId: 'dentist-2',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          reason: 'Cleaning',
+        );
+
+        final List<AppointmentEditLog> logs = await db
+            .select(db.appointmentEditLogs)
+            .get();
+        expect(logs.length, 1);
+        expect(logs.first.appointmentId, id);
+        expect(logs.first.actorUserId, 'actor-1');
+        expect(logs.first.changedFields, 'assignedUserId');
+      },
+    );
+
+    test('does not create an edit log entry when nothing changes', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final DateTime start = DateTime(2026, 6, 8, 9);
+      final String id = await seedAppointment(
+        patientId: patientId,
+        startTime: start,
+      );
+
+      await repository.updateAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: id,
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+      );
+
+      final List<AppointmentEditLog> logs = await db
+          .select(db.appointmentEditLogs)
+          .get();
+      expect(logs, isEmpty);
+    });
+
+    test(
+      'throws AppointmentNotEditableException for a non-scheduled appointment',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String id = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+          status: 'checkedIn',
+        );
+
+        expect(
+          () => repository.updateAppointment(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            appointmentId: id,
+            assignedUserId: 'dentist-1',
+            startTime: start,
+            endTime: start.add(const Duration(minutes: 45)),
+          ),
+          throwsA(isA<AppointmentNotEditableException>()),
+        );
+      },
+    );
+
+    test(
+      'throws AppointmentOverlapException when the new time overlaps another appointment for the same user',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String editableId = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+        );
+        await seedAppointment(
+          patientId: patientId,
+          startTime: start.add(const Duration(hours: 2)),
+        );
+
+        expect(
+          () => repository.updateAppointment(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            appointmentId: editableId,
+            assignedUserId: 'dentist-1',
+            startTime: start.add(const Duration(hours: 2, minutes: 10)),
+            endTime: start.add(const Duration(hours: 2, minutes: 40)),
+          ),
+          throwsA(isA<AppointmentOverlapException>()),
+        );
+      },
+    );
   });
 }

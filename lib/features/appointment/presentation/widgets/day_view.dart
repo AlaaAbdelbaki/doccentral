@@ -1,7 +1,15 @@
 part of '../calendar_page.dart';
 
 class _DayView extends ConsumerWidget {
-  const _DayView();
+  const _DayView({
+    required this.canManageAppointments,
+    required this.patients,
+    required this.assignableUsers,
+  });
+
+  final bool canManageAppointments;
+  final List<PatientRecord> patients;
+  final List<AssignableUser> assignableUsers;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,8 +28,24 @@ class _DayView extends ConsumerWidget {
           itemCount: appointments.length,
           separatorBuilder: (BuildContext context, int index) =>
               const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (BuildContext context, int index) =>
-              _AppointmentRow(appointment: appointments[index]),
+          itemBuilder: (BuildContext context, int index) {
+            final AppointmentRecord appointment = appointments[index];
+            final bool canEdit =
+                canManageAppointments &&
+                appointment.status == AppointmentStatus.scheduled;
+            return _AppointmentRow(
+              appointment: appointment,
+              onEdit: !canEdit
+                  ? null
+                  : () => _showAppointmentFormDialog(
+                      context,
+                      ref,
+                      patients: patients,
+                      assignableUsers: assignableUsers,
+                      initial: appointment,
+                    ),
+            );
+          },
         );
       },
       error: (Object error, StackTrace stackTrace) =>

@@ -1,9 +1,10 @@
 part of '../calendar_page.dart';
 
 class _AppointmentRow extends StatelessWidget {
-  const _AppointmentRow({required this.appointment});
+  const _AppointmentRow({required this.appointment, this.onEdit});
 
   final AppointmentRecord appointment;
+  final VoidCallback? onEdit;
 
   // No Invoice/Payment data exists yet (Epic 7) — every patient's balance is
   // a genuine zero, so the "if applicable" indicator never renders yet.
@@ -57,6 +58,14 @@ class _AppointmentRow extends StatelessWidget {
               const SizedBox(width: AppSpacing.md),
             ],
             _StatusBadge(status: appointment.status),
+            if (onEdit != null) ...<Widget>[
+              const SizedBox(width: AppSpacing.sm),
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.appointmentEditButton,
+              ),
+            ],
           ],
         ),
       ),

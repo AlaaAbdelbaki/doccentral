@@ -266,5 +266,47 @@
   "@calendarViewWeek": { "description": "Week-view toggle label" },
 
   "appointmentEmptyDayShort": "No appointments",
-  "@appointmentEmptyDayShort": { "description": "Compact empty state for a single day column in the week view" }
+  "@appointmentEmptyDayShort": { "description": "Compact empty state for a single day column in the week view" },
+
+  "appointmentAddButton": "Add appointment",
+  "@appointmentAddButton": { "description": "Button to open the add-appointment dialog" },
+
+  "appointmentEditButton": "Edit appointment",
+  "@appointmentEditButton": { "description": "Button/tooltip to open the edit-appointment dialog" },
+
+  "appointmentFormTitle": "New appointment",
+  "@appointmentFormTitle": { "description": "Add-appointment dialog title" },
+
+  "appointmentEditFormTitle": "Edit appointment",
+  "@appointmentEditFormTitle": { "description": "Edit-appointment dialog title" },
+
+  "appointmentPatientField": "Patient",
+  "@appointmentPatientField": { "description": "Patient picker field label" },
+
+  "appointmentAssignedUserField": "Assigned to",
+  "@appointmentAssignedUserField": { "description": "Assigned-user dropdown field label" },
+
+  "appointmentDateField": "Date",
+  "@appointmentDateField": { "description": "Appointment date field label" },
+
+  "appointmentStartTimeField": "Start time",
+  "@appointmentStartTimeField": { "description": "Appointment start time field label" },
+
+  "appointmentEndTimeField": "End time",
+  "@appointmentEndTimeField": { "description": "Appointment end time field label" },
+
+  "appointmentReasonField": "Reason",
+  "@appointmentReasonField": { "description": "Appointment reason field label" },
+
+  "appointmentNotesField": "Notes",
+  "@appointmentNotesField": { "description": "Appointment notes field label" },
+
+  "appointmentOverlapConfirmTitle": "This time slot overlaps another appointment",
+  "@appointmentOverlapConfirmTitle": { "description": "Overlap-override confirmation dialog title" },
+
+  "appointmentOverlapConfirmMessage": "The assigned staff member already has an appointment during this time. Save anyway?",
+  "@appointmentOverlapConfirmMessage": { "description": "Overlap-override confirmation dialog message" },
+
+  "appointmentNotEditableError": "This appointment can no longer be edited.",
+  "@appointmentNotEditableError": { "description": "Error shown when attempting to edit a non-scheduled appointment" }
 }

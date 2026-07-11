@@ -87,5 +87,19 @@
   "calendarLowStockLabel": "عناصر منخفضة المخزون",
   "calendarViewDay": "يوم",
   "calendarViewWeek": "أسبوع",
-  "appointmentEmptyDayShort": "لا توجد مواعيد"
+  "appointmentEmptyDayShort": "لا توجد مواعيد",
+  "appointmentAddButton": "إضافة موعد",
+  "appointmentEditButton": "تعديل الموعد",
+  "appointmentFormTitle": "موعد جديد",
+  "appointmentEditFormTitle": "تعديل الموعد",
+  "appointmentPatientField": "المريض",
+  "appointmentAssignedUserField": "مسند إلى",
+  "appointmentDateField": "التاريخ",
+  "appointmentStartTimeField": "وقت البدء",
+  "appointmentEndTimeField": "وقت الانتهاء",
+  "appointmentReasonField": "السبب",
+  "appointmentNotesField": "ملاحظات",
+  "appointmentOverlapConfirmTitle": "هذا الموعد يتداخل مع موعد آخر",
+  "appointmentOverlapConfirmMessage": "الموظف المعيّن لديه بالفعل موعد في هذا الوقت. هل تريد الحفظ رغم ذلك؟",
+  "appointmentNotEditableError": "لم يعد بالإمكان تعديل هذا الموعد."
 }

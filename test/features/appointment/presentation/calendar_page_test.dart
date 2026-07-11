@@ -1,19 +1,71 @@
+import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_repository.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/patient/domain/patient_record.dart';
+import 'package:docentral/features/patient/domain/patient_repository.dart';
+import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _FakePatientRepository implements PatientRepository {
+  _FakePatientRepository(this._patients);
+
+  final List<PatientRecord> _patients;
+
+  @override
+  Stream<List<PatientRecord>> watchAll({
+    required Role role,
+    String query = '',
+  }) => Stream.value(_patients);
+
+  @override
+  Future<void> create({
+    required Role role,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updatePatient({
+    required Role role,
+    required String actorUserId,
+    required String patientId,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> deletePatient({required Role role, required String patientId}) =>
+      throw UnimplementedError('not exercised by this test');
+}
+
 class _FakeAppointmentRepository implements AppointmentRepository {
-  _FakeAppointmentRepository(this._appointments);
+  _FakeAppointmentRepository(
+    List<AppointmentRecord> appointments, {
+    this.assignableUsers = const <AssignableUser>[],
+  }) : _appointments = List<AppointmentRecord>.of(appointments);
 
   final List<AppointmentRecord> _appointments;
+  final List<AssignableUser> assignableUsers;
+  final List<AppointmentRecord> created = <AppointmentRecord>[];
+  final List<AppointmentRecord> updatedCalls = <AppointmentRecord>[];
 
   @override
   Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
@@ -32,21 +84,124 @@ class _FakeAppointmentRepository implements AppointmentRepository {
         )
         .toList(),
   );
+
+  @override
+  Stream<List<AssignableUser>> watchAssignableUsers({required Role role}) =>
+      Stream.value(assignableUsers);
+
+  bool _overlaps(
+    String assignedUserId,
+    DateTime startTime,
+    DateTime endTime, {
+    String? excludingId,
+  }) {
+    return _appointments.any(
+      (AppointmentRecord a) =>
+          a.id != excludingId &&
+          a.assignedUserId == assignedUserId &&
+          a.status != AppointmentStatus.cancelled &&
+          a.startTime.isBefore(endTime) &&
+          a.endTime.isAfter(startTime),
+    );
+  }
+
+  @override
+  Future<String> createAppointment({
+    required Role role,
+    required String patientId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) async {
+    if (!overrideOverlap && _overlaps(assignedUserId, startTime, endTime)) {
+      throw const AppointmentOverlapException();
+    }
+    final String id = 'new-${_appointments.length}';
+    final AppointmentRecord record = AppointmentRecord(
+      id: id,
+      patientId: patientId,
+      patientName: 'Patient $patientId',
+      assignedUserId: assignedUserId,
+      startTime: startTime,
+      endTime: endTime,
+      status: AppointmentStatus.scheduled,
+      reason: reason,
+      notes: notes,
+    );
+    _appointments.add(record);
+    created.add(record);
+    return id;
+  }
+
+  @override
+  Future<void> updateAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) async {
+    final int index = _appointments.indexWhere(
+      (AppointmentRecord a) => a.id == appointmentId,
+    );
+    final AppointmentRecord existing = _appointments[index];
+    if (existing.status != AppointmentStatus.scheduled) {
+      throw const AppointmentNotEditableException();
+    }
+    if (!overrideOverlap &&
+        _overlaps(
+          assignedUserId,
+          startTime,
+          endTime,
+          excludingId: appointmentId,
+        )) {
+      throw const AppointmentOverlapException();
+    }
+    final AppointmentRecord updated = AppointmentRecord(
+      id: existing.id,
+      patientId: existing.patientId,
+      patientName: existing.patientName,
+      assignedUserId: assignedUserId,
+      startTime: startTime,
+      endTime: endTime,
+      status: existing.status,
+      reason: reason,
+      notes: notes,
+    );
+    _appointments[index] = updated;
+    updatedCalls.add(updated);
+  }
 }
 
-Future<void> _pumpPage(
+Future<_FakeAppointmentRepository> _pumpPage(
   WidgetTester tester,
-  List<AppointmentRecord> appointments,
-) async {
+  List<AppointmentRecord> appointments, {
+  List<AssignableUser> assignableUsers = const <AssignableUser>[],
+  List<PatientRecord> patients = const <PatientRecord>[],
+  Role role = Role.assistant,
+}) async {
+  final _FakeAppointmentRepository fakeRepository = _FakeAppointmentRepository(
+    appointments,
+    assignableUsers: assignableUsers,
+  );
   final ProviderContainer container = ProviderContainer(
     overrides: [
-      appointmentRepositoryProvider.overrideWithValue(
-        _FakeAppointmentRepository(appointments),
+      appointmentRepositoryProvider.overrideWithValue(fakeRepository),
+      patientRepositoryProvider.overrideWithValue(
+        _FakePatientRepository(patients),
       ),
     ],
   );
   addTearDown(container.dispose);
-  container.read(currentRoleProvider.notifier).setRole(Role.assistant);
+  container.read(currentRoleProvider.notifier).setRole(role);
+  container.read(currentUserIdProvider.notifier).setUserId('actor-1');
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -59,6 +214,7 @@ Future<void> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
+  return fakeRepository;
 }
 
 void main() {
@@ -167,4 +323,168 @@ void main() {
       expect(find.text('Amine Trabelsi'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Add appointment dialog defaults the assigned user to the Doctor',
+    (WidgetTester tester) async {
+      await _pumpPage(
+        tester,
+        const <AppointmentRecord>[],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'nurse-1', name: 'Nour Nurse', role: Role.nurse),
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        ],
+      );
+
+      await tester.tap(find.text('Add appointment'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(DropdownButtonFormField<String>),
+          matching: find.text('Dr. Sami'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('editing a scheduled appointment updates the assigned user', (
+    WidgetTester tester,
+  ) async {
+    final DateTime start = DateTime.now().add(const Duration(days: 1));
+    final AppointmentRecord existing = AppointmentRecord(
+      id: '1',
+      patientId: 'p1',
+      patientName: 'Amine Trabelsi',
+      assignedUserId: 'dentist-1',
+      startTime: start,
+      endTime: start.add(const Duration(minutes: 30)),
+      status: AppointmentStatus.scheduled,
+    );
+
+    final _FakeAppointmentRepository fakeRepository = await _pumpPage(
+      tester,
+      <AppointmentRecord>[existing],
+      assignableUsers: const <AssignableUser>[
+        AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        AssignableUser(
+          id: 'dentist-2',
+          name: 'Dr. Leila',
+          role: Role.assistant,
+        ),
+      ],
+      patients: <PatientRecord>[
+        PatientRecord(
+          id: 'p1',
+          firstName: 'Amine',
+          lastName: 'Trabelsi',
+          dateOfBirth: DateTime(1990),
+          phone: '20123456',
+        ),
+      ],
+    );
+
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Dr. Sami'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dr. Leila').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.updatedCalls.single.assignedUserId, 'dentist-2');
+  });
+
+  testWidgets(
+    'saving an overlapping edit prompts for confirmation and proceeds when confirmed',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now().add(const Duration(days: 1));
+      final AppointmentRecord editable = AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      );
+      final AppointmentRecord conflicting = AppointmentRecord(
+        id: '2',
+        patientId: 'p2',
+        patientName: 'Sarra Ben Youssef',
+        assignedUserId: 'dentist-2',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      );
+
+      final _FakeAppointmentRepository fakeRepository = await _pumpPage(
+        tester,
+        <AppointmentRecord>[editable, conflicting],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+          AssignableUser(
+            id: 'dentist-2',
+            name: 'Dr. Leila',
+            role: Role.assistant,
+          ),
+        ],
+        patients: <PatientRecord>[
+          PatientRecord(
+            id: 'p1',
+            firstName: 'Amine',
+            lastName: 'Trabelsi',
+            dateOfBirth: DateTime(1990),
+            phone: '20123456',
+          ),
+        ],
+      );
+
+      // Find the edit button on the first (editable) row specifically.
+      await tester.tap(find.byIcon(Icons.edit_outlined).first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Dr. Sami'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Dr. Leila').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This time slot overlaps another appointment'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.updatedCalls.length, 1);
+      expect(fakeRepository.updatedCalls.single.assignedUserId, 'dentist-2');
+    },
+  );
+
+  testWidgets('the edit control is hidden for a non-scheduled appointment', (
+    WidgetTester tester,
+  ) async {
+    final DateTime start = DateTime.now();
+    await _pumpPage(tester, <AppointmentRecord>[
+      AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.completed,
+      ),
+    ]);
+
+    expect(find.byIcon(Icons.edit_outlined), findsNothing);
+  });
 }

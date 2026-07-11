@@ -1,6 +1,7 @@
 import 'package:docentral/app.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_repository.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
@@ -22,6 +23,35 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     required DateTime start,
     required DateTime end,
   }) => Stream.value(const <AppointmentRecord>[]);
+
+  @override
+  Stream<List<AssignableUser>> watchAssignableUsers({required Role role}) =>
+      Stream.value(const <AssignableUser>[]);
+
+  @override
+  Future<String> createAppointment({
+    required Role role,
+    required String patientId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updateAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 class _FakeClinicRepository implements ClinicRepository {

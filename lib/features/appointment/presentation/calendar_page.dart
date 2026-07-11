@@ -1,15 +1,25 @@
+import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_controller_provider.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_patient_options_provider.dart';
+import 'package:docentral/features/appointment/presentation/providers/assignable_users_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/calendar_view_mode_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/calendar_week_anchor_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/todays_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
+import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/l10n/app_localizations.dart';
+import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
+import 'package:docentral/shared/domain/rbac/permission.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+part 'widgets/appointment_form_dialog.dart';
 part 'widgets/appointment_row.dart';
 part 'widgets/calendar_side_panel.dart';
 part 'widgets/day_view.dart';
@@ -27,6 +37,14 @@ class CalendarPage extends ConsumerWidget {
     final CalendarViewMode viewMode = ref.watch(
       calendarViewModeControllerProvider,
     );
+    final bool canManageAppointments = ref.watch(permissionCheckerProvider)(
+      Permission.canManageAppointments,
+    );
+    final List<PatientRecord> patients =
+        ref.watch(appointmentPatientOptionsProvider).value ??
+        const <PatientRecord>[];
+    final List<AssignableUser> assignableUsers =
+        ref.watch(assignableUsersProvider).value ?? const <AssignableUser>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -53,6 +71,20 @@ class CalendarPage extends ConsumerWidget {
               },
             ),
           ),
+          if (canManageAppointments)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: FilledButton.icon(
+                onPressed: () => _showAppointmentFormDialog(
+                  context,
+                  ref,
+                  patients: patients,
+                  assignableUsers: assignableUsers,
+                ),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.appointmentAddButton),
+              ),
+            ),
         ],
       ),
       body: Row(
@@ -60,7 +92,11 @@ class CalendarPage extends ConsumerWidget {
         children: <Widget>[
           Expanded(
             child: switch (viewMode) {
-              CalendarViewMode.day => const _DayView(),
+              CalendarViewMode.day => _DayView(
+                canManageAppointments: canManageAppointments,
+                patients: patients,
+                assignableUsers: assignableUsers,
+              ),
               CalendarViewMode.week => const _WeekView(),
             },
           ),
@@ -70,4 +106,116 @@ class CalendarPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _showAppointmentFormDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required List<PatientRecord> patients,
+  required List<AssignableUser> assignableUsers,
+  AppointmentRecord? initial,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return _AppointmentFormDialog(
+        initial: initial,
+        patients: patients,
+        assignableUsers: assignableUsers,
+        onSubmit: (AppointmentFormResult result) {
+          _handleSubmit(context, ref, initial: initial, result: result);
+        },
+      );
+    },
+  );
+}
+
+Future<void> _handleSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required AppointmentRecord? initial,
+  required AppointmentFormResult result,
+}) async {
+  final AppointmentController controller = ref.read(
+    appointmentControllerProvider.notifier,
+  );
+
+  if (initial == null) {
+    await controller.create(
+      patientId: result.patientId,
+      assignedUserId: result.assignedUserId,
+      startTime: result.startTime,
+      endTime: result.endTime,
+      reason: result.reason,
+      notes: result.notes,
+    );
+  } else {
+    await controller.updateAppointment(
+      appointmentId: initial.id,
+      assignedUserId: result.assignedUserId,
+      startTime: result.startTime,
+      endTime: result.endTime,
+      reason: result.reason,
+      notes: result.notes,
+    );
+  }
+
+  final Object? error = ref.read(appointmentControllerProvider).error;
+  if (error is AppointmentOverlapException) {
+    if (!context.mounted) return;
+    final bool confirmed = await _confirmOverlap(context);
+    if (!confirmed) return;
+
+    if (initial == null) {
+      await controller.create(
+        patientId: result.patientId,
+        assignedUserId: result.assignedUserId,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        reason: result.reason,
+        notes: result.notes,
+        overrideOverlap: true,
+      );
+    } else {
+      await controller.updateAppointment(
+        appointmentId: initial.id,
+        assignedUserId: result.assignedUserId,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        reason: result.reason,
+        notes: result.notes,
+        overrideOverlap: true,
+      );
+    }
+  } else if (error is AppointmentNotEditableException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
+  }
+}
+
+Future<bool> _confirmOverlap(BuildContext context) async {
+  final AppLocalizations l10n = AppLocalizations.of(context)!;
+  final bool? confirmed = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: Text(l10n.appointmentOverlapConfirmTitle),
+        content: Text(l10n.appointmentOverlapConfirmMessage),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      );
+    },
+  );
+  return confirmed ?? false;
 }
