@@ -1,6 +1,7 @@
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/auth_service_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/data/providers/locale_provider.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
@@ -65,6 +66,7 @@ class SettingsPage extends ConsumerWidget {
             onPressed: () async {
               await ref.read(authServiceProvider).signOut();
               ref.read(currentRoleProvider.notifier).clear();
+              ref.read(currentUserIdProvider.notifier).clear();
             },
             child: Text(l10n.settingsSignOut),
           ),

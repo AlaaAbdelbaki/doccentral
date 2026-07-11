@@ -42,7 +42,7 @@ class _FakeClinicRepository implements ClinicRepository {
   Future<bool> hasLocalClinic() async => true;
 
   @override
-  Future<void> provisionClinic({
+  Future<String> provisionClinic({
     required String clinicName,
     required String dentistFirstName,
     required String dentistLastName,
@@ -52,6 +52,9 @@ class _FakeClinicRepository implements ClinicRepository {
 
   @override
   Future<Role?> resolveRole(String authUserId) async => role;
+
+  @override
+  Future<String?> resolveUserId(String authUserId) async => 'user-1';
 
   @override
   Future<void> addStaffUser({

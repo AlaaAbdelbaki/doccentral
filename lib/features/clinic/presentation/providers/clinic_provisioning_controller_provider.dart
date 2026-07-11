@@ -1,6 +1,7 @@
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/has_local_clinic_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -20,7 +21,7 @@ class ClinicProvisioningController extends _$ClinicProvisioningController {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref
+      final String userId = await ref
           .read(clinicRepositoryProvider)
           .provisionClinic(
             clinicName: clinicName,
@@ -30,6 +31,7 @@ class ClinicProvisioningController extends _$ClinicProvisioningController {
             password: password,
           );
       ref.read(currentRoleProvider.notifier).setRole(Role.doctor);
+      ref.read(currentUserIdProvider.notifier).setUserId(userId);
       ref.invalidate(hasLocalClinicProvider);
     });
   }

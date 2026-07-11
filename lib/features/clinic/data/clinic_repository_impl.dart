@@ -22,7 +22,7 @@ class ClinicRepositoryImpl implements ClinicRepository {
   }
 
   @override
-  Future<void> provisionClinic({
+  Future<String> provisionClinic({
     required String clinicName,
     required String dentistFirstName,
     required String dentistLastName,
@@ -34,7 +34,7 @@ class ClinicRepositoryImpl implements ClinicRepository {
       password: password,
     );
 
-    await _db.transaction(() async {
+    return _db.transaction(() async {
       final DateTime now = DateTime.now();
       final String clinicId = _uuid.v4();
       final String userId = _uuid.v4();
@@ -94,14 +94,20 @@ class ClinicRepositoryImpl implements ClinicRepository {
               updatedAt: now,
             ),
           );
+
+      return userId;
     });
+  }
+
+  Future<User?> _findUser(String authUserId) {
+    return (_db.select(
+      _db.users,
+    )..where((t) => t.authUserId.equals(authUserId))).getSingleOrNull();
   }
 
   @override
   Future<Role?> resolveRole(String authUserId) async {
-    final User? user = await (_db.select(
-      _db.users,
-    )..where((t) => t.authUserId.equals(authUserId))).getSingleOrNull();
+    final User? user = await _findUser(authUserId);
     if (user == null) return null;
 
     final UserRole? userRole = await (_db.select(
@@ -115,6 +121,12 @@ class ClinicRepositoryImpl implements ClinicRepository {
     if (role == null) return null;
 
     return Role.values.asNameMap()[role.name];
+  }
+
+  @override
+  Future<String?> resolveUserId(String authUserId) async {
+    final User? user = await _findUser(authUserId);
+    return user?.id;
   }
 
   @override

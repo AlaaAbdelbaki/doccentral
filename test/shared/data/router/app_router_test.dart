@@ -44,7 +44,7 @@ class _FakeClinicRepository implements ClinicRepository {
   Future<bool> hasLocalClinic() async => hasClinic;
 
   @override
-  Future<void> provisionClinic({
+  Future<String> provisionClinic({
     required String clinicName,
     required String dentistFirstName,
     required String dentistLastName,
@@ -54,6 +54,10 @@ class _FakeClinicRepository implements ClinicRepository {
 
   @override
   Future<Role?> resolveRole(String authUserId) =>
+      throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String?> resolveUserId(String authUserId) =>
       throw UnimplementedError('not exercised by this test');
 
   @override

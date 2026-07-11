@@ -1,6 +1,7 @@
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/shared/data/providers/auth_service_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/auth/auth_exceptions.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -26,7 +27,11 @@ class SignInController extends _$SignInController {
           'No local role found for this account on this device (sync is not yet implemented).',
         );
       }
+      final String? userId = await ref.read(clinicRepositoryProvider).resolveUserId(authUserId);
       ref.read(currentRoleProvider.notifier).setRole(role);
+      if (userId != null) {
+        ref.read(currentUserIdProvider.notifier).setUserId(userId);
+      }
     });
   }
 }
