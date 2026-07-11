@@ -782,4 +782,57 @@ void main() {
       expect(find.byIcon(Icons.how_to_reg_outlined), findsNothing);
     },
   );
+
+  testWidgets('filtering by patient name narrows the visible appointments', (
+    WidgetTester tester,
+  ) async {
+    final DateTime now = DateTime.now();
+    await _pumpPage(tester, <AppointmentRecord>[
+      AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: now,
+        endTime: now.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      ),
+      AppointmentRecord(
+        id: '2',
+        patientId: 'p2',
+        patientName: 'Sarra Ben Youssef',
+        assignedUserId: 'dentist-1',
+        startTime: now,
+        endTime: now.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      ),
+    ]);
+
+    expect(find.text('Amine Trabelsi'), findsOneWidget);
+    expect(find.text('Sarra Ben Youssef'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Patient name'),
+      'sarra',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Amine Trabelsi'), findsNothing);
+    expect(find.text('Sarra Ben Youssef'), findsOneWidget);
+
+    expect(find.text('Clear all'), findsOneWidget);
+    await tester.tap(find.text('Clear all'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Amine Trabelsi'), findsOneWidget);
+    expect(find.text('Sarra Ben Youssef'), findsOneWidget);
+  });
+
+  testWidgets('the Clear all control is hidden when no filter is active', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, const <AppointmentRecord>[]);
+
+    expect(find.text('Clear all'), findsNothing);
+  });
 }

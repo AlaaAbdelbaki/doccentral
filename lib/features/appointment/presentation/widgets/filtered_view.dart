@@ -1,7 +1,7 @@
 part of '../calendar_page.dart';
 
-class _DayView extends ConsumerWidget {
-  const _DayView({
+class _FilteredView extends ConsumerWidget {
+  const _FilteredView({
     required this.canManageAppointments,
     required this.canCheckIn,
     required this.patients,
@@ -17,7 +17,7 @@ class _DayView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final AsyncValue<List<AppointmentRecord>> appointmentsAsync = ref.watch(
-      todaysAppointmentsProvider,
+      filteredAppointmentsProvider,
     );
 
     return appointmentsAsync.when(

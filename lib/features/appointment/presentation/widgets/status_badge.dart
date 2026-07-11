@@ -18,7 +18,7 @@ class _StatusBadge extends StatelessWidget {
     }
   }
 
-  String _label(AppLocalizations l10n) {
+  static String labelFor(AppLocalizations l10n, AppointmentStatus status) {
     switch (status) {
       case AppointmentStatus.scheduled:
         return l10n.appointmentStatusScheduled;
@@ -46,7 +46,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.md),
       ),
       child: Text(
-        _label(l10n),
+        labelFor(l10n, status),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w600,

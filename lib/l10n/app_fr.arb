@@ -115,5 +115,12 @@
   "visitStatusCheckedIn": "Enregistré",
   "visitStatusInProgress": "En cours",
   "visitStatusCompleted": "Terminée",
-  "visitStatusBilled": "Facturée"
+  "visitStatusBilled": "Facturée",
+  "appointmentFilterDateRange": "Période",
+  "appointmentFilterPatientName": "Nom du patient",
+  "appointmentFilterStatus": "Statut",
+  "appointmentFilterAllStatuses": "Tous les statuts",
+  "appointmentFilterAllStaff": "Tout le personnel",
+  "appointmentFilterClearAll": "Tout effacer",
+  "appointmentFilterPickDateRange": "Choisir une période"
 }

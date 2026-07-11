@@ -350,5 +350,26 @@
   "@visitStatusCompleted": { "description": "Visit status label" },
 
   "visitStatusBilled": "Billed",
-  "@visitStatusBilled": { "description": "Visit status label" }
+  "@visitStatusBilled": { "description": "Visit status label" },
+
+  "appointmentFilterDateRange": "Date range",
+  "@appointmentFilterDateRange": { "description": "Appointment filter: date range field label" },
+
+  "appointmentFilterPatientName": "Patient name",
+  "@appointmentFilterPatientName": { "description": "Appointment filter: patient name field label" },
+
+  "appointmentFilterStatus": "Status",
+  "@appointmentFilterStatus": { "description": "Appointment filter: status field label" },
+
+  "appointmentFilterAllStatuses": "All statuses",
+  "@appointmentFilterAllStatuses": { "description": "Appointment filter: no status filter selected" },
+
+  "appointmentFilterAllStaff": "All staff",
+  "@appointmentFilterAllStaff": { "description": "Appointment filter: no assigned-user filter selected" },
+
+  "appointmentFilterClearAll": "Clear all",
+  "@appointmentFilterClearAll": { "description": "Button to remove all active appointment filters" },
+
+  "appointmentFilterPickDateRange": "Pick date range",
+  "@appointmentFilterPickDateRange": { "description": "Button to open the date-range picker" }
 }

@@ -115,5 +115,12 @@
   "visitStatusCheckedIn": "تم تسجيل الوصول",
   "visitStatusInProgress": "قيد التنفيذ",
   "visitStatusCompleted": "مكتملة",
-  "visitStatusBilled": "مفوترة"
+  "visitStatusBilled": "مفوترة",
+  "appointmentFilterDateRange": "النطاق الزمني",
+  "appointmentFilterPatientName": "اسم المريض",
+  "appointmentFilterStatus": "الحالة",
+  "appointmentFilterAllStatuses": "كل الحالات",
+  "appointmentFilterAllStaff": "كل الموظفين",
+  "appointmentFilterClearAll": "مسح الكل",
+  "appointmentFilterPickDateRange": "اختيار نطاق زمني"
 }

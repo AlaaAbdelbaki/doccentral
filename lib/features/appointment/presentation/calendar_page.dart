@@ -1,13 +1,16 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
+import 'package:docentral/features/appointment/domain/appointment_filters.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_controller_provider.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_filters_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_patient_options_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/assignable_users_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/calendar_view_mode_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/calendar_week_anchor_provider.dart';
+import 'package:docentral/features/appointment/presentation/providers/filtered_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/todays_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
@@ -29,6 +32,8 @@ part 'widgets/appointment_row.dart';
 part 'widgets/calendar_side_panel.dart';
 part 'widgets/cancel_reason_dialog.dart';
 part 'widgets/day_view.dart';
+part 'widgets/filter_bar.dart';
+part 'widgets/filtered_view.dart';
 part 'widgets/status_badge.dart';
 part 'widgets/week_view.dart';
 
@@ -54,6 +59,9 @@ class CalendarPage extends ConsumerWidget {
         const <PatientRecord>[];
     final List<AssignableUser> assignableUsers =
         ref.watch(assignableUsersProvider).value ?? const <AssignableUser>[];
+    final AppointmentFilters filters = ref.watch(
+      appointmentFiltersControllerProvider,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -96,22 +104,40 @@ class CalendarPage extends ConsumerWidget {
             ),
         ],
       ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
         children: <Widget>[
+          _FilterBar(assignableUsers: assignableUsers),
+          const Divider(height: 1),
           Expanded(
-            child: switch (viewMode) {
-              CalendarViewMode.day => _DayView(
-                canManageAppointments: canManageAppointments,
-                canCheckIn: canCheckIn,
-                patients: patients,
-                assignableUsers: assignableUsers,
-              ),
-              CalendarViewMode.week => const _WeekView(),
-            },
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(
+                  child: filters.isActive
+                      ? _FilteredView(
+                          canManageAppointments: canManageAppointments,
+                          canCheckIn: canCheckIn,
+                          patients: patients,
+                          assignableUsers: assignableUsers,
+                        )
+                      : switch (viewMode) {
+                          CalendarViewMode.day => _DayView(
+                            canManageAppointments: canManageAppointments,
+                            canCheckIn: canCheckIn,
+                            patients: patients,
+                            assignableUsers: assignableUsers,
+                          ),
+                          CalendarViewMode.week => const _WeekView(),
+                        },
+                ),
+                const VerticalDivider(width: 1),
+                const SizedBox(
+                  width: _sidePanelWidth,
+                  child: _CalendarSidePanel(),
+                ),
+              ],
+            ),
           ),
-          const VerticalDivider(width: 1),
-          const SizedBox(width: _sidePanelWidth, child: _CalendarSidePanel()),
         ],
       ),
     );
@@ -330,6 +356,49 @@ Future<void> _checkInAppointment(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
   }
+}
+
+Widget _buildAppointmentRow(
+  BuildContext context,
+  WidgetRef ref,
+  AppointmentRecord appointment, {
+  required bool canManageAppointments,
+  required bool canCheckIn,
+  required List<PatientRecord> patients,
+  required List<AssignableUser> assignableUsers,
+}) {
+  final bool canEdit =
+      canManageAppointments &&
+      appointment.status == AppointmentStatus.scheduled;
+  return _AppointmentRow(
+    appointment: appointment,
+    onEdit: !canEdit
+        ? null
+        : () => _showAppointmentFormDialog(
+            context,
+            ref,
+            patients: patients,
+            assignableUsers: assignableUsers,
+            initial: appointment,
+          ),
+    onCancel: !canEdit
+        ? null
+        : () => _cancelAppointmentFlow(
+            context,
+            ref,
+            appointment,
+            patients: patients,
+            assignableUsers: assignableUsers,
+          ),
+    onCheckIn: !canCheckIn || appointment.status != AppointmentStatus.scheduled
+        ? null
+        : () => _checkInAppointment(context, ref, appointment),
+    onViewPatientFile:
+        appointment.status != AppointmentStatus.checkedIn &&
+            appointment.status != AppointmentStatus.completed
+        ? null
+        : () => _viewPatientFile(context, ref, appointment, patients),
+  );
 }
 
 void _viewPatientFile(
