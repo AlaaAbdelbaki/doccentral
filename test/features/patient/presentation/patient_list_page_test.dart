@@ -4,6 +4,7 @@ import 'package:docentral/features/patient/presentation/patient_list_page.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,6 +55,33 @@ class _FakePatientRepository implements PatientRepository {
       ),
     );
   }
+
+  final List<PatientRecord> updated = <PatientRecord>[];
+
+  @override
+  Future<void> updatePatient({
+    required Role role,
+    required String actorUserId,
+    required String patientId,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  }) async {
+    updated.add(
+      PatientRecord(
+        id: patientId,
+        firstName: firstName,
+        lastName: lastName,
+        dateOfBirth: dateOfBirth,
+        phone: phone,
+        email: email,
+        historyNotes: historyNotes,
+      ),
+    );
+  }
 }
 
 Future<ProviderContainer> _pumpPage(
@@ -65,6 +93,7 @@ Future<ProviderContainer> _pumpPage(
   );
   addTearDown(container.dispose);
   container.read(currentRoleProvider.notifier).setRole(Role.assistant);
+  container.read(currentUserIdProvider.notifier).setUserId('actor-1');
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -140,5 +169,34 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('This field is required'), findsWidgets);
+  });
+
+  testWidgets('editing a patient pre-fills the form and submits the update', (
+    WidgetTester tester,
+  ) async {
+    final _FakePatientRepository fakeRepository = _FakePatientRepository(
+      seedPatients,
+    );
+    await _pumpPage(tester, fakeRepository);
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit patient'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Amine'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Trabelsi'),
+      'Ben Salah',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.updated.length, 1);
+    expect(fakeRepository.updated.first.id, '1');
+    expect(fakeRepository.updated.first.lastName, 'Ben Salah');
   });
 }

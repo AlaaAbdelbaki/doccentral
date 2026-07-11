@@ -13,4 +13,19 @@ abstract class PatientRepository {
     String? email,
     String? historyNotes,
   });
+
+  /// Updates identity fields and history notes for an existing patient.
+  /// Records an edit-log entry (actor, UTC timestamp, changed field names)
+  /// when any field actually changes.
+  Future<void> updatePatient({
+    required Role role,
+    required String actorUserId,
+    required String patientId,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  });
 }

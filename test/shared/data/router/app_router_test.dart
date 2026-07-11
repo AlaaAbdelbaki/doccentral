@@ -33,6 +33,19 @@ class _FakePatientRepository implements PatientRepository {
     String? email,
     String? historyNotes,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updatePatient({
+    required Role role,
+    required String actorUserId,
+    required String patientId,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 class _FakeClinicRepository implements ClinicRepository {

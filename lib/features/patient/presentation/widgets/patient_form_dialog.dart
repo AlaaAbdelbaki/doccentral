@@ -19,9 +19,10 @@ class PatientFormResult {
 }
 
 class _PatientFormDialog extends StatefulWidget {
-  const _PatientFormDialog({required this.onSubmit});
+  const _PatientFormDialog({required this.onSubmit, this.initial});
 
   final void Function(PatientFormResult result) onSubmit;
+  final PatientRecord? initial;
 
   @override
   State<_PatientFormDialog> createState() => _PatientFormDialogState();
@@ -29,12 +30,21 @@ class _PatientFormDialog extends StatefulWidget {
 
 class _PatientFormDialogState extends State<_PatientFormDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _historyNotesController = TextEditingController();
-  DateTime? _dateOfBirth;
+  late final TextEditingController _firstNameController = TextEditingController(
+    text: widget.initial?.firstName,
+  );
+  late final TextEditingController _lastNameController = TextEditingController(
+    text: widget.initial?.lastName,
+  );
+  late final TextEditingController _phoneController = TextEditingController(
+    text: widget.initial?.phone,
+  );
+  late final TextEditingController _emailController = TextEditingController(
+    text: widget.initial?.email,
+  );
+  late final TextEditingController _historyNotesController =
+      TextEditingController(text: widget.initial?.historyNotes);
+  late DateTime? _dateOfBirth = widget.initial?.dateOfBirth;
   String? _dateOfBirthError;
 
   @override
@@ -97,7 +107,11 @@ class _PatientFormDialogState extends State<_PatientFormDialog> {
         : null;
 
     return AlertDialog(
-      title: Text(l10n.patientFormTitle),
+      title: Text(
+        widget.initial == null
+            ? l10n.patientFormTitle
+            : l10n.patientEditFormTitle,
+      ),
       content: SizedBox(
         width: 420,
         child: Form(

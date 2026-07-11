@@ -39,13 +39,20 @@ void main() {
   group('Shared permissions', () {
     test('doctor and assistant can create patients, nurse cannot', () {
       expect(hasPermission(Role.doctor, Permission.canCreatePatient), isTrue);
-      expect(hasPermission(Role.assistant, Permission.canCreatePatient), isTrue);
+      expect(
+        hasPermission(Role.assistant, Permission.canCreatePatient),
+        isTrue,
+      );
       expect(hasPermission(Role.nurse, Permission.canCreatePatient), isFalse);
     });
 
     test('all roles can view patients', () {
       for (final role in Role.values) {
-        expect(hasPermission(role, Permission.canViewPatients), isTrue, reason: '$role');
+        expect(
+          hasPermission(role, Permission.canViewPatients),
+          isTrue,
+          reason: '$role',
+        );
       }
     });
   });

@@ -20,6 +20,9 @@ class DatabaseKeyService {
 
   String _generateKey() {
     final random = Random.secure();
-    return List.generate(64, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    return List.generate(
+      64,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
   }
 }

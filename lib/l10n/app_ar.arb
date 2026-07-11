@@ -63,6 +63,8 @@
   "patientHistoryNotes": "السوابق الطبية",
   "patientRequiredFieldError": "هذا الحقل مطلوب",
   "patientFormTitle": "مريض جديد",
+  "patientEditFormTitle": "تعديل بيانات المريض",
+  "patientEditButton": "تعديل",
   "patientOverviewSection": "نظرة عامة",
   "patientRecentVisitsSection": "الزيارات الأخيرة",
   "patientNoVisitsYet": "سجل الزيارات غير متوفر بعد",

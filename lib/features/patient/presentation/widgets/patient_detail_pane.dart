@@ -1,9 +1,15 @@
 part of '../patient_list_page.dart';
 
 class _PatientDetailPane extends StatelessWidget {
-  const _PatientDetailPane({required this.patient});
+  const _PatientDetailPane({
+    required this.patient,
+    required this.canEdit,
+    required this.onEdit,
+  });
 
   final PatientRecord? patient;
+  final bool canEdit;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -26,16 +32,25 @@ class _PatientDetailPane extends StatelessWidget {
                 child: Text(_PatientRow.initials(p.firstName, p.lastName)),
               ),
               const SizedBox(width: AppSpacing.md),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    '${p.firstName} ${p.lastName}',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  Text(DateFormat('dd/MM/yyyy').format(p.dateOfBirth)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      '${p.firstName} ${p.lastName}',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(DateFormat('dd/MM/yyyy').format(p.dateOfBirth)),
+                  ],
+                ),
               ),
+              if (canEdit)
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: l10n.patientEditButton,
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),

@@ -93,4 +93,81 @@ class PatientRepositoryImpl implements PatientRepository {
           ),
         );
   }
+
+  @override
+  Future<void> updatePatient({
+    required Role role,
+    required String actorUserId,
+    required String patientId,
+    required String firstName,
+    required String lastName,
+    required DateTime dateOfBirth,
+    required String phone,
+    String? email,
+    String? historyNotes,
+  }) async {
+    requirePermission(role, Permission.canEditPatient);
+
+    final String trimmedFirstName = firstName.trim();
+    final String trimmedLastName = lastName.trim();
+    final String trimmedPhone = phone.trim();
+    final String? trimmedEmail = email?.trim();
+    final String? trimmedHistoryNotes = historyNotes?.trim();
+
+    if (trimmedFirstName.isEmpty) {
+      throw const PatientValidationException('firstName');
+    }
+    if (trimmedLastName.isEmpty) {
+      throw const PatientValidationException('lastName');
+    }
+    if (trimmedPhone.isEmpty) {
+      throw const PatientValidationException('phone');
+    }
+
+    await _db.transaction(() async {
+      final Patient existing = await (_db.select(
+        _db.patients,
+      )..where((Patients t) => t.id.equals(patientId))).getSingle();
+
+      final List<String> changedFields = <String>[
+        if (existing.firstName != trimmedFirstName) 'firstName',
+        if (existing.lastName != trimmedLastName) 'lastName',
+        if (existing.dateOfBirth != dateOfBirth) 'dateOfBirth',
+        if (existing.phone != trimmedPhone) 'phone',
+        if (existing.email != trimmedEmail) 'email',
+        if (existing.historyNotes != trimmedHistoryNotes) 'historyNotes',
+      ];
+
+      final DateTime now = DateTime.now().toUtc();
+
+      await (_db.update(
+        _db.patients,
+      )..where((Patients t) => t.id.equals(patientId))).write(
+        PatientsCompanion(
+          firstName: Value(trimmedFirstName),
+          lastName: Value(trimmedLastName),
+          dateOfBirth: Value(dateOfBirth),
+          phone: Value(trimmedPhone),
+          email: Value(trimmedEmail),
+          historyNotes: Value(trimmedHistoryNotes),
+          updatedAt: Value(now),
+        ),
+      );
+
+      if (changedFields.isNotEmpty) {
+        await _db
+            .into(_db.patientEditLogs)
+            .insert(
+              PatientEditLogsCompanion.insert(
+                id: _uuid.v4(),
+                patientId: patientId,
+                actorUserId: actorUserId,
+                changedFields: changedFields.join(','),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+      }
+    });
+  }
 }

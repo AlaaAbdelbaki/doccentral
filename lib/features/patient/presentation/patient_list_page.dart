@@ -33,6 +33,9 @@ class PatientListPage extends ConsumerWidget {
     final bool canCreate = ref.watch(permissionCheckerProvider)(
       Permission.canCreatePatient,
     );
+    final bool canEdit = ref.watch(permissionCheckerProvider)(
+      Permission.canEditPatient,
+    );
     final int patientCount = patientsAsync.value?.length ?? 0;
 
     return Scaffold(
@@ -75,7 +78,17 @@ class PatientListPage extends ConsumerWidget {
             ),
           ),
           const VerticalDivider(width: 1),
-          Expanded(child: _PatientDetailPane(patient: selected)),
+          Expanded(
+            child: _PatientDetailPane(
+              patient: selected,
+              canEdit: canEdit,
+              onEdit: () {
+                if (selected != null) {
+                  _showEditPatientDialog(context, ref, selected);
+                }
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -90,6 +103,34 @@ class PatientListPage extends ConsumerWidget {
             ref
                 .read(patientControllerProvider.notifier)
                 .create(
+                  firstName: result.firstName,
+                  lastName: result.lastName,
+                  dateOfBirth: result.dateOfBirth,
+                  phone: result.phone,
+                  email: result.email,
+                  historyNotes: result.historyNotes,
+                );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showEditPatientDialog(
+    BuildContext context,
+    WidgetRef ref,
+    PatientRecord patient,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return _PatientFormDialog(
+          initial: patient,
+          onSubmit: (PatientFormResult result) {
+            ref
+                .read(patientControllerProvider.notifier)
+                .updatePatient(
+                  patientId: patient.id,
                   firstName: result.firstName,
                   lastName: result.lastName,
                   dateOfBirth: result.dateOfBirth,

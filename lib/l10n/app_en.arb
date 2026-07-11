@@ -190,6 +190,12 @@
   "patientFormTitle": "New patient",
   "@patientFormTitle": { "description": "Add-patient dialog title" },
 
+  "patientEditFormTitle": "Edit patient",
+  "@patientEditFormTitle": { "description": "Edit-patient dialog title" },
+
+  "patientEditButton": "Edit",
+  "@patientEditButton": { "description": "Button/tooltip to open the edit-patient dialog" },
+
   "patientOverviewSection": "Overview",
   "@patientOverviewSection": { "description": "Patient detail overview section title" },
 

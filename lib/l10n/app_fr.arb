@@ -63,6 +63,8 @@
   "patientHistoryNotes": "Antécédents",
   "patientRequiredFieldError": "Ce champ est obligatoire",
   "patientFormTitle": "Nouveau patient",
+  "patientEditFormTitle": "Modifier le patient",
+  "patientEditButton": "Modifier",
   "patientOverviewSection": "Aperçu",
   "patientRecentVisitsSection": "Visites récentes",
   "patientNoVisitsYet": "L'historique des visites n'est pas encore disponible",

@@ -27,7 +27,9 @@ class SignInController extends _$SignInController {
           'No local role found for this account on this device (sync is not yet implemented).',
         );
       }
-      final String? userId = await ref.read(clinicRepositoryProvider).resolveUserId(authUserId);
+      final String? userId = await ref
+          .read(clinicRepositoryProvider)
+          .resolveUserId(authUserId);
       ref.read(currentRoleProvider.notifier).setRole(role);
       if (userId != null) {
         ref.read(currentUserIdProvider.notifier).setUserId(userId);

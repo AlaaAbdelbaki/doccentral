@@ -7,11 +7,7 @@ part 'locale_provider.g.dart';
 const _localeKey = 'app_locale';
 
 /// Supported locales in display order.
-const supportedLocales = [
-  Locale('fr'),
-  Locale('en'),
-  Locale('ar'),
-];
+const supportedLocales = [Locale('fr'), Locale('en'), Locale('ar')];
 
 const _defaultLocale = Locale('fr');
 
@@ -29,7 +25,9 @@ class AppLocale extends _$AppLocale {
   }
 
   void setLocale(Locale locale) {
-    ref.read(sharedPreferencesProvider).setString(_localeKey, locale.languageCode);
+    ref
+        .read(sharedPreferencesProvider)
+        .setString(_localeKey, locale.languageCode);
     state = locale;
   }
 }

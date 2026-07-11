@@ -138,4 +138,109 @@ void main() {
       expect(patients.first.lastName, 'Ben Youssef');
     });
   });
+
+  group('PatientRepositoryImpl.updatePatient', () {
+    Future<PatientRecord> seedOne() async {
+      await repository.create(
+        role: Role.assistant,
+        firstName: 'Amine',
+        lastName: 'Trabelsi',
+        dateOfBirth: DateTime(1990, 5, 12),
+        phone: '20123456',
+        email: 'amine@example.com',
+      );
+      return (await repository.watchAll(role: Role.doctor).first).first;
+    }
+
+    test(
+      'creates an edit log entry with the correct actor and changed fields',
+      () async {
+        final PatientRecord existing = await seedOne();
+
+        await repository.updatePatient(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          patientId: existing.id,
+          firstName: existing.firstName,
+          lastName: 'Ben Salah',
+          dateOfBirth: existing.dateOfBirth,
+          phone: '11223344',
+          email: existing.email,
+          historyNotes: existing.historyNotes,
+        );
+
+        final List<PatientEditLog> logs = await db
+            .select(db.patientEditLogs)
+            .get();
+        expect(logs.length, 1);
+        expect(logs.first.patientId, existing.id);
+        expect(logs.first.actorUserId, 'actor-1');
+        final Set<String> changedFields = logs.first.changedFields
+            .split(',')
+            .toSet();
+        expect(changedFields, <String>{'lastName', 'phone'});
+      },
+    );
+
+    test('does not create an edit log entry when nothing changes', () async {
+      final PatientRecord existing = await seedOne();
+
+      await repository.updatePatient(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        patientId: existing.id,
+        firstName: existing.firstName,
+        lastName: existing.lastName,
+        dateOfBirth: existing.dateOfBirth,
+        phone: existing.phone,
+        email: existing.email,
+        historyNotes: existing.historyNotes,
+      );
+
+      final List<PatientEditLog> logs = await db
+          .select(db.patientEditLogs)
+          .get();
+      expect(logs, isEmpty);
+    });
+
+    test(
+      'throws PatientValidationException when firstName is cleared',
+      () async {
+        final PatientRecord existing = await seedOne();
+
+        expect(
+          () => repository.updatePatient(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            patientId: existing.id,
+            firstName: '   ',
+            lastName: existing.lastName,
+            dateOfBirth: existing.dateOfBirth,
+            phone: existing.phone,
+          ),
+          throwsA(isA<PatientValidationException>()),
+        );
+      },
+    );
+
+    test(
+      'throws PermissionDeniedException when role lacks canEditPatient',
+      () async {
+        final PatientRecord existing = await seedOne();
+
+        expect(
+          () => repository.updatePatient(
+            role: Role.nurse,
+            actorUserId: 'actor-1',
+            patientId: existing.id,
+            firstName: existing.firstName,
+            lastName: existing.lastName,
+            dateOfBirth: existing.dateOfBirth,
+            phone: existing.phone,
+          ),
+          throwsA(isA<PermissionDeniedException>()),
+        );
+      },
+    );
+  });
 }
