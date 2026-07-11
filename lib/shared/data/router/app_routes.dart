@@ -7,7 +7,8 @@ enum AppRoutes {
   dayCloseout(path: '/day-closeout', name: 'dayCloseout'),
   settings(path: '/settings', name: 'settings'),
   signUp(path: '/sign-up', name: 'signUp'),
-  signIn(path: '/sign-in', name: 'signIn');
+  signIn(path: '/sign-in', name: 'signIn'),
+  addStaffUser(path: '/settings/add-staff', name: 'addStaffUser');
 
   const AppRoutes({required this.path, required this.name});
 

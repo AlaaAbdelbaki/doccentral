@@ -52,6 +52,16 @@ class _FakeClinicRepository implements ClinicRepository {
 
   @override
   Future<Role?> resolveRole(String authUserId) async => role;
+
+  @override
+  Future<void> addStaffUser({
+    required Role actingRole,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required Role role,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 Future<void> _pumpSignInPage(

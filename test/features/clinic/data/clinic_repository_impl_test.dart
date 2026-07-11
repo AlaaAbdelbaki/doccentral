@@ -2,14 +2,16 @@ import 'package:docentral/features/clinic/data/clinic_repository_impl.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/auth/auth_exceptions.dart';
 import 'package:docentral/shared/domain/auth/auth_service.dart';
+import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeAuthService implements AuthService {
-  _FakeAuthService({this.shouldFail = false});
+  _FakeAuthService({this.userId = defaultUserId, this.shouldFail = false});
 
-  static const String userId = 'auth-user-1';
+  static const String defaultUserId = 'auth-user-1';
+  final String userId;
   final bool shouldFail;
 
   @override
@@ -156,7 +158,9 @@ void main() {
         password: 'password123',
       );
 
-      final Role? role = await repository.resolveRole(_FakeAuthService.userId);
+      final Role? role = await repository.resolveRole(
+        _FakeAuthService.defaultUserId,
+      );
       expect(role, Role.doctor);
     });
 
@@ -176,5 +180,82 @@ void main() {
       final Role? role = await repository.resolveRole('unknown-auth-id');
       expect(role, isNull);
     });
+  });
+
+  group('ClinicRepositoryImpl.addStaffUser', () {
+    Future<void> provisionDentist() async {
+      final ClinicRepositoryImpl repository = ClinicRepositoryImpl(
+        db,
+        _FakeAuthService(),
+      );
+      await repository.provisionClinic(
+        clinicName: 'Cabinet Test',
+        dentistFirstName: 'Amine',
+        dentistLastName: 'Trabelsi',
+        email: 'amine@example.com',
+        password: 'password123',
+      );
+    }
+
+    test(
+      'creates a staff User linked to the existing Assistant role',
+      () async {
+        await provisionDentist();
+        final ClinicRepositoryImpl repository = ClinicRepositoryImpl(
+          db,
+          _FakeAuthService(userId: 'auth-staff-1'),
+        );
+
+        await repository.addStaffUser(
+          actingRole: Role.doctor,
+          firstName: 'Sarra',
+          lastName: 'Ben Youssef',
+          email: 'sarra@example.com',
+          password: 'password123',
+          role: Role.assistant,
+        );
+
+        final List<User> users = await db.select(db.users).get();
+        expect(users.length, 2);
+        final User staffUser = users.firstWhere(
+          (User u) => u.authUserId == 'auth-staff-1',
+        );
+        expect(staffUser.isClinicOwner, isFalse);
+
+        final List<RoleRow> roles = await db.select(db.roles).get();
+        expect(roles.length, 3);
+
+        final List<UserRole> userRoles = await db.select(db.userRoles).get();
+        expect(userRoles.length, 2);
+
+        final Role? resolvedRole = await repository.resolveRole('auth-staff-1');
+        expect(resolvedRole, Role.assistant);
+      },
+    );
+
+    test(
+      'throws PermissionDeniedException when acting role is not the Dentist',
+      () async {
+        await provisionDentist();
+        final ClinicRepositoryImpl repository = ClinicRepositoryImpl(
+          db,
+          _FakeAuthService(userId: 'auth-staff-1'),
+        );
+
+        await expectLater(
+          repository.addStaffUser(
+            actingRole: Role.assistant,
+            firstName: 'Sarra',
+            lastName: 'Ben Youssef',
+            email: 'sarra@example.com',
+            password: 'password123',
+            role: Role.assistant,
+          ),
+          throwsA(isA<PermissionDeniedException>()),
+        );
+
+        expect(await db.select(db.users).get(), hasLength(1));
+      },
+    );
   });
 }

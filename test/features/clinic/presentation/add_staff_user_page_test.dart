@@ -1,7 +1,8 @@
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
+import 'package:docentral/features/clinic/presentation/add_staff_user_page.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
-import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
 import 'package:docentral/l10n/app_localizations.dart';
+import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/domain/auth/auth_exceptions.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
@@ -13,11 +14,11 @@ class _FakeClinicRepository implements ClinicRepository {
   _FakeClinicRepository({this.shouldFail = false});
 
   final bool shouldFail;
-  bool provisioned = false;
-  String? lastClinicName;
+  Role? lastRole;
+  String? lastEmail;
 
   @override
-  Future<bool> hasLocalClinic() async => provisioned;
+  Future<bool> hasLocalClinic() async => true;
 
   @override
   Future<void> provisionClinic({
@@ -26,11 +27,7 @@ class _FakeClinicRepository implements ClinicRepository {
     required String dentistLastName,
     required String email,
     required String password,
-  }) async {
-    if (shouldFail) throw const AuthException('offline');
-    lastClinicName = clinicName;
-    provisioned = true;
-  }
+  }) => throw UnimplementedError('not exercised by this test');
 
   @override
   Future<Role?> resolveRole(String authUserId) async => Role.doctor;
@@ -43,30 +40,38 @@ class _FakeClinicRepository implements ClinicRepository {
     required String email,
     required String password,
     required Role role,
-  }) => throw UnimplementedError('not exercised by this test');
+  }) async {
+    if (shouldFail) throw const AuthException('offline');
+    lastRole = role;
+    lastEmail = email;
+  }
 }
 
-Future<ProviderContainer> _pumpSignUpPage(
-  WidgetTester tester,
-  _FakeClinicRepository fakeRepository,
-) async {
+Future<_FakeClinicRepository> _pumpAddStaffPage(
+  WidgetTester tester, {
+  bool shouldFail = false,
+}) async {
+  final _FakeClinicRepository fakeRepository = _FakeClinicRepository(
+    shouldFail: shouldFail,
+  );
   final ProviderContainer container = ProviderContainer(
     overrides: [clinicRepositoryProvider.overrideWithValue(fakeRepository)],
   );
   addTearDown(container.dispose);
+  container.read(currentRoleProvider.notifier).setRole(Role.doctor);
 
   final GoRouter router = GoRouter(
-    initialLocation: '/sign-up',
+    initialLocation: '/settings',
     routes: [
       GoRoute(
-        path: '/sign-up',
-        name: 'signUp',
-        builder: (context, state) => const SignUpPage(),
+        path: '/add-staff',
+        name: 'addStaffUser',
+        builder: (context, state) => const AddStaffUserPage(),
       ),
       GoRoute(
-        path: '/calendar',
-        name: 'calendar',
-        builder: (context, state) => const Text('Calendar Page'),
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const Text('Settings Page'),
       ),
     ],
   );
@@ -82,131 +87,119 @@ Future<ProviderContainer> _pumpSignUpPage(
     ),
   );
   await tester.pumpAndSettle();
-  return container;
+
+  // Push (not go) so there's a prior page for the page's own context.pop()
+  // to return to on success, matching how it's reached from Settings.
+  router.pushNamed('addStaffUser');
+  await tester.pumpAndSettle();
+
+  return fakeRepository;
 }
 
 void main() {
   testWidgets('shows required-field errors when submitted empty', (
     WidgetTester tester,
   ) async {
-    await _pumpSignUpPage(tester, _FakeClinicRepository());
+    await _pumpAddStaffPage(tester);
 
-    await tester.tap(find.text('Create clinic'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add staff'));
     await tester.pumpAndSettle();
 
     expect(find.text('This field is required'), findsWidgets);
   });
 
-  testWidgets('shows a mismatch error when passwords differ', (
+  testWidgets('defaults to Assistant role and submits successfully', (
     WidgetTester tester,
   ) async {
-    await _pumpSignUpPage(tester, _FakeClinicRepository());
+    final _FakeClinicRepository fakeRepository = await _pumpAddStaffPage(
+      tester,
+    );
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Clinic name'),
-      'Cabinet Test',
-    );
-    await tester.enterText(
       find.widgetWithText(TextFormField, 'First name'),
-      'Amine',
+      'Sarra',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Last name'),
-      'Trabelsi',
+      'Ben Youssef',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Email'),
-      'amine@example.com',
+      'sarra@example.com',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
+      find.widgetWithText(TextFormField, 'Initial password'),
       'password123',
     );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
-      'different123',
-    );
 
-    await tester.tap(find.text('Create clinic'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add staff'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Passwords do not match'), findsOneWidget);
+    expect(fakeRepository.lastRole, Role.assistant);
+    expect(fakeRepository.lastEmail, 'sarra@example.com');
   });
 
-  testWidgets('successful submit navigates to calendar', (
-    WidgetTester tester,
-  ) async {
-    final _FakeClinicRepository fakeRepository = _FakeClinicRepository();
-    await _pumpSignUpPage(tester, fakeRepository);
+  testWidgets('can select the Nurse role', (WidgetTester tester) async {
+    final _FakeClinicRepository fakeRepository = await _pumpAddStaffPage(
+      tester,
+    );
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Clinic name'),
-      'Cabinet Test',
-    );
-    await tester.enterText(
       find.widgetWithText(TextFormField, 'First name'),
-      'Amine',
+      'Sarra',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Last name'),
-      'Trabelsi',
+      'Ben Youssef',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Email'),
-      'amine@example.com',
+      'sarra@example.com',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
-      'password123',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
+      find.widgetWithText(TextFormField, 'Initial password'),
       'password123',
     );
 
-    await tester.tap(find.text('Create clinic'));
+    await tester.tap(find.byType(DropdownButtonFormField<Role>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nurse').last);
     await tester.pumpAndSettle();
 
-    expect(fakeRepository.lastClinicName, 'Cabinet Test');
-    expect(find.text('Calendar Page'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Add staff'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.lastRole, Role.nurse);
   });
 
-  testWidgets('shows an error message when provisioning fails', (
+  testWidgets('shows an error message when adding staff fails', (
     WidgetTester tester,
   ) async {
-    await _pumpSignUpPage(tester, _FakeClinicRepository(shouldFail: true));
+    await _pumpAddStaffPage(tester, shouldFail: true);
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Clinic name'),
-      'Cabinet Test',
-    );
-    await tester.enterText(
       find.widgetWithText(TextFormField, 'First name'),
-      'Amine',
+      'Sarra',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Last name'),
-      'Trabelsi',
+      'Ben Youssef',
     );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Email'),
-      'amine@example.com',
+      'sarra@example.com',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
-      'password123',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm password'),
+      find.widgetWithText(TextFormField, 'Initial password'),
       'password123',
     );
 
-    await tester.tap(find.text('Create clinic'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Add staff'));
     await tester.pumpAndSettle();
 
     expect(
       find.text(
-        'Could not create your clinic. Check your connection and try again.',
+        'Could not add this staff member. Check the details and your connection.',
       ),
       findsOneWidget,
     );

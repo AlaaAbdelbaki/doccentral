@@ -1,6 +1,8 @@
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/auth/auth_service.dart';
+import 'package:docentral/shared/domain/rbac/permission.dart';
+import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -113,5 +115,62 @@ class ClinicRepositoryImpl implements ClinicRepository {
     if (role == null) return null;
 
     return Role.values.asNameMap()[role.name];
+  }
+
+  @override
+  Future<void> addStaffUser({
+    required Role actingRole,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required Role role,
+  }) async {
+    requirePermission(actingRole, Permission.canManageStaff);
+
+    final String authUserId = await _authService.signUp(
+      email: email,
+      password: password,
+    );
+
+    await _db.transaction(() async {
+      final Clinic clinic = await _db.select(_db.clinics).getSingle();
+      final RoleRow roleRow =
+          await (_db.select(_db.roles)..where(
+                (t) => t.clinicId.equals(clinic.id) & t.name.equals(role.name),
+              ))
+              .getSingle();
+
+      final DateTime now = DateTime.now();
+      final String userId = _uuid.v4();
+
+      await _db
+          .into(_db.users)
+          .insert(
+            UsersCompanion.insert(
+              id: userId,
+              clinicId: clinic.id,
+              firstName: firstName,
+              lastName: lastName,
+              email: email,
+              authUserId: authUserId,
+              isClinicOwner: const Value(false),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await _db
+          .into(_db.userRoles)
+          .insert(
+            UserRolesCompanion.insert(
+              id: _uuid.v4(),
+              userId: userId,
+              roleId: roleRow.id,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    });
   }
 }

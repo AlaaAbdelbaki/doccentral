@@ -1,5 +1,6 @@
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
 import 'package:docentral/features/auth/presentation/sign_in_page.dart';
+import 'package:docentral/features/clinic/presentation/add_staff_user_page.dart';
 import 'package:docentral/features/clinic/presentation/providers/has_local_clinic_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
 import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
@@ -7,9 +8,12 @@ import 'package:docentral/features/day_closeout/presentation/day_closeout_page.d
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
 import 'package:docentral/features/settings/presentation/settings_page.dart';
+import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/data/router/app_destination.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
+import 'package:docentral/shared/data/router/permission_route_guard.dart';
 import 'package:docentral/shared/design_system/widgets/app_shell.dart';
+import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
@@ -79,6 +83,19 @@ GoRouter appRouter(Ref ref) {
         name: AppRoutes.signIn.name,
         builder: (BuildContext context, GoRouterState state) =>
             const SignInPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.addStaffUser.path,
+        name: AppRoutes.addStaffUser.name,
+        redirect: (BuildContext context, GoRouterState state) {
+          return permissionRouteGuard(
+            role: ref.read(currentRoleProvider),
+            required: Permission.canManageStaff,
+            redirectTo: AppRoutes.settings.path,
+          );
+        },
+        builder: (BuildContext context, GoRouterState state) =>
+            const AddStaffUserPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder:

@@ -43,6 +43,42 @@
   "settingsSignOut": "Sign out",
   "@settingsSignOut": { "description": "Sign-out button label in Settings" },
 
+  "addStaffButton": "Add staff",
+  "@addStaffButton": { "description": "Button in Settings to open the add-staff screen" },
+
+  "addStaffTitle": "Add staff",
+  "@addStaffTitle": { "description": "Add-staff page title" },
+
+  "addStaffFirstName": "First name",
+  "@addStaffFirstName": { "description": "Staff first name field label" },
+
+  "addStaffLastName": "Last name",
+  "@addStaffLastName": { "description": "Staff last name field label" },
+
+  "addStaffEmail": "Email",
+  "@addStaffEmail": { "description": "Staff email field label" },
+
+  "addStaffPassword": "Initial password",
+  "@addStaffPassword": { "description": "Staff initial password field label" },
+
+  "addStaffPasswordTooShortError": "Password must be at least 6 characters",
+  "@addStaffPasswordTooShortError": { "description": "Validation error for a too-short staff password" },
+
+  "addStaffRole": "Role",
+  "@addStaffRole": { "description": "Staff role dropdown label" },
+
+  "addStaffRoleAssistant": "Assistant",
+  "@addStaffRoleAssistant": { "description": "Assistant role option" },
+
+  "addStaffRoleNurse": "Nurse",
+  "@addStaffRoleNurse": { "description": "Nurse role option" },
+
+  "addStaffSubmitButton": "Add staff",
+  "@addStaffSubmitButton": { "description": "Add-staff submit button label" },
+
+  "addStaffError": "Could not add this staff member. Check the details and your connection.",
+  "@addStaffError": { "description": "Error shown when adding a staff user fails" },
+
   "signInTitle": "Sign in",
   "@signInTitle": { "description": "Sign-in page title" },
 
