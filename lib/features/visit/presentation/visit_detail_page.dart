@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 part 'widgets/clinical_record_section.dart';
 part 'widgets/treatment_form_dialog.dart';
 part 'widgets/treatment_row.dart';
+part 'widgets/unlock_visit_dialog.dart';
 
 class VisitDetailPage extends ConsumerWidget {
   const VisitDetailPage({
@@ -58,6 +59,9 @@ class VisitDetailPage extends ConsumerWidget {
         canCompleteVisit &&
         visit.status == VisitStatus.inProgress &&
         hasTreatments;
+    final bool canUnlock =
+        ref.watch(permissionCheckerProvider)(Permission.canUnlockVisit) &&
+        visit.status == VisitStatus.completed;
 
     return Scaffold(
       appBar: AppBar(
@@ -87,6 +91,15 @@ class VisitDetailPage extends ConsumerWidget {
                 onPressed: () => _confirmCompleteVisit(context, ref, visit.id),
                 icon: const Icon(Icons.check_circle_outline),
                 label: Text(l10n.visitCompleteButton),
+              ),
+            ),
+          if (canUnlock)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: OutlinedButton.icon(
+                onPressed: () => _confirmUnlockVisit(context, ref, visit.id),
+                icon: const Icon(Icons.lock_open),
+                label: Text(l10n.visitUnlockButton),
               ),
             ),
         ],
@@ -244,6 +257,43 @@ class VisitDetailPage extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.visitCompletedInvoiceCreated)),
       );
+    }
+  }
+
+  Future<void> _confirmUnlockVisit(
+    BuildContext context,
+    WidgetRef ref,
+    String visitId,
+  ) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String? reason = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) => const _UnlockVisitDialog(),
+    );
+    if (reason == null) return;
+
+    await ref
+        .read(visitControllerProvider.notifier)
+        .unlockVisit(visitId: visitId, reason: reason);
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(visitControllerProvider).error;
+    if (error is VisitInvoiceHasPaymentsException) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.visitUnlockInvoiceHasPaymentsError)),
+      );
+    } else if (error is VisitInvoiceFinalizedException) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.visitUnlockInvoiceFinalizedError)),
+      );
+    } else if (error is VisitNotEditableException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+    } else if (error == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.visitUnlockedMessage)));
     }
   }
 }

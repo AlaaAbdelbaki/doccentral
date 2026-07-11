@@ -145,5 +145,12 @@
   "visitCompleteConfirmTitle": "Terminer cette visite ?",
   "visitCompleteConfirmMessage": "Les traitements effectués seront verrouillés et une facture provisoire sera créée. Cette action ne peut pas être annulée depuis ici.",
   "visitRequiresTreatmentError": "Ajoutez au moins un traitement effectué avant de terminer cette visite.",
-  "visitCompletedInvoiceCreated": "Visite terminée. Une facture provisoire a été créée."
+  "visitCompletedInvoiceCreated": "Visite terminée. Une facture provisoire a été créée.",
+  "visitUnlockButton": "Déverrouiller la visite",
+  "visitUnlockConfirmTitle": "Déverrouiller cette visite ?",
+  "visitUnlockReasonField": "Motif",
+  "visitUnlockReasonRequiredError": "Un motif est requis pour déverrouiller cette visite.",
+  "visitUnlockInvoiceHasPaymentsError": "Cette facture comporte des paiements enregistrés. Annulez-la avant de déverrouiller la visite.",
+  "visitUnlockInvoiceFinalizedError": "Cette facture a déjà été finalisée et ne peut plus être déverrouillée.",
+  "visitUnlockedMessage": "Visite déverrouillée."
 }

@@ -104,7 +104,7 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
@@ -112,7 +112,7 @@ void main() {
     test(
       'schema includes clinic locale/currency and the auth tables (v3)',
       () async {
-        expect(db.schemaVersion, 12);
+        expect(db.schemaVersion, 13);
         expect(await db.select(db.users).get(), isEmpty);
         expect(await db.select(db.roles).get(), isEmpty);
         expect(await db.select(db.userRoles).get(), isEmpty);
@@ -139,35 +139,35 @@ void main() {
     );
 
     test('schema includes the patient_edit_logs table (v4)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       expect(await db.select(db.patientEditLogs).get(), isEmpty);
     });
 
     test('schema includes the appointments table (v5)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       expect(await db.select(db.appointments).get(), isEmpty);
     });
 
     test('schema includes the appointment_edit_logs table (v6)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       expect(await db.select(db.appointmentEditLogs).get(), isEmpty);
     });
 
     test(
       'schema includes the appointment_cancellations table and rescheduledToAppointmentId column (v7)',
       () async {
-        expect(db.schemaVersion, 12);
+        expect(db.schemaVersion, 13);
         expect(await db.select(db.appointmentCancellations).get(), isEmpty);
       },
     );
 
     test('schema includes the visits table (v8)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       expect(await db.select(db.visits).get(), isEmpty);
     });
 
     test('schema includes the visits.inProgressAt column (v9)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       final now = DateTime.now();
       const visitId = '00000000-0000-0000-0000-000000000005';
       await db
@@ -191,14 +191,14 @@ void main() {
     });
 
     test('schema includes the performed_treatments table (v10)', () async {
-      expect(db.schemaVersion, 12);
+      expect(db.schemaVersion, 13);
       expect(await db.select(db.performedTreatments).get(), isEmpty);
     });
 
     test(
       'schema includes visits.diagnosis and visits.clinicalNotes columns (v11)',
       () async {
-        expect(db.schemaVersion, 12);
+        expect(db.schemaVersion, 13);
         final now = DateTime.now();
         const visitId = '00000000-0000-0000-0000-000000000006';
         await db
@@ -226,7 +226,7 @@ void main() {
     test(
       'schema includes visits.endedAt and the invoices/invoice_items tables (v12)',
       () async {
-        expect(db.schemaVersion, 12);
+        expect(db.schemaVersion, 13);
         final now = DateTime.now();
         const visitId = '00000000-0000-0000-0000-000000000007';
         await db
@@ -272,5 +272,45 @@ void main() {
         expect(invoice.status, 'draft');
       },
     );
+
+    test('schema includes the visit_unlock_logs table (v13)', () async {
+      expect(db.schemaVersion, 13);
+      expect(await db.select(db.visitUnlockLogs).get(), isEmpty);
+
+      final now = DateTime.now();
+      const visitId = '00000000-0000-0000-0000-000000000009';
+      const logId = '00000000-0000-0000-0000-000000000010';
+      await db
+          .into(db.visits)
+          .insert(
+            VisitsCompanion.insert(
+              id: visitId,
+              appointmentId: 'appointment-1',
+              patientId: 'patient-1',
+              dentistId: 'dentist-1',
+              startedAt: now,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await db
+          .into(db.visitUnlockLogs)
+          .insert(
+            VisitUnlockLogsCompanion.insert(
+              id: logId,
+              visitId: visitId,
+              actorUserId: 'dentist-1',
+              reason: 'Test reason',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      final log = await (db.select(
+        db.visitUnlockLogs,
+      )..where((t) => t.id.equals(logId))).getSingle();
+      expect(log.visitId, visitId);
+      expect(log.reason, 'Test reason');
+    });
   });
 }

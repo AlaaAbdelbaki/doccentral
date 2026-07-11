@@ -17,3 +17,21 @@ class VisitRequiresTreatmentException implements Exception {
   @override
   String toString() => 'VisitRequiresTreatmentException';
 }
+
+/// Thrown when unlocking a Visit whose linked Invoice has recorded Payments
+/// (status `partially_paid` or `paid`) — it must be voided first.
+class VisitInvoiceHasPaymentsException implements Exception {
+  const VisitInvoiceHasPaymentsException();
+
+  @override
+  String toString() => 'VisitInvoiceHasPaymentsException';
+}
+
+/// Thrown when unlocking a Visit whose linked Invoice has been finalized
+/// (status `unpaid` or `voided`, i.e. no longer `draft`).
+class VisitInvoiceFinalizedException implements Exception {
+  const VisitInvoiceFinalizedException();
+
+  @override
+  String toString() => 'VisitInvoiceFinalizedException';
+}

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/performed_treatment_repository.dart';
+import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
@@ -86,6 +87,39 @@ class _FakeVisitRepository implements VisitRepository {
     }
     _changes.add(null);
     return 'invoice-1';
+  }
+
+  final List<String> unlockedVisitIds = <String>[];
+  final List<String> unlockReasons = <String>[];
+  Object? unlockErrorToThrow;
+
+  @override
+  Future<void> unlockVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String reason,
+  }) async {
+    if (unlockErrorToThrow != null) {
+      throw unlockErrorToThrow!;
+    }
+    unlockedVisitIds.add(visitId);
+    unlockReasons.add(reason);
+    final VisitRecord? existing = _visit;
+    if (existing != null) {
+      _visit = VisitRecord(
+        id: existing.id,
+        appointmentId: existing.appointmentId,
+        patientId: existing.patientId,
+        dentistId: existing.dentistId,
+        status: VisitStatus.inProgress,
+        startedAt: existing.startedAt,
+        inProgressAt: existing.inProgressAt,
+        diagnosis: existing.diagnosis,
+        clinicalNotes: existing.clinicalNotes,
+      );
+    }
+    _changes.add(null);
   }
 }
 
@@ -523,6 +557,170 @@ void main() {
       );
       // The button disappears once the visit transitions to completed.
       expect(find.text('Complete visit'), findsNothing);
+    },
+  );
+
+  VisitRecord completedVisit() => VisitRecord(
+    id: 'visit-1',
+    appointmentId: 'appointment-1',
+    patientId: 'p1',
+    dentistId: 'dentist-1',
+    status: VisitStatus.completed,
+    startedAt: DateTime.now(),
+    endedAt: DateTime.now(),
+  );
+
+  testWidgets('Unlock visit button is hidden for a non-doctor role', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, visit: completedVisit(), role: Role.assistant);
+
+    expect(find.text('Unlock visit'), findsNothing);
+  });
+
+  testWidgets('Unlock visit button is hidden when the visit is not completed', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, visit: inProgressVisit, role: Role.doctor);
+
+    expect(find.text('Unlock visit'), findsNothing);
+  });
+
+  testWidgets('cancelling the unlock dialog does not call unlockVisit', (
+    WidgetTester tester,
+  ) async {
+    final fakeVisitRepository = (await _pumpPage(
+      tester,
+      visit: completedVisit(),
+      role: Role.doctor,
+    )).visit;
+
+    await tester.tap(find.text('Unlock visit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unlock this visit?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(fakeVisitRepository.unlockedVisitIds, isEmpty);
+  });
+
+  testWidgets('confirming with a blank reason shows a validation error', (
+    WidgetTester tester,
+  ) async {
+    final fakeVisitRepository = (await _pumpPage(
+      tester,
+      visit: completedVisit(),
+      role: Role.doctor,
+    )).visit;
+
+    await tester.tap(find.text('Unlock visit'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('A reason is required to unlock this visit.'),
+      findsOneWidget,
+    );
+    expect(fakeVisitRepository.unlockedVisitIds, isEmpty);
+  });
+
+  testWidgets(
+    'confirming Unlock visit with a reason calls unlockVisit and shows a '
+    'success snackbar',
+    (WidgetTester tester) async {
+      final fakeVisitRepository = (await _pumpPage(
+        tester,
+        visit: completedVisit(),
+        role: Role.doctor,
+      )).visit;
+
+      await tester.tap(find.text('Unlock visit'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Wrong tooth number recorded',
+      );
+      await tester.tap(find.text('Confirm'));
+      // Avoid pumpAndSettle: it would advance past the SnackBar's dismiss.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(fakeVisitRepository.unlockedVisitIds, <String>['visit-1']);
+      expect(fakeVisitRepository.unlockReasons, <String>[
+        'Wrong tooth number recorded',
+      ]);
+      expect(find.text('Visit unlocked.'), findsOneWidget);
+      expect(find.text('Unlock visit'), findsNothing);
+    },
+  );
+
+  testWidgets('shows a specific error when the invoice has payments recorded', (
+    WidgetTester tester,
+  ) async {
+    final fakeVisitRepository = (await _pumpPage(
+      tester,
+      visit: completedVisit(),
+      role: Role.doctor,
+    )).visit;
+    fakeVisitRepository.unlockErrorToThrow =
+        const VisitInvoiceHasPaymentsException();
+
+    await tester.tap(find.text('Unlock visit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason'),
+      'Test reason',
+    );
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(
+      find.text(
+        'This invoice has payments recorded. Void it before unlocking the visit.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'shows a specific error when the invoice has already been finalized',
+    (WidgetTester tester) async {
+      final fakeVisitRepository = (await _pumpPage(
+        tester,
+        visit: completedVisit(),
+        role: Role.doctor,
+      )).visit;
+      fakeVisitRepository.unlockErrorToThrow =
+          const VisitInvoiceFinalizedException();
+
+      await tester.tap(find.text('Unlock visit'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Test reason',
+      );
+      await tester.tap(find.text('Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'This invoice has already been finalized and can no longer be unlocked.',
+        ),
+        findsOneWidget,
+      );
     },
   );
 }

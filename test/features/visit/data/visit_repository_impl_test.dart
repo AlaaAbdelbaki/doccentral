@@ -1,11 +1,13 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/invoice/domain/invoice_status.dart';
 import 'package:docentral/features/visit/data/performed_treatment_repository_impl.dart';
 import 'package:docentral/features/visit/data/visit_repository_impl.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
+import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
@@ -457,6 +459,147 @@ void main() {
           visitId: visitId,
         ),
         throwsA(isA<VisitRequiresTreatmentException>()),
+      );
+    });
+  });
+
+  group('VisitRepositoryImpl.unlockVisit', () {
+    Future<String> completeAVisit(String patientId) async {
+      final String appointmentId = await seedAppointment(patientId: patientId);
+      final String visitId = await repository.checkIn(
+        role: Role.assistant,
+        appointmentId: appointmentId,
+      );
+      await repository.startProgress(
+        role: Role.assistant,
+        appointmentId: appointmentId,
+      );
+      final PerformedTreatmentRepositoryImpl treatmentRepository =
+          PerformedTreatmentRepositoryImpl(db);
+      await treatmentRepository.addTreatment(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        toothNumber: '18',
+        procedureName: 'Filling',
+        unitPrice: 50,
+        quantity: 1,
+      );
+      await repository.completeVisit(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+      );
+      return visitId;
+    }
+
+    Future<void> setInvoiceStatus(String visitId, String status) async {
+      await (db.update(db.invoices)..where((t) => t.visitId.equals(visitId)))
+          .write(InvoicesCompanion(status: Value(status)));
+    }
+
+    test('transitions the Visit back to in_progress, clears endedAt, and logs '
+        'the actor/reason', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await completeAVisit(patientId);
+
+      await repository.unlockVisit(
+        role: Role.doctor,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        reason: 'Wrong tooth number recorded',
+      );
+
+      final Visit visit = await (db.select(
+        db.visits,
+      )..where((t) => t.id.equals(visitId))).getSingle();
+      expect(visit.status, VisitStatus.inProgress.name);
+      expect(visit.endedAt, isNull);
+
+      final List<VisitUnlockLog> logs = await db
+          .select(db.visitUnlockLogs)
+          .get();
+      expect(logs.length, 1);
+      expect(logs.single.visitId, visitId);
+      expect(logs.single.actorUserId, 'dentist-1');
+      expect(logs.single.reason, 'Wrong tooth number recorded');
+    });
+
+    test(
+      'throws VisitNotEditableException when the Visit is not completed',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        final String visitId = await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        expect(
+          () => repository.unlockVisit(
+            role: Role.doctor,
+            actorUserId: 'dentist-1',
+            visitId: visitId,
+            reason: 'Test reason',
+          ),
+          throwsA(isA<VisitNotEditableException>()),
+        );
+      },
+    );
+
+    test('throws VisitInvoiceHasPaymentsException when the Invoice is '
+        'partially_paid or paid', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await completeAVisit(patientId);
+      await setInvoiceStatus(visitId, InvoiceStatus.partiallyPaid.name);
+
+      expect(
+        () => repository.unlockVisit(
+          role: Role.doctor,
+          actorUserId: 'dentist-1',
+          visitId: visitId,
+          reason: 'Test reason',
+        ),
+        throwsA(isA<VisitInvoiceHasPaymentsException>()),
+      );
+
+      final Visit visit = await (db.select(
+        db.visits,
+      )..where((t) => t.id.equals(visitId))).getSingle();
+      expect(visit.status, VisitStatus.completed.name);
+    });
+
+    test('throws VisitInvoiceFinalizedException when the Invoice is unpaid or '
+        'voided', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await completeAVisit(patientId);
+      await setInvoiceStatus(visitId, InvoiceStatus.voided.name);
+
+      expect(
+        () => repository.unlockVisit(
+          role: Role.doctor,
+          actorUserId: 'dentist-1',
+          visitId: visitId,
+          reason: 'Test reason',
+        ),
+        throwsA(isA<VisitInvoiceFinalizedException>()),
+      );
+    });
+
+    test('rejects an Assistant with PermissionDeniedException', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await completeAVisit(patientId);
+
+      expect(
+        () => repository.unlockVisit(
+          role: Role.assistant,
+          actorUserId: 'dentist-1',
+          visitId: visitId,
+          reason: 'Test reason',
+        ),
+        throwsA(isA<PermissionDeniedException>()),
       );
     });
   });

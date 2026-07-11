@@ -7,6 +7,7 @@ import 'package:docentral/features/visit/domain/visit_repository.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
+import 'package:docentral/shared/data/database/tables/invoices_table.dart';
 import 'package:docentral/shared/data/database/tables/performed_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/visits_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
@@ -258,6 +259,63 @@ class VisitRepositoryImpl implements VisitRepository {
       }
 
       return invoiceId;
+    });
+  }
+
+  @override
+  Future<void> unlockVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String reason,
+  }) async {
+    requirePermission(role, Permission.canUnlockVisit);
+
+    await _db.transaction(() async {
+      final Visit visit = await (_db.select(
+        _db.visits,
+      )..where((Visits t) => t.id.equals(visitId))).getSingle();
+
+      if (visit.status != VisitStatus.completed.name) {
+        throw const VisitNotEditableException();
+      }
+
+      final Invoice invoice = await (_db.select(
+        _db.invoices,
+      )..where((Invoices t) => t.visitId.equals(visitId))).getSingle();
+
+      if (invoice.status == InvoiceStatus.partiallyPaid.name ||
+          invoice.status == InvoiceStatus.paid.name) {
+        throw const VisitInvoiceHasPaymentsException();
+      }
+      if (invoice.status != InvoiceStatus.draft.name) {
+        throw const VisitInvoiceFinalizedException();
+      }
+
+      final DateTime now = DateTime.now().toUtc();
+
+      await (_db.update(
+        _db.visits,
+      )..where((Visits t) => t.id.equals(visitId))).write(
+        VisitsCompanion(
+          status: Value(VisitStatus.inProgress.name),
+          endedAt: const Value(null),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _db
+          .into(_db.visitUnlockLogs)
+          .insert(
+            VisitUnlockLogsCompanion.insert(
+              id: _uuid.v4(),
+              visitId: visitId,
+              actorUserId: actorUserId,
+              reason: reason.trim(),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
     });
   }
 }

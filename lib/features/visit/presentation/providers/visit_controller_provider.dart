@@ -98,4 +98,31 @@ class VisitController extends _$VisitController {
           ),
     );
   }
+
+  Future<void> unlockVisit({
+    required String visitId,
+    required String reason,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canUnlockVisit),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(visitRepositoryProvider)
+          .unlockVisit(
+            role: role,
+            actorUserId: actorUserId,
+            visitId: visitId,
+            reason: reason,
+          ),
+    );
+  }
 }

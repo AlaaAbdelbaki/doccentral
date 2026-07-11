@@ -60,4 +60,22 @@ abstract class VisitRepository {
     required String actorUserId,
     required String visitId,
   });
+
+  /// Unlocks a `completed` Visit back to `in_progress`, making its Performed
+  /// Treatments editable again, and records the unlock with [actorUserId],
+  /// a timestamp, and [reason].
+  ///
+  /// Only allowed when the linked Invoice is still `draft`. Doctor-only.
+  ///
+  /// Throws [VisitNotEditableException] if the Visit is not `completed`.
+  /// Throws [VisitInvoiceHasPaymentsException] if the Invoice has payments
+  /// recorded (`partially_paid` or `paid`).
+  /// Throws [VisitInvoiceFinalizedException] if the Invoice is no longer
+  /// `draft` for any other reason (`unpaid` or `voided`).
+  Future<void> unlockVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String reason,
+  });
 }

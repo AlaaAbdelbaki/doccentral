@@ -440,5 +440,26 @@
   "@visitRequiresTreatmentError": { "description": "Error shown when attempting to complete a visit with no performed treatments" },
 
   "visitCompletedInvoiceCreated": "Visit completed. A draft invoice was created.",
-  "@visitCompletedInvoiceCreated": { "description": "Confirmation message shown after a visit is completed" }
+  "@visitCompletedInvoiceCreated": { "description": "Confirmation message shown after a visit is completed" },
+
+  "visitUnlockButton": "Unlock visit",
+  "@visitUnlockButton": { "description": "Button to unlock a completed visit back to in-progress" },
+
+  "visitUnlockConfirmTitle": "Unlock this visit?",
+  "@visitUnlockConfirmTitle": { "description": "Unlock-visit confirmation dialog title" },
+
+  "visitUnlockReasonField": "Reason",
+  "@visitUnlockReasonField": { "description": "Label for the reason field in the unlock-visit dialog" },
+
+  "visitUnlockReasonRequiredError": "A reason is required to unlock this visit.",
+  "@visitUnlockReasonRequiredError": { "description": "Validation error when the unlock reason is left blank" },
+
+  "visitUnlockInvoiceHasPaymentsError": "This invoice has payments recorded. Void it before unlocking the visit.",
+  "@visitUnlockInvoiceHasPaymentsError": { "description": "Error shown when unlocking a visit whose invoice has payments" },
+
+  "visitUnlockInvoiceFinalizedError": "This invoice has already been finalized and can no longer be unlocked.",
+  "@visitUnlockInvoiceFinalizedError": { "description": "Error shown when unlocking a visit whose invoice is no longer a draft" },
+
+  "visitUnlockedMessage": "Visit unlocked.",
+  "@visitUnlockedMessage": { "description": "Confirmation message shown after a visit is unlocked" }
 }
