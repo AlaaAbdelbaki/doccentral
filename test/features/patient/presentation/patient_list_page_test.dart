@@ -1,7 +1,16 @@
+import 'package:docentral/features/appointment/domain/appointment_record.dart';
+import 'package:docentral/features/appointment/domain/appointment_repository.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
+import 'package:docentral/features/visit/domain/visit_record.dart';
+import 'package:docentral/features/visit/domain/visit_repository.dart';
+import 'package:docentral/features/visit/domain/visit_status.dart';
+import 'package:docentral/features/visit/presentation/providers/visit_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
@@ -9,6 +18,94 @@ import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeAppointmentRepository implements AppointmentRepository {
+  @override
+  Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
+      Stream.value(const <AppointmentRecord>[]);
+
+  @override
+  Stream<List<AppointmentRecord>> watchRange({
+    required Role role,
+    required DateTime start,
+    required DateTime end,
+  }) => Stream.value(const <AppointmentRecord>[]);
+
+  @override
+  Stream<List<AssignableUser>> watchAssignableUsers({required Role role}) =>
+      Stream.value(const <AssignableUser>[]);
+
+  @override
+  Future<String> createAppointment({
+    required Role role,
+    required String patientId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updateAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> cancelAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required CancellationReason reason,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> rescheduleAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<int> watchNoShowCount({
+    required Role role,
+    required String patientId,
+  }) => Stream.value(0);
+}
+
+class _FakeVisitRepository implements VisitRepository {
+  _FakeVisitRepository({this.visits = const <VisitRecord>[]});
+
+  final List<VisitRecord> visits;
+
+  @override
+  Future<String> checkIn({required Role role, required String appointmentId}) =>
+      throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<VisitRecord>> watchRecentVisits({
+    required Role role,
+    required String patientId,
+    int limit = 3,
+  }) => Stream.value(
+    visits.where((VisitRecord v) => v.patientId == patientId).toList(),
+  );
+}
 
 class _FakePatientRepository implements PatientRepository {
   _FakePatientRepository(this._patients);
@@ -96,10 +193,19 @@ class _FakePatientRepository implements PatientRepository {
 
 Future<ProviderContainer> _pumpPage(
   WidgetTester tester,
-  _FakePatientRepository fakeRepository,
-) async {
+  _FakePatientRepository fakeRepository, {
+  List<VisitRecord> visits = const <VisitRecord>[],
+}) async {
   final ProviderContainer container = ProviderContainer(
-    overrides: [patientRepositoryProvider.overrideWithValue(fakeRepository)],
+    overrides: [
+      patientRepositoryProvider.overrideWithValue(fakeRepository),
+      appointmentRepositoryProvider.overrideWithValue(
+        _FakeAppointmentRepository(),
+      ),
+      visitRepositoryProvider.overrideWithValue(
+        _FakeVisitRepository(visits: visits),
+      ),
+    ],
   );
   addTearDown(container.dispose);
   container.read(currentRoleProvider.notifier).setRole(Role.assistant);
@@ -258,5 +364,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.delete_outline), findsNothing);
+  });
+
+  testWidgets('shows the patient\'s recent visits when they exist', (
+    WidgetTester tester,
+  ) async {
+    final DateTime visitTime = DateTime(2026, 6, 8, 9, 30);
+    await _pumpPage(
+      tester,
+      _FakePatientRepository(seedPatients),
+      visits: <VisitRecord>[
+        VisitRecord(
+          id: 'v1',
+          appointmentId: 'a1',
+          patientId: '1',
+          dentistId: 'dentist-1',
+          status: VisitStatus.checkedIn,
+          startedAt: visitTime,
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('08/06/2026 09:30'), findsOneWidget);
+    expect(find.textContaining('Checked in'), findsWidgets);
+    expect(find.text('No visits yet'), findsNothing);
+  });
+
+  testWidgets('shows the empty state when the patient has no visits', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, _FakePatientRepository(seedPatients));
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No visits yet'), findsOneWidget);
   });
 }

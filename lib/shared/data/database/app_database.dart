@@ -10,6 +10,7 @@ import 'package:docentral/shared/data/database/tables/patients_table.dart';
 import 'package:docentral/shared/data/database/tables/roles_table.dart';
 import 'package:docentral/shared/data/database/tables/user_roles_table.dart';
 import 'package:docentral/shared/data/database/tables/users_table.dart';
+import 'package:docentral/shared/data/database/tables/visits_table.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -33,6 +34,7 @@ part 'app_database.g.dart';
     Appointments,
     AppointmentEditLogs,
     AppointmentCancellations,
+    Visits,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -40,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -64,6 +66,7 @@ class AppDatabase extends _$AppDatabase {
         );
         await m.createTable(appointmentCancellations);
       }
+      if (from < 8) await m.createTable(visits);
     },
   );
 }

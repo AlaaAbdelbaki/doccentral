@@ -3,11 +3,13 @@ part of '../calendar_page.dart';
 class _DayView extends ConsumerWidget {
   const _DayView({
     required this.canManageAppointments,
+    required this.canCheckIn,
     required this.patients,
     required this.assignableUsers,
   });
 
   final bool canManageAppointments;
+  final bool canCheckIn;
   final List<PatientRecord> patients;
   final List<AssignableUser> assignableUsers;
 
@@ -53,6 +55,16 @@ class _DayView extends ConsumerWidget {
                       patients: patients,
                       assignableUsers: assignableUsers,
                     ),
+              onCheckIn:
+                  !canCheckIn ||
+                      appointment.status != AppointmentStatus.scheduled
+                  ? null
+                  : () => _checkInAppointment(context, ref, appointment),
+              onViewPatientFile:
+                  appointment.status != AppointmentStatus.checkedIn &&
+                      appointment.status != AppointmentStatus.completed
+                  ? null
+                  : () => _viewPatientFile(context, ref, appointment, patients),
             );
           },
         );

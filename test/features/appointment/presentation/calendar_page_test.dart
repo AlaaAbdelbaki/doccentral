@@ -11,6 +11,9 @@ import 'package:docentral/features/appointment/presentation/providers/appointmen
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
+import 'package:docentral/features/visit/domain/visit_record.dart';
+import 'package:docentral/features/visit/domain/visit_repository.dart';
+import 'package:docentral/features/visit/presentation/providers/visit_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
@@ -283,6 +286,49 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     required Role role,
     required String patientId,
   }) => Stream.value(0);
+
+  void markCheckedIn(String appointmentId) {
+    final int index = _appointments.indexWhere(
+      (AppointmentRecord a) => a.id == appointmentId,
+    );
+    final AppointmentRecord existing = _appointments[index];
+    _appointments[index] = AppointmentRecord(
+      id: existing.id,
+      patientId: existing.patientId,
+      patientName: existing.patientName,
+      assignedUserId: existing.assignedUserId,
+      startTime: existing.startTime,
+      endTime: existing.endTime,
+      status: AppointmentStatus.checkedIn,
+      reason: existing.reason,
+      notes: existing.notes,
+    );
+    _changes.add(null);
+  }
+}
+
+class _FakeVisitRepository implements VisitRepository {
+  _FakeVisitRepository({required this.onCheckIn});
+
+  final void Function(String appointmentId) onCheckIn;
+  final List<String> checkedInAppointmentIds = <String>[];
+
+  @override
+  Future<String> checkIn({
+    required Role role,
+    required String appointmentId,
+  }) async {
+    checkedInAppointmentIds.add(appointmentId);
+    onCheckIn(appointmentId);
+    return 'visit-${checkedInAppointmentIds.length}';
+  }
+
+  @override
+  Stream<List<VisitRecord>> watchRecentVisits({
+    required Role role,
+    required String patientId,
+    int limit = 3,
+  }) => Stream.value(const <VisitRecord>[]);
 }
 
 Future<_FakeAppointmentRepository> _pumpPage(
@@ -302,6 +348,9 @@ Future<_FakeAppointmentRepository> _pumpPage(
       appointmentRepositoryProvider.overrideWithValue(fakeRepository),
       patientRepositoryProvider.overrideWithValue(
         _FakePatientRepository(patients),
+      ),
+      visitRepositoryProvider.overrideWithValue(
+        _FakeVisitRepository(onCheckIn: fakeRepository.markCheckedIn),
       ),
     ],
   );
@@ -678,6 +727,59 @@ void main() {
 
       expect(fakeRepository.cancelledReasons, isEmpty);
       expect(fakeRepository.rescheduledTo, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'checking in a scheduled appointment transitions it and shows the View Patient File action',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now();
+      final _FakeAppointmentRepository fakeRepository =
+          await _pumpPage(tester, <AppointmentRecord>[
+            AppointmentRecord(
+              id: '1',
+              patientId: 'p1',
+              patientName: 'Amine Trabelsi',
+              assignedUserId: 'dentist-1',
+              startTime: start,
+              endTime: start.add(const Duration(minutes: 30)),
+              status: AppointmentStatus.scheduled,
+            ),
+          ]);
+
+      expect(find.byIcon(Icons.how_to_reg_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.folder_open_outlined), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.how_to_reg_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        fakeRepository._appointments.single.status,
+        AppointmentStatus.checkedIn,
+      );
+      expect(find.text('Checked in'), findsOneWidget);
+      expect(find.byIcon(Icons.how_to_reg_outlined), findsNothing);
+      expect(find.byIcon(Icons.folder_open_outlined), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the check-in control is hidden without canCheckInPatient permission',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now();
+      await _pumpPage(tester, <AppointmentRecord>[
+        AppointmentRecord(
+          id: '1',
+          patientId: 'p1',
+          patientName: 'Amine Trabelsi',
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          status: AppointmentStatus.scheduled,
+        ),
+      ], role: Role.nurse);
+
+      expect(find.byIcon(Icons.how_to_reg_outlined), findsNothing);
     },
   );
 }

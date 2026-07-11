@@ -104,7 +104,7 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
@@ -112,7 +112,7 @@ void main() {
     test(
       'schema includes clinic locale/currency and the auth tables (v3)',
       () async {
-        expect(db.schemaVersion, 7);
+        expect(db.schemaVersion, 8);
         expect(await db.select(db.users).get(), isEmpty);
         expect(await db.select(db.roles).get(), isEmpty);
         expect(await db.select(db.userRoles).get(), isEmpty);
@@ -139,26 +139,31 @@ void main() {
     );
 
     test('schema includes the patient_edit_logs table (v4)', () async {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
       expect(await db.select(db.patientEditLogs).get(), isEmpty);
     });
 
     test('schema includes the appointments table (v5)', () async {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
       expect(await db.select(db.appointments).get(), isEmpty);
     });
 
     test('schema includes the appointment_edit_logs table (v6)', () async {
-      expect(db.schemaVersion, 7);
+      expect(db.schemaVersion, 8);
       expect(await db.select(db.appointmentEditLogs).get(), isEmpty);
     });
 
     test(
       'schema includes the appointment_cancellations table and rescheduledToAppointmentId column (v7)',
       () async {
-        expect(db.schemaVersion, 7);
+        expect(db.schemaVersion, 8);
         expect(await db.select(db.appointmentCancellations).get(), isEmpty);
       },
     );
+
+    test('schema includes the visits table (v8)', () async {
+      expect(db.schemaVersion, 8);
+      expect(await db.select(db.visits).get(), isEmpty);
+    });
   });
 }

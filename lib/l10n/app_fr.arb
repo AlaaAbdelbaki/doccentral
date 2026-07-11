@@ -70,7 +70,7 @@
   "patientDeleteConfirmMessage": "{name} n'apparaîtra plus dans la recherche ni dans les listes. Seul un développeur peut annuler cette action.",
   "patientOverviewSection": "Aperçu",
   "patientRecentVisitsSection": "Visites récentes",
-  "patientNoVisitsYet": "L'historique des visites n'est pas encore disponible",
+  "patientNoVisitsYet": "Aucune visite pour le moment",
   "patientTreatmentPlanSection": "Plan de traitement",
   "patientNoTreatmentPlanYet": "La planification des traitements n'est pas encore disponible",
   "patientOutstandingBalanceSection": "Solde impayé",
@@ -109,5 +109,11 @@
   "cancellationReasonClinicCancelled": "Annulé par le cabinet",
   "cancellationReasonRescheduled": "Reporter",
   "appointmentRescheduleFormTitle": "Reporter le rendez-vous",
-  "patientNoShowPatternWarning": "Ce patient a des antécédents d'absences répétées"
+  "patientNoShowPatternWarning": "Ce patient a des antécédents d'absences répétées",
+  "appointmentCheckInButton": "Enregistrer l'arrivée",
+  "appointmentViewPatientFileButton": "Voir le dossier patient",
+  "visitStatusCheckedIn": "Enregistré",
+  "visitStatusInProgress": "En cours",
+  "visitStatusCompleted": "Terminée",
+  "visitStatusBilled": "Facturée"
 }

@@ -8,6 +8,7 @@ class _PatientDetailPane extends StatelessWidget {
     required this.canDelete,
     required this.onDelete,
     required this.hasNoShowPattern,
+    required this.recentVisits,
   });
 
   final PatientRecord? patient;
@@ -16,6 +17,7 @@ class _PatientDetailPane extends StatelessWidget {
   final bool canDelete;
   final VoidCallback onDelete;
   final bool hasNoShowPattern;
+  final List<VisitRecord> recentVisits;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +114,21 @@ class _PatientDetailPane extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           _SectionCard(
             title: l10n.patientRecentVisitsSection,
-            child: Text(l10n.patientNoVisitsYet),
+            child: recentVisits.isEmpty
+                ? Text(l10n.patientNoVisitsYet)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (final VisitRecord visit in recentVisits)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                          child: Text(
+                            '${DateFormat('dd/MM/yyyy HH:mm').format(visit.startedAt)} '
+                            '— ${_visitStatusLabel(l10n, visit.status)}',
+                          ),
+                        ),
+                    ],
+                  ),
           ),
           const SizedBox(height: AppSpacing.md),
           _SectionCard(
@@ -136,5 +152,18 @@ class _PatientDetailPane extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _visitStatusLabel(AppLocalizations l10n, VisitStatus status) {
+    switch (status) {
+      case VisitStatus.checkedIn:
+        return l10n.visitStatusCheckedIn;
+      case VisitStatus.inProgress:
+        return l10n.visitStatusInProgress;
+      case VisitStatus.completed:
+        return l10n.visitStatusCompleted;
+      case VisitStatus.billed:
+        return l10n.visitStatusBilled;
+    }
   }
 }

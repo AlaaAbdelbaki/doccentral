@@ -1,0 +1,96 @@
+import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
+import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/visit/domain/visit_record.dart';
+import 'package:docentral/features/visit/domain/visit_repository.dart';
+import 'package:docentral/features/visit/domain/visit_status.dart';
+import 'package:docentral/shared/data/database/app_database.dart';
+import 'package:docentral/shared/data/database/tables/appointments_table.dart';
+import 'package:docentral/shared/data/database/tables/visits_table.dart';
+import 'package:docentral/shared/domain/rbac/permission.dart';
+import 'package:docentral/shared/domain/rbac/permission_guard.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
+import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
+
+class VisitRepositoryImpl implements VisitRepository {
+  VisitRepositoryImpl(this._db, {Uuid uuid = const Uuid()}) : _uuid = uuid;
+
+  final AppDatabase _db;
+  final Uuid _uuid;
+
+  @override
+  Future<String> checkIn({
+    required Role role,
+    required String appointmentId,
+  }) async {
+    requirePermission(role, Permission.canCheckInPatient);
+
+    return _db.transaction(() async {
+      final Appointment appointment = await (_db.select(
+        _db.appointments,
+      )..where((Appointments t) => t.id.equals(appointmentId))).getSingle();
+
+      if (appointment.status != AppointmentStatus.scheduled.name) {
+        throw const AppointmentNotEditableException();
+      }
+
+      final DateTime now = DateTime.now().toUtc();
+
+      await (_db.update(
+        _db.appointments,
+      )..where((Appointments t) => t.id.equals(appointmentId))).write(
+        AppointmentsCompanion(
+          status: Value(AppointmentStatus.checkedIn.name),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final String visitId = _uuid.v4();
+      await _db
+          .into(_db.visits)
+          .insert(
+            VisitsCompanion.insert(
+              id: visitId,
+              appointmentId: appointmentId,
+              patientId: appointment.patientId,
+              dentistId: appointment.assignedUserId,
+              status: Value(VisitStatus.checkedIn.name),
+              startedAt: now,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      return visitId;
+    });
+  }
+
+  @override
+  Stream<List<VisitRecord>> watchRecentVisits({
+    required Role role,
+    required String patientId,
+    int limit = 3,
+  }) {
+    requirePermission(role, Permission.canViewVisits);
+
+    final SimpleSelectStatement<$VisitsTable, Visit> select =
+        _db.select(_db.visits)
+          ..where((Visits t) => t.patientId.equals(patientId))
+          ..orderBy([(Visits t) => OrderingTerm.desc(t.startedAt)])
+          ..limit(limit);
+
+    return select.watch().map(
+      (List<Visit> rows) => rows.map(_toRecord).toList(growable: false),
+    );
+  }
+
+  VisitRecord _toRecord(Visit row) {
+    return VisitRecord(
+      id: row.id,
+      appointmentId: row.appointmentId,
+      patientId: row.patientId,
+      dentistId: row.dentistId,
+      status: VisitStatus.values.byName(row.status),
+      startedAt: row.startedAt,
+    );
+  }
+}

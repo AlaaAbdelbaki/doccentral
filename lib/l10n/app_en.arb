@@ -214,7 +214,7 @@
   "patientRecentVisitsSection": "Recent visits",
   "@patientRecentVisitsSection": { "description": "Patient detail recent visits section title" },
 
-  "patientNoVisitsYet": "Visit history isn't available yet",
+  "patientNoVisitsYet": "No visits yet",
   "@patientNoVisitsYet": { "description": "Empty state for the recent visits section" },
 
   "patientTreatmentPlanSection": "Treatment plan",
@@ -332,5 +332,23 @@
   "@appointmentRescheduleFormTitle": { "description": "Reschedule replacement-appointment dialog title" },
 
   "patientNoShowPatternWarning": "This patient has a history of repeated no-shows",
-  "@patientNoShowPatternWarning": { "description": "Warning shown on the Patient File for patients with a no-show pattern" }
+  "@patientNoShowPatternWarning": { "description": "Warning shown on the Patient File for patients with a no-show pattern" },
+
+  "appointmentCheckInButton": "Check in",
+  "@appointmentCheckInButton": { "description": "Button/tooltip to check in a scheduled appointment's patient" },
+
+  "appointmentViewPatientFileButton": "View Patient File",
+  "@appointmentViewPatientFileButton": { "description": "Button/tooltip to jump to the checked-in patient's file" },
+
+  "visitStatusCheckedIn": "Checked in",
+  "@visitStatusCheckedIn": { "description": "Visit status label" },
+
+  "visitStatusInProgress": "In progress",
+  "@visitStatusInProgress": { "description": "Visit status label" },
+
+  "visitStatusCompleted": "Completed",
+  "@visitStatusCompleted": { "description": "Visit status label" },
+
+  "visitStatusBilled": "Billed",
+  "@visitStatusBilled": { "description": "Visit status label" }
 }

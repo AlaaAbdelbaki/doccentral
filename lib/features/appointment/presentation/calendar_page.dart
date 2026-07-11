@@ -11,13 +11,17 @@ import 'package:docentral/features/appointment/presentation/providers/calendar_w
 import 'package:docentral/features/appointment/presentation/providers/todays_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
+import 'package:docentral/features/patient/presentation/providers/selected_patient_provider.dart';
+import 'package:docentral/features/visit/presentation/providers/visit_controller_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
+import 'package:docentral/shared/data/router/app_routes.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 part 'widgets/appointment_form_dialog.dart';
@@ -41,6 +45,9 @@ class CalendarPage extends ConsumerWidget {
     );
     final bool canManageAppointments = ref.watch(permissionCheckerProvider)(
       Permission.canManageAppointments,
+    );
+    final bool canCheckIn = ref.watch(permissionCheckerProvider)(
+      Permission.canCheckInPatient,
     );
     final List<PatientRecord> patients =
         ref.watch(appointmentPatientOptionsProvider).value ??
@@ -96,6 +103,7 @@ class CalendarPage extends ConsumerWidget {
             child: switch (viewMode) {
               CalendarViewMode.day => _DayView(
                 canManageAppointments: canManageAppointments,
+                canCheckIn: canCheckIn,
                 patients: patients,
                 assignableUsers: assignableUsers,
               ),
@@ -303,6 +311,44 @@ Future<void> _handleReschedule(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
   }
+}
+
+Future<void> _checkInAppointment(
+  BuildContext context,
+  WidgetRef ref,
+  AppointmentRecord appointment,
+) async {
+  await ref
+      .read(visitControllerProvider.notifier)
+      .checkIn(appointmentId: appointment.id);
+
+  final Object? error = ref.read(visitControllerProvider).error;
+  if (error is AppointmentNotEditableException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
+  }
+}
+
+void _viewPatientFile(
+  BuildContext context,
+  WidgetRef ref,
+  AppointmentRecord appointment,
+  List<PatientRecord> patients,
+) {
+  PatientRecord? patient;
+  for (final PatientRecord candidate in patients) {
+    if (candidate.id == appointment.patientId) {
+      patient = candidate;
+      break;
+    }
+  }
+  if (patient == null) return;
+
+  ref.read(selectedPatientProvider.notifier).select(patient);
+  context.goNamed(AppRoutes.patients.name);
 }
 
 Future<bool> _confirmOverlap(BuildContext context) async {

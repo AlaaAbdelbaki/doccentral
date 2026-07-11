@@ -1,5 +1,8 @@
 import 'package:docentral/features/appointment/presentation/providers/no_show_pattern_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
+import 'package:docentral/features/visit/domain/visit_record.dart';
+import 'package:docentral/features/visit/domain/visit_status.dart';
+import 'package:docentral/features/visit/presentation/providers/recent_visits_provider.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_controller_provider.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_list_provider.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_search_query_provider.dart';
@@ -44,6 +47,10 @@ class PatientListPage extends ConsumerWidget {
     final bool hasNoShowPattern = selected == null
         ? false
         : ref.watch(hasNoShowPatternProvider(selected.id)).value ?? false;
+    final List<VisitRecord> recentVisits = selected == null
+        ? const <VisitRecord>[]
+        : ref.watch(recentVisitsProvider(selected.id)).value ??
+              const <VisitRecord>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -101,6 +108,7 @@ class PatientListPage extends ConsumerWidget {
                 }
               },
               hasNoShowPattern: hasNoShowPattern,
+              recentVisits: recentVisits,
             ),
           ),
         ],

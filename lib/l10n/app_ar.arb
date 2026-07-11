@@ -70,7 +70,7 @@
   "patientDeleteConfirmMessage": "لن يظهر {name} بعد الآن في البحث أو القوائم. لا يمكن التراجع عن هذا إلا من قبل مطوّر.",
   "patientOverviewSection": "نظرة عامة",
   "patientRecentVisitsSection": "الزيارات الأخيرة",
-  "patientNoVisitsYet": "سجل الزيارات غير متوفر بعد",
+  "patientNoVisitsYet": "لا توجد زيارات بعد",
   "patientTreatmentPlanSection": "خطة العلاج",
   "patientNoTreatmentPlanYet": "تخطيط العلاج غير متوفر بعد",
   "patientOutstandingBalanceSection": "الرصيد المستحق",
@@ -109,5 +109,11 @@
   "cancellationReasonClinicCancelled": "ألغته العيادة",
   "cancellationReasonRescheduled": "إعادة الجدولة",
   "appointmentRescheduleFormTitle": "إعادة جدولة الموعد",
-  "patientNoShowPatternWarning": "لهذا المريض سجل من الغياب المتكرر عن المواعيد"
+  "patientNoShowPatternWarning": "لهذا المريض سجل من الغياب المتكرر عن المواعيد",
+  "appointmentCheckInButton": "تسجيل الوصول",
+  "appointmentViewPatientFileButton": "عرض ملف المريض",
+  "visitStatusCheckedIn": "تم تسجيل الوصول",
+  "visitStatusInProgress": "قيد التنفيذ",
+  "visitStatusCompleted": "مكتملة",
+  "visitStatusBilled": "مفوترة"
 }
