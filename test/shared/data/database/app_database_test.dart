@@ -104,7 +104,7 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
@@ -112,7 +112,7 @@ void main() {
     test(
       'schema includes clinic locale/currency and the auth tables (v3)',
       () async {
-        expect(db.schemaVersion, 9);
+        expect(db.schemaVersion, 10);
         expect(await db.select(db.users).get(), isEmpty);
         expect(await db.select(db.roles).get(), isEmpty);
         expect(await db.select(db.userRoles).get(), isEmpty);
@@ -139,35 +139,35 @@ void main() {
     );
 
     test('schema includes the patient_edit_logs table (v4)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       expect(await db.select(db.patientEditLogs).get(), isEmpty);
     });
 
     test('schema includes the appointments table (v5)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       expect(await db.select(db.appointments).get(), isEmpty);
     });
 
     test('schema includes the appointment_edit_logs table (v6)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       expect(await db.select(db.appointmentEditLogs).get(), isEmpty);
     });
 
     test(
       'schema includes the appointment_cancellations table and rescheduledToAppointmentId column (v7)',
       () async {
-        expect(db.schemaVersion, 9);
+        expect(db.schemaVersion, 10);
         expect(await db.select(db.appointmentCancellations).get(), isEmpty);
       },
     );
 
     test('schema includes the visits table (v8)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       expect(await db.select(db.visits).get(), isEmpty);
     });
 
     test('schema includes the visits.inProgressAt column (v9)', () async {
-      expect(db.schemaVersion, 9);
+      expect(db.schemaVersion, 10);
       final now = DateTime.now();
       const visitId = '00000000-0000-0000-0000-000000000005';
       await db
@@ -188,6 +188,11 @@ void main() {
         db.visits,
       )..where((t) => t.id.equals(visitId))).getSingle();
       expect(visit.inProgressAt, isNull);
+    });
+
+    test('schema includes the performed_treatments table (v10)', () async {
+      expect(db.schemaVersion, 10);
+      expect(await db.select(db.performedTreatments).get(), isEmpty);
     });
   });
 }

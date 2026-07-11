@@ -377,5 +377,47 @@
   "@appointmentStartVisitButton": { "description": "Button/tooltip to transition a checked-in visit to in-progress" },
 
   "visitNotEditableError": "This visit can no longer be modified.",
-  "@visitNotEditableError": { "description": "Error shown when attempting an operation on a Visit in the wrong status" }
+  "@visitNotEditableError": { "description": "Error shown when attempting an operation on a Visit in the wrong status" },
+
+  "visitDetailPageTitle": "Visit",
+  "@visitDetailPageTitle": { "description": "Visit detail page title" },
+
+  "visitTreatmentsSection": "Performed treatments",
+  "@visitTreatmentsSection": { "description": "Performed treatments section title on the visit detail page" },
+
+  "visitNoTreatmentsYet": "No treatments recorded yet",
+  "@visitNoTreatmentsYet": { "description": "Empty state for the performed treatments list" },
+
+  "visitAddTreatmentButton": "Add treatment",
+  "@visitAddTreatmentButton": { "description": "Button to open the add-treatment dialog" },
+
+  "visitEditTreatmentButton": "Edit treatment",
+  "@visitEditTreatmentButton": { "description": "Button/tooltip to open the edit-treatment dialog" },
+
+  "visitRemoveTreatmentButton": "Remove treatment",
+  "@visitRemoveTreatmentButton": { "description": "Button/tooltip to remove a performed treatment" },
+
+  "visitTreatmentFormTitle": "New treatment",
+  "@visitTreatmentFormTitle": { "description": "Add-treatment dialog title" },
+
+  "visitEditTreatmentFormTitle": "Edit treatment",
+  "@visitEditTreatmentFormTitle": { "description": "Edit-treatment dialog title" },
+
+  "visitTreatmentToothNumberField": "Tooth number",
+  "@visitTreatmentToothNumberField": { "description": "Treatment tooth number field label" },
+
+  "visitTreatmentProcedureField": "Procedure",
+  "@visitTreatmentProcedureField": { "description": "Treatment procedure name field label" },
+
+  "visitTreatmentUnitPriceField": "Unit price",
+  "@visitTreatmentUnitPriceField": { "description": "Treatment unit price field label" },
+
+  "visitTreatmentQuantityField": "Quantity",
+  "@visitTreatmentQuantityField": { "description": "Treatment quantity field label" },
+
+  "visitTreatmentInvalidNumberError": "Enter a valid number",
+  "@visitTreatmentInvalidNumberError": { "description": "Validation error for a non-numeric price/quantity field" },
+
+  "appointmentViewVisitButton": "View visit",
+  "@appointmentViewVisitButton": { "description": "Button/tooltip to open the visit detail page from the calendar" }
 }

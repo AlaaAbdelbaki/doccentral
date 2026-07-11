@@ -124,5 +124,19 @@
   "appointmentFilterClearAll": "Tout effacer",
   "appointmentFilterPickDateRange": "Choisir une période",
   "appointmentStartVisitButton": "Démarrer la visite",
-  "visitNotEditableError": "Cette visite ne peut plus être modifiée."
+  "visitNotEditableError": "Cette visite ne peut plus être modifiée.",
+  "visitDetailPageTitle": "Visite",
+  "visitTreatmentsSection": "Traitements effectués",
+  "visitNoTreatmentsYet": "Aucun traitement enregistré",
+  "visitAddTreatmentButton": "Ajouter un traitement",
+  "visitEditTreatmentButton": "Modifier le traitement",
+  "visitRemoveTreatmentButton": "Supprimer le traitement",
+  "visitTreatmentFormTitle": "Nouveau traitement",
+  "visitEditTreatmentFormTitle": "Modifier le traitement",
+  "visitTreatmentToothNumberField": "Numéro de dent",
+  "visitTreatmentProcedureField": "Procédure",
+  "visitTreatmentUnitPriceField": "Prix unitaire",
+  "visitTreatmentQuantityField": "Quantité",
+  "visitTreatmentInvalidNumberError": "Entrez un nombre valide",
+  "appointmentViewVisitButton": "Voir la visite"
 }

@@ -124,5 +124,19 @@
   "appointmentFilterClearAll": "مسح الكل",
   "appointmentFilterPickDateRange": "اختيار نطاق زمني",
   "appointmentStartVisitButton": "بدء الزيارة",
-  "visitNotEditableError": "لم يعد بالإمكان تعديل هذه الزيارة."
+  "visitNotEditableError": "لم يعد بالإمكان تعديل هذه الزيارة.",
+  "visitDetailPageTitle": "الزيارة",
+  "visitTreatmentsSection": "العلاجات المنجزة",
+  "visitNoTreatmentsYet": "لم يتم تسجيل أي علاج بعد",
+  "visitAddTreatmentButton": "إضافة علاج",
+  "visitEditTreatmentButton": "تعديل العلاج",
+  "visitRemoveTreatmentButton": "حذف العلاج",
+  "visitTreatmentFormTitle": "علاج جديد",
+  "visitEditTreatmentFormTitle": "تعديل العلاج",
+  "visitTreatmentToothNumberField": "رقم السن",
+  "visitTreatmentProcedureField": "الإجراء",
+  "visitTreatmentUnitPriceField": "سعر الوحدة",
+  "visitTreatmentQuantityField": "الكمية",
+  "visitTreatmentInvalidNumberError": "أدخل رقماً صحيحاً",
+  "appointmentViewVisitButton": "عرض الزيارة"
 }

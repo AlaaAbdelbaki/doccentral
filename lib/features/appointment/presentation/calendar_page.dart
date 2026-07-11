@@ -20,6 +20,7 @@ import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/features/visit/presentation/providers/visit_controller_provider.dart';
 import 'package:docentral/features/visit/presentation/providers/visit_for_appointment_provider.dart';
+import 'package:docentral/features/visit/presentation/visit_detail_page.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
@@ -415,6 +416,18 @@ Widget _buildAppointmentRow(
     onStartVisit: !canEditVisit || visit?.status != VisitStatus.checkedIn
         ? null
         : () => _startVisitProgress(context, ref, appointment),
+    onViewVisit: visit == null ? null : () => _viewVisit(context, appointment),
+  );
+}
+
+void _viewVisit(BuildContext context, AppointmentRecord appointment) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (BuildContext context) => VisitDetailPage(
+        appointmentId: appointment.id,
+        patientName: appointment.patientName,
+      ),
+    ),
   );
 }
 

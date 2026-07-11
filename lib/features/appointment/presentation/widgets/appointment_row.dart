@@ -9,6 +9,7 @@ class _AppointmentRow extends StatelessWidget {
     this.onViewPatientFile,
     this.visitStatus,
     this.onStartVisit,
+    this.onViewVisit,
   });
 
   final AppointmentRecord appointment;
@@ -18,6 +19,7 @@ class _AppointmentRow extends StatelessWidget {
   final VoidCallback? onViewPatientFile;
   final VisitStatus? visitStatus;
   final VoidCallback? onStartVisit;
+  final VoidCallback? onViewVisit;
 
   // No Invoice/Payment data exists yet (Epic 7) — every patient's balance is
   // a genuine zero, so the "if applicable" indicator never renders yet.
@@ -33,91 +35,96 @@ class _AppointmentRow extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            SizedBox(
-              width: 64,
-              child: Text(
-                DateFormat('HH:mm').format(appointment.startTime),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    appointment.patientName,
-                    style: Theme.of(context).textTheme.titleSmall,
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    DateFormat('HH:mm').format(appointment.startTime),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  Text(
-                    reason,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        appointment.patientName,
+                        style: Theme.of(context).textTheme.titleSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        reason,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                if (_outstandingBalance > 0)
+                  Text(
+                    NumberFormat.currency(
+                      symbol: 'TND',
+                      decimalDigits: 3,
+                    ).format(_outstandingBalance),
+                  ),
+              ],
             ),
-            if (_outstandingBalance > 0) ...<Widget>[
-              Text(
-                NumberFormat.currency(
-                  symbol: 'TND',
-                  decimalDigits: 3,
-                ).format(_outstandingBalance),
-              ),
-              const SizedBox(width: AppSpacing.md),
-            ],
-            _StatusBadge(status: appointment.status),
-            if (onEdit != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: l10n.appointmentEditButton,
-              ),
-            ],
-            if (onCancel != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onCancel,
-                icon: const Icon(Icons.event_busy_outlined),
-                tooltip: l10n.appointmentCancelButton,
-              ),
-            ],
-            if (onCheckIn != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onCheckIn,
-                icon: const Icon(Icons.how_to_reg_outlined),
-                tooltip: l10n.appointmentCheckInButton,
-              ),
-            ],
-            if (onViewPatientFile != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onViewPatientFile,
-                icon: const Icon(Icons.folder_open_outlined),
-                tooltip: l10n.appointmentViewPatientFileButton,
-              ),
-            ],
-            if (visitStatus == VisitStatus.inProgress) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                l10n.visitStatusInProgress,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ],
-            if (onStartVisit != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              IconButton(
-                onPressed: onStartVisit,
-                icon: const Icon(Icons.play_circle_outline),
-                tooltip: l10n.appointmentStartVisitButton,
-              ),
-            ],
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.xs,
+              children: <Widget>[
+                _StatusBadge(status: appointment.status),
+                if (visitStatus == VisitStatus.inProgress)
+                  Text(
+                    l10n.visitStatusInProgress,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                if (onEdit != null)
+                  IconButton(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: l10n.appointmentEditButton,
+                  ),
+                if (onCancel != null)
+                  IconButton(
+                    onPressed: onCancel,
+                    icon: const Icon(Icons.event_busy_outlined),
+                    tooltip: l10n.appointmentCancelButton,
+                  ),
+                if (onCheckIn != null)
+                  IconButton(
+                    onPressed: onCheckIn,
+                    icon: const Icon(Icons.how_to_reg_outlined),
+                    tooltip: l10n.appointmentCheckInButton,
+                  ),
+                if (onStartVisit != null)
+                  IconButton(
+                    onPressed: onStartVisit,
+                    icon: const Icon(Icons.play_circle_outline),
+                    tooltip: l10n.appointmentStartVisitButton,
+                  ),
+                if (onViewVisit != null)
+                  IconButton(
+                    onPressed: onViewVisit,
+                    icon: const Icon(Icons.medical_services_outlined),
+                    tooltip: l10n.appointmentViewVisitButton,
+                  ),
+                if (onViewPatientFile != null)
+                  IconButton(
+                    onPressed: onViewPatientFile,
+                    icon: const Icon(Icons.folder_open_outlined),
+                    tooltip: l10n.appointmentViewPatientFileButton,
+                  ),
+              ],
+            ),
           ],
         ),
       ),
