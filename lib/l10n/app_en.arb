@@ -230,5 +230,32 @@
   "@patientAttachmentsSection": { "description": "Patient detail attachments section title" },
 
   "patientNoAttachmentsYet": "Attachments aren't available yet",
-  "@patientNoAttachmentsYet": { "description": "Empty state for the attachments section" }
+  "@patientNoAttachmentsYet": { "description": "Empty state for the attachments section" },
+
+  "calendarPageTitle": "Today's Calendar",
+  "@calendarPageTitle": { "description": "Today's Calendar page title" },
+
+  "appointmentEmptyToday": "No appointments today",
+  "@appointmentEmptyToday": { "description": "Empty state when there are no appointments today" },
+
+  "appointmentStatusScheduled": "Scheduled",
+  "@appointmentStatusScheduled": { "description": "Appointment status badge label" },
+
+  "appointmentStatusCheckedIn": "Checked in",
+  "@appointmentStatusCheckedIn": { "description": "Appointment status badge label" },
+
+  "appointmentStatusCompleted": "Completed",
+  "@appointmentStatusCompleted": { "description": "Appointment status badge label" },
+
+  "appointmentStatusCancelled": "Cancelled",
+  "@appointmentStatusCancelled": { "description": "Appointment status badge label" },
+
+  "appointmentNoReasonNoted": "No reason noted",
+  "@appointmentNoReasonNoted": { "description": "Fallback for the planned-treatment summary when no reason was recorded" },
+
+  "calendarSidePanelTitle": "Today's alerts",
+  "@calendarSidePanelTitle": { "description": "Calendar side panel title" },
+
+  "calendarLowStockLabel": "Low-stock items",
+  "@calendarLowStockLabel": { "description": "Calendar side panel low-stock consumables count label" }
 }

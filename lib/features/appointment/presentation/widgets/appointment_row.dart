@@ -1,0 +1,65 @@
+part of '../calendar_page.dart';
+
+class _AppointmentRow extends StatelessWidget {
+  const _AppointmentRow({required this.appointment});
+
+  final AppointmentRecord appointment;
+
+  // No Invoice/Payment data exists yet (Epic 7) — every patient's balance is
+  // a genuine zero, so the "if applicable" indicator never renders yet.
+  static const double _outstandingBalance = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String reason = (appointment.reason ?? '').trim().isEmpty
+        ? l10n.appointmentNoReasonNoted
+        : appointment.reason!;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            SizedBox(
+              width: 64,
+              child: Text(
+                DateFormat('HH:mm').format(appointment.startTime),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    appointment.patientName,
+                    style: Theme.of(context).textTheme.titleSmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    reason,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (_outstandingBalance > 0) ...<Widget>[
+              Text(
+                NumberFormat.currency(
+                  symbol: 'TND',
+                  decimalDigits: 3,
+                ).format(_outstandingBalance),
+              ),
+              const SizedBox(width: AppSpacing.md),
+            ],
+            _StatusBadge(status: appointment.status),
+          ],
+        ),
+      ),
+    );
+  }
+}

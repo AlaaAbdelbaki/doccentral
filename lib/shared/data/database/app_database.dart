@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:docentral/shared/data/database/database_key_service.dart';
+import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
 import 'package:docentral/shared/data/database/tables/patient_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/patients_table.dart';
@@ -20,14 +21,22 @@ import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Clinics, Patients, Users, Roles, UserRoles, PatientEditLogs],
+  tables: [
+    Clinics,
+    Patients,
+    Users,
+    Roles,
+    UserRoles,
+    PatientEditLogs,
+    Appointments,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -42,6 +51,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(userRoles);
       }
       if (from < 4) await m.createTable(patientEditLogs);
+      if (from < 5) await m.createTable(appointments);
     },
   );
 }

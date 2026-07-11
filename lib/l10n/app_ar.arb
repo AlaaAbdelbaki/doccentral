@@ -75,5 +75,14 @@
   "patientNoTreatmentPlanYet": "تخطيط العلاج غير متوفر بعد",
   "patientOutstandingBalanceSection": "الرصيد المستحق",
   "patientAttachmentsSection": "المرفقات",
-  "patientNoAttachmentsYet": "المرفقات غير متوفرة بعد"
+  "patientNoAttachmentsYet": "المرفقات غير متوفرة بعد",
+  "calendarPageTitle": "جدول اليوم",
+  "appointmentEmptyToday": "لا توجد مواعيد اليوم",
+  "appointmentStatusScheduled": "مجدول",
+  "appointmentStatusCheckedIn": "تم تسجيل الوصول",
+  "appointmentStatusCompleted": "مكتمل",
+  "appointmentStatusCancelled": "ملغى",
+  "appointmentNoReasonNoted": "لم يتم تسجيل سبب",
+  "calendarSidePanelTitle": "تنبيهات اليوم",
+  "calendarLowStockLabel": "عناصر منخفضة المخزون"
 }

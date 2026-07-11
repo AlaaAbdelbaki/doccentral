@@ -1,3 +1,6 @@
+import 'package:docentral/features/appointment/domain/appointment_record.dart';
+import 'package:docentral/features/appointment/domain/appointment_repository.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
@@ -52,6 +55,12 @@ class _FakePatientRepository implements PatientRepository {
       throw UnimplementedError('not exercised by this test');
 }
 
+class _FakeAppointmentRepository implements AppointmentRepository {
+  @override
+  Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
+      Stream.value(const <AppointmentRecord>[]);
+}
+
 class _FakeClinicRepository implements ClinicRepository {
   _FakeClinicRepository({required this.hasClinic});
 
@@ -103,6 +112,9 @@ Future<GoRouter> _pumpRouter(
       ),
       resolvedRoleProvider.overrideWith((ref) async => role),
       patientRepositoryProvider.overrideWithValue(_FakePatientRepository()),
+      appointmentRepositoryProvider.overrideWithValue(
+        _FakeAppointmentRepository(),
+      ),
       sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );

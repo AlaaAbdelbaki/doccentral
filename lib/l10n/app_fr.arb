@@ -75,5 +75,14 @@
   "patientNoTreatmentPlanYet": "La planification des traitements n'est pas encore disponible",
   "patientOutstandingBalanceSection": "Solde impayé",
   "patientAttachmentsSection": "Pièces jointes",
-  "patientNoAttachmentsYet": "Les pièces jointes ne sont pas encore disponibles"
+  "patientNoAttachmentsYet": "Les pièces jointes ne sont pas encore disponibles",
+  "calendarPageTitle": "Calendrier du jour",
+  "appointmentEmptyToday": "Aucun rendez-vous aujourd'hui",
+  "appointmentStatusScheduled": "Planifié",
+  "appointmentStatusCheckedIn": "Enregistré",
+  "appointmentStatusCompleted": "Terminé",
+  "appointmentStatusCancelled": "Annulé",
+  "appointmentNoReasonNoted": "Aucun motif renseigné",
+  "calendarSidePanelTitle": "Alertes du jour",
+  "calendarLowStockLabel": "Articles en stock faible"
 }

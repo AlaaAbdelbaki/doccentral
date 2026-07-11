@@ -104,7 +104,7 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 4);
+      expect(db.schemaVersion, 5);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
@@ -112,7 +112,7 @@ void main() {
     test(
       'schema includes clinic locale/currency and the auth tables (v3)',
       () async {
-        expect(db.schemaVersion, 4);
+        expect(db.schemaVersion, 5);
         expect(await db.select(db.users).get(), isEmpty);
         expect(await db.select(db.roles).get(), isEmpty);
         expect(await db.select(db.userRoles).get(), isEmpty);
@@ -139,8 +139,13 @@ void main() {
     );
 
     test('schema includes the patient_edit_logs table (v4)', () async {
-      expect(db.schemaVersion, 4);
+      expect(db.schemaVersion, 5);
       expect(await db.select(db.patientEditLogs).get(), isEmpty);
+    });
+
+    test('schema includes the appointments table (v5)', () async {
+      expect(db.schemaVersion, 5);
+      expect(await db.select(db.appointments).get(), isEmpty);
     });
   });
 }

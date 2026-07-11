@@ -1,4 +1,7 @@
 import 'package:docentral/app.dart';
+import 'package:docentral/features/appointment/domain/appointment_record.dart';
+import 'package:docentral/features/appointment/domain/appointment_repository.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
@@ -7,6 +10,12 @@ import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class _FakeAppointmentRepository implements AppointmentRepository {
+  @override
+  Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
+      Stream.value(const <AppointmentRecord>[]);
+}
 
 class _FakeClinicRepository implements ClinicRepository {
   @override
@@ -57,6 +66,9 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           clinicRepositoryProvider.overrideWithValue(_FakeClinicRepository()),
           resolvedRoleProvider.overrideWith((ref) async => Role.doctor),
+          appointmentRepositoryProvider.overrideWithValue(
+            _FakeAppointmentRepository(),
+          ),
         ],
         child: const DocCentralApp(),
       ),
