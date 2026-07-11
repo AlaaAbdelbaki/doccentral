@@ -140,5 +140,10 @@
   "visitTreatmentInvalidNumberError": "أدخل رقماً صحيحاً",
   "appointmentViewVisitButton": "عرض الزيارة",
   "visitDiagnosisField": "التشخيص",
-  "visitClinicalNotesField": "الملاحظات السريرية"
+  "visitClinicalNotesField": "الملاحظات السريرية",
+  "visitCompleteButton": "إنهاء الزيارة",
+  "visitCompleteConfirmTitle": "هل تريد إنهاء هذه الزيارة؟",
+  "visitCompleteConfirmMessage": "سيتم قفل العلاجات المنجزة وإنشاء فاتورة مسودة. لا يمكن التراجع عن هذا من هنا.",
+  "visitRequiresTreatmentError": "أضف علاجاً واحداً على الأقل قبل إنهاء هذه الزيارة.",
+  "visitCompletedInvoiceCreated": "تم إنهاء الزيارة. تم إنشاء فاتورة مسودة."
 }

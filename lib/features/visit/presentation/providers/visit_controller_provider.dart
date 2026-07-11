@@ -1,5 +1,6 @@
 import 'package:docentral/features/visit/presentation/providers/visit_repository_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -71,6 +72,29 @@ class VisitController extends _$VisitController {
             visitId: visitId,
             diagnosis: diagnosis,
             clinicalNotes: clinicalNotes,
+          ),
+    );
+  }
+
+  Future<void> completeVisit({required String visitId}) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canCompleteVisit),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(visitRepositoryProvider)
+          .completeVisit(
+            role: role,
+            actorUserId: actorUserId,
+            visitId: visitId,
           ),
     );
   }

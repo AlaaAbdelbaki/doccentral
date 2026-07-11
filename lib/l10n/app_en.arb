@@ -425,5 +425,20 @@
   "@visitDiagnosisField": { "description": "Visit diagnosis field label" },
 
   "visitClinicalNotesField": "Clinical notes",
-  "@visitClinicalNotesField": { "description": "Visit clinical notes field label" }
+  "@visitClinicalNotesField": { "description": "Visit clinical notes field label" },
+
+  "visitCompleteButton": "Complete visit",
+  "@visitCompleteButton": { "description": "Button to complete an in-progress visit" },
+
+  "visitCompleteConfirmTitle": "Complete this visit?",
+  "@visitCompleteConfirmTitle": { "description": "Complete-visit confirmation dialog title" },
+
+  "visitCompleteConfirmMessage": "Performed treatments will be locked and a draft invoice will be created. This cannot be undone from here.",
+  "@visitCompleteConfirmMessage": { "description": "Complete-visit confirmation dialog message" },
+
+  "visitRequiresTreatmentError": "Add at least one performed treatment before completing this visit.",
+  "@visitRequiresTreatmentError": { "description": "Error shown when attempting to complete a visit with no performed treatments" },
+
+  "visitCompletedInvoiceCreated": "Visit completed. A draft invoice was created.",
+  "@visitCompletedInvoiceCreated": { "description": "Confirmation message shown after a visit is completed" }
 }

@@ -10,4 +10,5 @@ class Visits extends Table with SyncMetadata {
   DateTimeColumn get inProgressAt => dateTime().nullable()();
   TextColumn get diagnosis => text().nullable()();
   TextColumn get clinicalNotes => text().nullable()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
 }

@@ -13,6 +13,7 @@ class VisitRecord {
     this.inProgressAt,
     this.diagnosis,
     this.clinicalNotes,
+    this.endedAt,
   });
 
   final String id;
@@ -24,4 +25,5 @@ class VisitRecord {
   final DateTime? inProgressAt;
   final String? diagnosis;
   final String? clinicalNotes;
+  final DateTime? endedAt;
 }

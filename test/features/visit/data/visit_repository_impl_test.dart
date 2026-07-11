@@ -1,5 +1,6 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/visit/data/performed_treatment_repository_impl.dart';
 import 'package:docentral/features/visit/data/visit_repository_impl.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
@@ -306,5 +307,157 @@ void main() {
         );
       },
     );
+  });
+
+  group('VisitRepositoryImpl.completeVisit', () {
+    Future<String> checkInAndStart(String patientId) async {
+      final String appointmentId = await seedAppointment(patientId: patientId);
+      final String visitId = await repository.checkIn(
+        role: Role.assistant,
+        appointmentId: appointmentId,
+      );
+      await repository.startProgress(
+        role: Role.assistant,
+        appointmentId: appointmentId,
+      );
+      return visitId;
+    }
+
+    test('creates exactly one Invoice with Items matching the Performed '
+        'Treatments exactly, and marks the Visit completed', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await checkInAndStart(patientId);
+      final PerformedTreatmentRepositoryImpl treatmentRepository =
+          PerformedTreatmentRepositoryImpl(db);
+
+      await treatmentRepository.addTreatment(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        toothNumber: '18',
+        procedureName: 'Filling',
+        unitPrice: 50,
+        quantity: 2,
+      );
+      await treatmentRepository.addTreatment(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        toothNumber: '19',
+        procedureName: 'Cleaning',
+        unitPrice: 30,
+        quantity: 1,
+      );
+
+      final String invoiceId = await repository.completeVisit(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+      );
+
+      final List<Invoice> invoices = await db.select(db.invoices).get();
+      expect(invoices.length, 1);
+      expect(invoices.single.id, invoiceId);
+      expect(invoices.single.visitId, visitId);
+      expect(invoices.single.patientId, patientId);
+      expect(invoices.single.totalAmount, 130);
+      expect(invoices.single.status, 'draft');
+
+      final List<InvoiceItem> items = await db.select(db.invoiceItems).get();
+      expect(items.length, 2);
+      expect(items.map((InvoiceItem i) => i.description).toSet(), <String>{
+        'Filling',
+        'Cleaning',
+      });
+      final InvoiceItem fillingItem = items.firstWhere(
+        (InvoiceItem i) => i.description == 'Filling',
+      );
+      expect(fillingItem.toothNumber, '18');
+      expect(fillingItem.quantity, 2);
+      expect(fillingItem.unitPrice, 50);
+      expect(fillingItem.totalPrice, 100);
+
+      final Visit visit = await (db.select(
+        db.visits,
+      )..where((t) => t.id.equals(visitId))).getSingle();
+      expect(visit.status, VisitStatus.completed.name);
+      expect(visit.endedAt, isNotNull);
+    });
+
+    test(
+      'throws VisitNotEditableException when the Visit is not in_progress',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        final String visitId = await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        expect(
+          () => repository.completeVisit(
+            role: Role.assistant,
+            actorUserId: 'dentist-1',
+            visitId: visitId,
+          ),
+          throwsA(isA<VisitNotEditableException>()),
+        );
+
+        final List<Invoice> invoices = await db.select(db.invoices).get();
+        expect(invoices, isEmpty);
+      },
+    );
+
+    test('throws VisitRequiresTreatmentException when there are no Performed '
+        'Treatments', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await checkInAndStart(patientId);
+
+      expect(
+        () => repository.completeVisit(
+          role: Role.assistant,
+          actorUserId: 'dentist-1',
+          visitId: visitId,
+        ),
+        throwsA(isA<VisitRequiresTreatmentException>()),
+      );
+
+      final Visit visit = await (db.select(
+        db.visits,
+      )..where((t) => t.id.equals(visitId))).getSingle();
+      expect(visit.status, VisitStatus.inProgress.name);
+    });
+
+    test('ignores soft-deleted Performed Treatments', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String visitId = await checkInAndStart(patientId);
+      final PerformedTreatmentRepositoryImpl treatmentRepository =
+          PerformedTreatmentRepositoryImpl(db);
+
+      final String removedTreatmentId = await treatmentRepository.addTreatment(
+        role: Role.assistant,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        toothNumber: '18',
+        procedureName: 'Filling',
+        unitPrice: 50,
+        quantity: 1,
+      );
+      await treatmentRepository.removeTreatment(
+        role: Role.assistant,
+        treatmentId: removedTreatmentId,
+      );
+
+      expect(
+        () => repository.completeVisit(
+          role: Role.assistant,
+          actorUserId: 'dentist-1',
+          visitId: visitId,
+        ),
+        throwsA(isA<VisitRequiresTreatmentException>()),
+      );
+    });
   });
 }

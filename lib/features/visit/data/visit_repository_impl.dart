@@ -1,11 +1,13 @@
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
+import 'package:docentral/features/invoice/domain/invoice_status.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
+import 'package:docentral/shared/data/database/tables/performed_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/visits_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
@@ -95,6 +97,7 @@ class VisitRepositoryImpl implements VisitRepository {
       inProgressAt: row.inProgressAt,
       diagnosis: row.diagnosis,
       clinicalNotes: row.clinicalNotes,
+      endedAt: row.endedAt,
     );
   }
 
@@ -173,5 +176,88 @@ class VisitRepositoryImpl implements VisitRepository {
         updatedAt: Value(DateTime.now().toUtc()),
       ),
     );
+  }
+
+  @override
+  Future<String> completeVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+  }) async {
+    requirePermission(role, Permission.canCompleteVisit);
+
+    return _db.transaction(() async {
+      final Visit visit = await (_db.select(
+        _db.visits,
+      )..where((Visits t) => t.id.equals(visitId))).getSingle();
+
+      if (visit.status != VisitStatus.inProgress.name) {
+        throw const VisitNotEditableException();
+      }
+
+      final List<PerformedTreatmentRow> treatments =
+          await (_db.select(_db.performedTreatments)..where(
+                (PerformedTreatments t) =>
+                    t.visitId.equals(visitId) & t.deletedAt.isNull(),
+              ))
+              .get();
+
+      if (treatments.isEmpty) {
+        throw const VisitRequiresTreatmentException();
+      }
+
+      final DateTime now = DateTime.now().toUtc();
+
+      await (_db.update(
+        _db.visits,
+      )..where((Visits t) => t.id.equals(visitId))).write(
+        VisitsCompanion(
+          status: Value(VisitStatus.completed.name),
+          endedAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+
+      final double totalAmount = treatments.fold(
+        0,
+        (double sum, PerformedTreatmentRow t) => sum + t.unitPrice * t.quantity,
+      );
+
+      final String invoiceId = _uuid.v4();
+      await _db
+          .into(_db.invoices)
+          .insert(
+            InvoicesCompanion.insert(
+              id: invoiceId,
+              patientId: visit.patientId,
+              visitId: visitId,
+              totalAmount: totalAmount,
+              status: Value(InvoiceStatus.draft.name),
+              createdByUserId: actorUserId,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      for (final PerformedTreatmentRow treatment in treatments) {
+        await _db
+            .into(_db.invoiceItems)
+            .insert(
+              InvoiceItemsCompanion.insert(
+                id: _uuid.v4(),
+                invoiceId: invoiceId,
+                description: treatment.procedureName,
+                toothNumber: Value(treatment.toothNumber),
+                quantity: treatment.quantity,
+                unitPrice: treatment.unitPrice,
+                totalPrice: treatment.unitPrice * treatment.quantity,
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+      }
+
+      return invoiceId;
+    });
   }
 }

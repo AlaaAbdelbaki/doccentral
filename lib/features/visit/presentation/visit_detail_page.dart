@@ -47,9 +47,17 @@ class VisitDetailPage extends ConsumerWidget {
 
     final bool canEditTreatments =
         canEditVisit && visit.status == VisitStatus.inProgress;
+    final bool canCompleteVisit = ref.watch(permissionCheckerProvider)(
+      Permission.canCompleteVisit,
+    );
     final AsyncValue<List<PerformedTreatment>> treatmentsAsync = ref.watch(
       performedTreatmentsProvider(visit.id),
     );
+    final bool hasTreatments = treatmentsAsync.value?.isNotEmpty ?? false;
+    final bool canComplete =
+        canCompleteVisit &&
+        visit.status == VisitStatus.inProgress &&
+        hasTreatments;
 
     return Scaffold(
       appBar: AppBar(
@@ -70,6 +78,15 @@ class VisitDetailPage extends ConsumerWidget {
                     _showTreatmentFormDialog(context, ref, visitId: visit.id),
                 icon: const Icon(Icons.add),
                 label: Text(l10n.visitAddTreatmentButton),
+              ),
+            ),
+          if (canComplete)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: OutlinedButton.icon(
+                onPressed: () => _confirmCompleteVisit(context, ref, visit.id),
+                icon: const Icon(Icons.check_circle_outline),
+                label: Text(l10n.visitCompleteButton),
               ),
             ),
         ],
@@ -179,6 +196,54 @@ class VisitDetailPage extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+    }
+  }
+
+  Future<void> _confirmCompleteVisit(
+    BuildContext context,
+    WidgetRef ref,
+    String visitId,
+  ) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.visitCompleteConfirmTitle),
+          content: Text(l10n.visitCompleteConfirmMessage),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
+    );
+    if (!(confirmed ?? false)) return;
+
+    await ref
+        .read(visitControllerProvider.notifier)
+        .completeVisit(visitId: visitId);
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(visitControllerProvider).error;
+    if (error is VisitNotEditableException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+    } else if (error is VisitRequiresTreatmentException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.visitRequiresTreatmentError)));
+    } else if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.visitCompletedInvoiceCreated)),
+      );
     }
   }
 }

@@ -9,3 +9,11 @@ class VisitNotEditableException implements Exception {
   @override
   String toString() => 'VisitNotEditableException: $code';
 }
+
+/// Thrown when completing a Visit with no recorded Performed Treatments.
+class VisitRequiresTreatmentException implements Exception {
+  const VisitRequiresTreatmentException();
+
+  @override
+  String toString() => 'VisitRequiresTreatmentException';
+}

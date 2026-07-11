@@ -140,5 +140,10 @@
   "visitTreatmentInvalidNumberError": "Entrez un nombre valide",
   "appointmentViewVisitButton": "Voir la visite",
   "visitDiagnosisField": "Diagnostic",
-  "visitClinicalNotesField": "Notes cliniques"
+  "visitClinicalNotesField": "Notes cliniques",
+  "visitCompleteButton": "Terminer la visite",
+  "visitCompleteConfirmTitle": "Terminer cette visite ?",
+  "visitCompleteConfirmMessage": "Les traitements effectués seront verrouillés et une facture provisoire sera créée. Cette action ne peut pas être annulée depuis ici.",
+  "visitRequiresTreatmentError": "Ajoutez au moins un traitement effectué avant de terminer cette visite.",
+  "visitCompletedInvoiceCreated": "Visite terminée. Une facture provisoire a été créée."
 }

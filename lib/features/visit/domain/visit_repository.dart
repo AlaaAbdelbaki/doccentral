@@ -44,4 +44,20 @@ abstract class VisitRepository {
     String? diagnosis,
     String? clinicalNotes,
   });
+
+  /// Completes an `in_progress` Visit: sets status to `completed` and
+  /// `ended_at` to UTC now(), locking its Performed Treatments, then
+  /// atomically creates exactly one `draft` Invoice linked to the Visit
+  /// with one Invoice Item per Performed Treatment (description mirrors
+  /// procedure name; tooth number, quantity, unit price, and total price
+  /// mirror the treatment). Returns the new Invoice's id.
+  ///
+  /// Throws [VisitNotEditableException] if the Visit is not `in_progress`.
+  /// Throws [VisitRequiresTreatmentException] if it has no Performed
+  /// Treatments recorded.
+  Future<String> completeVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+  });
 }

@@ -384,6 +384,13 @@ class _FakeVisitRepository implements VisitRepository {
     String? diagnosis,
     String? clinicalNotes,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> completeVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 Future<_FakeAppointmentRepository> _pumpPage(

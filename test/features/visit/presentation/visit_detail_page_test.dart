@@ -19,8 +19,10 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakeVisitRepository implements VisitRepository {
   _FakeVisitRepository(this._visit);
 
-  final VisitRecord? _visit;
+  VisitRecord? _visit;
   final List<(String?, String?)> savedClinicalRecords = <(String?, String?)>[];
+  final List<String> completedVisitIds = <String>[];
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
   Future<String> checkIn({required Role role, required String appointmentId}) =>
@@ -37,7 +39,12 @@ class _FakeVisitRepository implements VisitRepository {
   Stream<VisitRecord?> watchVisitForAppointment({
     required Role role,
     required String appointmentId,
-  }) => Stream.value(_visit);
+  }) async* {
+    yield _visit;
+    await for (final _ in _changes.stream) {
+      yield _visit;
+    }
+  }
 
   @override
   Future<void> startProgress({
@@ -53,6 +60,32 @@ class _FakeVisitRepository implements VisitRepository {
     String? clinicalNotes,
   }) async {
     savedClinicalRecords.add((diagnosis, clinicalNotes));
+  }
+
+  @override
+  Future<String> completeVisit({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+  }) async {
+    completedVisitIds.add(visitId);
+    final VisitRecord? existing = _visit;
+    if (existing != null) {
+      _visit = VisitRecord(
+        id: existing.id,
+        appointmentId: existing.appointmentId,
+        patientId: existing.patientId,
+        dentistId: existing.dentistId,
+        status: VisitStatus.completed,
+        startedAt: existing.startedAt,
+        inProgressAt: existing.inProgressAt,
+        diagnosis: existing.diagnosis,
+        clinicalNotes: existing.clinicalNotes,
+        endedAt: DateTime.now(),
+      );
+    }
+    _changes.add(null);
+    return 'invoice-1';
   }
 }
 
@@ -374,6 +407,122 @@ void main() {
       expect(diagnosisField.readOnly, isTrue);
       expect(find.text('Cavity'), findsOneWidget);
       expect(find.text('Patient tolerated well'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Complete visit button is hidden when there are no treatments yet',
+    (WidgetTester tester) async {
+      await _pumpPage(tester, visit: inProgressVisit);
+
+      expect(find.text('Complete visit'), findsNothing);
+    },
+  );
+
+  testWidgets('Complete visit button is hidden on an already-completed visit', (
+    WidgetTester tester,
+  ) async {
+    final VisitRecord completedVisit = VisitRecord(
+      id: 'visit-1',
+      appointmentId: 'appointment-1',
+      patientId: 'p1',
+      dentistId: 'dentist-1',
+      status: VisitStatus.completed,
+      startedAt: DateTime.now(),
+    );
+
+    await _pumpPage(
+      tester,
+      visit: completedVisit,
+      treatments: <PerformedTreatment>[
+        PerformedTreatment(
+          id: 't1',
+          visitId: 'visit-1',
+          toothNumber: '18',
+          procedureName: 'Filling',
+          unitPrice: 50,
+          quantity: 1,
+          recordedByUserId: 'actor-1',
+          recordedAt: DateTime.now(),
+        ),
+      ],
+    );
+
+    expect(find.text('Complete visit'), findsNothing);
+  });
+
+  testWidgets('completing a visit shows a confirmation dialog', (
+    WidgetTester tester,
+  ) async {
+    final fakeVisitRepository = (await _pumpPage(
+      tester,
+      visit: inProgressVisit,
+      treatments: <PerformedTreatment>[
+        PerformedTreatment(
+          id: 't1',
+          visitId: 'visit-1',
+          toothNumber: '18',
+          procedureName: 'Filling',
+          unitPrice: 50,
+          quantity: 1,
+          recordedByUserId: 'actor-1',
+          recordedAt: DateTime.now(),
+        ),
+      ],
+    )).visit;
+
+    await tester.tap(find.text('Complete visit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Complete this visit?'), findsOneWidget);
+
+    // Cancelling must not call completeVisit.
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(fakeVisitRepository.completedVisitIds, isEmpty);
+  });
+
+  testWidgets(
+    'confirming Complete visit calls completeVisit and shows a success snackbar',
+    (WidgetTester tester) async {
+      final fakeVisitRepository = (await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+        treatments: <PerformedTreatment>[
+          PerformedTreatment(
+            id: 't1',
+            visitId: 'visit-1',
+            toothNumber: '18',
+            procedureName: 'Filling',
+            unitPrice: 50,
+            quantity: 1,
+            recordedByUserId: 'actor-1',
+            recordedAt: DateTime.now(),
+          ),
+        ],
+      )).visit;
+
+      await tester.tap(find.text('Complete visit'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Confirm'));
+      // Avoid pumpAndSettle here: it would advance time past the SnackBar's
+      // auto-dismiss duration before we get a chance to assert on it.
+      await tester.pump(); // dialog pop animation starts + completeVisit begins
+      await tester.pump(const Duration(milliseconds: 300)); // dialog closed
+      await tester.pump(); // completeVisit future resolves, snackbar shown
+      await tester.pump(
+        const Duration(milliseconds: 100),
+      ); // snackbar animates in
+
+      expect(fakeVisitRepository.completedVisitIds, <String>['visit-1']);
+      expect(
+        find.text('Visit completed. A draft invoice was created.'),
+        findsOneWidget,
+      );
+      // The button disappears once the visit transitions to completed.
+      expect(find.text('Complete visit'), findsNothing);
     },
   );
 }

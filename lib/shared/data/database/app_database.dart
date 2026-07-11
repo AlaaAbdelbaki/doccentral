@@ -5,6 +5,8 @@ import 'package:docentral/shared/data/database/tables/appointment_cancellations_
 import 'package:docentral/shared/data/database/tables/appointment_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
+import 'package:docentral/shared/data/database/tables/invoice_items_table.dart';
+import 'package:docentral/shared/data/database/tables/invoices_table.dart';
 import 'package:docentral/shared/data/database/tables/patient_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/patients_table.dart';
 import 'package:docentral/shared/data/database/tables/performed_treatments_table.dart';
@@ -37,6 +39,8 @@ part 'app_database.g.dart';
     AppointmentCancellations,
     Visits,
     PerformedTreatments,
+    Invoices,
+    InvoiceItems,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -44,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -74,6 +78,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 11) {
         await m.addColumn(visits, visits.diagnosis);
         await m.addColumn(visits, visits.clinicalNotes);
+      }
+      if (from < 12) {
+        await m.addColumn(visits, visits.endedAt);
+        await m.createTable(invoices);
+        await m.createTable(invoiceItems);
       }
     },
   );
