@@ -1,7 +1,8 @@
 name: docentral
 description:
-  "DocCentral is a cross-platform Flutter application designed to help doctors and their assistants efficiently manage appointments, patients, payments, and inventory.
-  Built with Firebase integration and modern state management, it aims to streamline medical practice workflows with a clean, user-friendly interface."
+  "DocCentral is a desktop Flutter application for dental clinics, helping a
+  dentist and assistant manage appointments, patients, payments, and inventory.
+  Offline-first with Drift, synced via Supabase, built with Riverpod."
 
 publish_to: "none"
 version: 1.0.0+1
@@ -13,8 +14,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   drift: ^2.31.0
   drift_flutter: ^0.2.8
-  firebase_auth: ^5.6.0
-  firebase_core: ^3.14.0
   flutter:
     sdk: flutter
   flutter_localizations:

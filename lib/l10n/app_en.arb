@@ -40,6 +40,42 @@
   "settingsLanguage": "Language",
   "@settingsLanguage": { "description": "Language setting label" },
 
+  "requiredFieldError": "This field is required",
+  "@requiredFieldError": { "description": "Generic validation error for a missing required field" },
+
+  "signUpTitle": "Create your clinic",
+  "@signUpTitle": { "description": "Sign-up page title" },
+
+  "signUpClinicName": "Clinic name",
+  "@signUpClinicName": { "description": "Clinic name field label" },
+
+  "signUpFirstName": "First name",
+  "@signUpFirstName": { "description": "Dentist first name field label" },
+
+  "signUpLastName": "Last name",
+  "@signUpLastName": { "description": "Dentist last name field label" },
+
+  "signUpEmail": "Email",
+  "@signUpEmail": { "description": "Email field label" },
+
+  "signUpPassword": "Password",
+  "@signUpPassword": { "description": "Password field label" },
+
+  "signUpConfirmPassword": "Confirm password",
+  "@signUpConfirmPassword": { "description": "Confirm password field label" },
+
+  "signUpPasswordTooShortError": "Password must be at least 6 characters",
+  "@signUpPasswordTooShortError": { "description": "Validation error for a too-short password" },
+
+  "signUpPasswordMismatchError": "Passwords do not match",
+  "@signUpPasswordMismatchError": { "description": "Validation error when password confirmation differs" },
+
+  "signUpSubmitButton": "Create clinic",
+  "@signUpSubmitButton": { "description": "Sign-up submit button label" },
+
+  "signUpOfflineError": "Could not create your clinic. Check your connection and try again.",
+  "@signUpOfflineError": { "description": "Error shown when sign-up fails (e.g. offline)" },
+
   "navCalendar": "Today's Calendar",
   "@navCalendar": { "description": "Navigation label for the calendar destination" },
 

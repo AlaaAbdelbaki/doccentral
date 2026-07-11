@@ -5,7 +5,8 @@ enum AppRoutes {
   patients(path: '/patients', name: 'patients'),
   inventory(path: '/inventory', name: 'inventory'),
   dayCloseout(path: '/day-closeout', name: 'dayCloseout'),
-  settings(path: '/settings', name: 'settings');
+  settings(path: '/settings', name: 'settings'),
+  signUp(path: '/sign-up', name: 'signUp');
 
   const AppRoutes({required this.path, required this.name});
 

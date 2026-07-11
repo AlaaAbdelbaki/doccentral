@@ -1,4 +1,6 @@
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
+import 'package:docentral/features/clinic/presentation/providers/has_local_clinic_provider.dart';
+import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
 import 'package:docentral/features/day_closeout/presentation/day_closeout_page.dart';
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
@@ -12,11 +14,45 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
-@riverpod
+/// Notifies GoRouter to re-run its redirect once [hasLocalClinicProvider]
+/// resolves — a plain `ref.read` snapshot inside `redirect:` would otherwise
+/// never be re-checked after the initial (loading) evaluation.
+class _HasLocalClinicRefreshNotifier extends ChangeNotifier {
+  _HasLocalClinicRefreshNotifier(Ref ref) {
+    ref.listen(hasLocalClinicProvider, (
+      AsyncValue<bool>? previous,
+      AsyncValue<bool> next,
+    ) {
+      notifyListeners();
+    });
+  }
+}
+
+@Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
+  final _HasLocalClinicRefreshNotifier refreshNotifier =
+      _HasLocalClinicRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
+
   return GoRouter(
     initialLocation: AppRoutes.calendar.path,
+    refreshListenable: refreshNotifier,
+    redirect: (BuildContext context, GoRouterState state) {
+      final bool? hasClinic = ref.read(hasLocalClinicProvider).value;
+      final bool isSignUpRoute = state.matchedLocation == AppRoutes.signUp.path;
+
+      if (hasClinic == null) return null;
+      if (!hasClinic && !isSignUpRoute) return AppRoutes.signUp.path;
+      if (hasClinic && isSignUpRoute) return AppRoutes.calendar.path;
+      return null;
+    },
     routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.signUp.path,
+        name: AppRoutes.signUp.name,
+        builder: (BuildContext context, GoRouterState state) =>
+            const SignUpPage(),
+      ),
       StatefulShellRoute.indexedStack(
         builder:
             (

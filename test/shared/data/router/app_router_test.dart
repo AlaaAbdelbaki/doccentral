@@ -1,3 +1,5 @@
+import 'package:docentral/features/clinic/domain/clinic_repository.dart';
+import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/router/app_router.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
@@ -6,8 +8,35 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-Future<GoRouter> _pumpRouter(WidgetTester tester) async {
-  final ProviderContainer container = ProviderContainer();
+class _FakeClinicRepository implements ClinicRepository {
+  _FakeClinicRepository({required this.hasClinic});
+
+  final bool hasClinic;
+
+  @override
+  Future<bool> hasLocalClinic() async => hasClinic;
+
+  @override
+  Future<void> provisionClinic({
+    required String clinicName,
+    required String dentistFirstName,
+    required String dentistLastName,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError('not exercised by this test');
+}
+
+Future<GoRouter> _pumpRouter(
+  WidgetTester tester, {
+  bool hasClinic = true,
+}) async {
+  final ProviderContainer container = ProviderContainer(
+    overrides: [
+      clinicRepositoryProvider.overrideWithValue(
+        _FakeClinicRepository(hasClinic: hasClinic),
+      ),
+    ],
+  );
   addTearDown(container.dispose);
   final GoRouter router = container.read(appRouterProvider);
 
@@ -54,5 +83,25 @@ void main() {
     router.go(AppRoutes.settings.path);
     await tester.pumpAndSettle();
     expect(find.text('Settings'), findsWidgets);
+  });
+
+  testWidgets('redirects to sign-up when no local clinic exists', (
+    WidgetTester tester,
+  ) async {
+    await _pumpRouter(tester, hasClinic: false);
+
+    expect(find.text('Create your clinic'), findsOneWidget);
+  });
+
+  testWidgets('redirects away from sign-up once a clinic exists', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpRouter(tester, hasClinic: true);
+
+    router.go(AppRoutes.signUp.path);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Today's Calendar"), findsWidgets);
+    expect(find.text('Create your clinic'), findsNothing);
   });
 }

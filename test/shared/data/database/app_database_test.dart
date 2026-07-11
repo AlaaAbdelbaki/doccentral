@@ -104,9 +104,38 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 2);
+      expect(db.schemaVersion, 3);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
+
+    test(
+      'schema includes clinic locale/currency and the auth tables (v3)',
+      () async {
+        expect(db.schemaVersion, 3);
+        expect(await db.select(db.users).get(), isEmpty);
+        expect(await db.select(db.roles).get(), isEmpty);
+        expect(await db.select(db.userRoles).get(), isEmpty);
+
+        final now = DateTime.now();
+        const clinicId = '00000000-0000-0000-0000-000000000004';
+        await db
+            .into(db.clinics)
+            .insert(
+              ClinicsCompanion.insert(
+                id: clinicId,
+                name: 'Locale Test',
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+
+        final clinic = await (db.select(
+          db.clinics,
+        )..where((t) => t.id.equals(clinicId))).getSingle();
+        expect(clinic.locale, 'fr-TN');
+        expect(clinic.currency, 'TND');
+      },
+    );
   });
 }
