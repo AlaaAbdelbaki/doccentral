@@ -117,6 +117,14 @@ class _FakeVisitRepository implements VisitRepository {
     required Role role,
     required String appointmentId,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updateClinicalRecord({
+    required Role role,
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 class _FakePatientRepository implements PatientRepository {

@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 8) await m.createTable(visits);
       if (from < 9) await m.addColumn(visits, visits.inProgressAt);
       if (from < 10) await m.createTable(performedTreatments);
+      if (from < 11) {
+        await m.addColumn(visits, visits.diagnosis);
+        await m.addColumn(visits, visits.clinicalNotes);
+      }
     },
   );
 }

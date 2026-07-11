@@ -376,6 +376,14 @@ class _FakeVisitRepository implements VisitRepository {
     );
     _changes.add(null);
   }
+
+  @override
+  Future<void> updateClinicalRecord({
+    required Role role,
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 Future<_FakeAppointmentRepository> _pumpPage(

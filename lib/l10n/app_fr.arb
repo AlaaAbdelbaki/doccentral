@@ -138,5 +138,7 @@
   "visitTreatmentUnitPriceField": "Prix unitaire",
   "visitTreatmentQuantityField": "Quantité",
   "visitTreatmentInvalidNumberError": "Entrez un nombre valide",
-  "appointmentViewVisitButton": "Voir la visite"
+  "appointmentViewVisitButton": "Voir la visite",
+  "visitDiagnosisField": "Diagnostic",
+  "visitClinicalNotesField": "Notes cliniques"
 }

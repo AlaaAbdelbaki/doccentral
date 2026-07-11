@@ -11,6 +11,8 @@ class VisitRecord {
     required this.status,
     required this.startedAt,
     this.inProgressAt,
+    this.diagnosis,
+    this.clinicalNotes,
   });
 
   final String id;
@@ -20,4 +22,6 @@ class VisitRecord {
   final VisitStatus status;
   final DateTime startedAt;
   final DateTime? inProgressAt;
+  final String? diagnosis;
+  final String? clinicalNotes;
 }

@@ -47,4 +47,31 @@ class VisitController extends _$VisitController {
           .startProgress(role: role, appointmentId: appointmentId),
     );
   }
+
+  Future<void> updateClinicalRecord({
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    if (role == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canAddClinicalNotes),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(visitRepositoryProvider)
+          .updateClinicalRecord(
+            role: role,
+            visitId: visitId,
+            diagnosis: diagnosis,
+            clinicalNotes: clinicalNotes,
+          ),
+    );
+  }
 }

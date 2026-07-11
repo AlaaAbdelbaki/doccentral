@@ -93,6 +93,8 @@ class VisitRepositoryImpl implements VisitRepository {
       status: VisitStatus.values.byName(row.status),
       startedAt: row.startedAt,
       inProgressAt: row.inProgressAt,
+      diagnosis: row.diagnosis,
+      clinicalNotes: row.clinicalNotes,
     );
   }
 
@@ -143,5 +145,33 @@ class VisitRepositoryImpl implements VisitRepository {
         ),
       );
     });
+  }
+
+  @override
+  Future<void> updateClinicalRecord({
+    required Role role,
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  }) async {
+    requirePermission(role, Permission.canAddClinicalNotes);
+
+    final Visit visit = await (_db.select(
+      _db.visits,
+    )..where((Visits t) => t.id.equals(visitId))).getSingle();
+
+    if (visit.status != VisitStatus.inProgress.name) {
+      throw const VisitNotEditableException();
+    }
+
+    await (_db.update(
+      _db.visits,
+    )..where((Visits t) => t.id.equals(visitId))).write(
+      VisitsCompanion(
+        diagnosis: Value(diagnosis?.trim()),
+        clinicalNotes: Value(clinicalNotes?.trim()),
+        updatedAt: Value(DateTime.now().toUtc()),
+      ),
+    );
   }
 }

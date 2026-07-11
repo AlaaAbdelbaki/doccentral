@@ -20,6 +20,7 @@ class _FakeVisitRepository implements VisitRepository {
   _FakeVisitRepository(this._visit);
 
   final VisitRecord? _visit;
+  final List<(String?, String?)> savedClinicalRecords = <(String?, String?)>[];
 
   @override
   Future<String> checkIn({required Role role, required String appointmentId}) =>
@@ -43,6 +44,16 @@ class _FakeVisitRepository implements VisitRepository {
     required Role role,
     required String appointmentId,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updateClinicalRecord({
+    required Role role,
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  }) async {
+    savedClinicalRecords.add((diagnosis, clinicalNotes));
+  }
 }
 
 class _FakePerformedTreatmentRepository
@@ -130,7 +141,10 @@ class _FakePerformedTreatmentRepository
   }
 }
 
-Future<_FakePerformedTreatmentRepository> _pumpPage(
+Future<
+  ({_FakeVisitRepository visit, _FakePerformedTreatmentRepository treatments})
+>
+_pumpPage(
   WidgetTester tester, {
   required VisitRecord? visit,
   List<PerformedTreatment> treatments = const <PerformedTreatment>[],
@@ -139,10 +153,11 @@ Future<_FakePerformedTreatmentRepository> _pumpPage(
   final _FakePerformedTreatmentRepository fakeTreatmentRepository =
       _FakePerformedTreatmentRepository(treatments);
   addTearDown(() => fakeTreatmentRepository._changes.close());
+  final _FakeVisitRepository fakeVisitRepository = _FakeVisitRepository(visit);
 
   final ProviderContainer container = ProviderContainer(
     overrides: [
-      visitRepositoryProvider.overrideWithValue(_FakeVisitRepository(visit)),
+      visitRepositoryProvider.overrideWithValue(fakeVisitRepository),
       performedTreatmentRepositoryProvider.overrideWithValue(
         fakeTreatmentRepository,
       ),
@@ -166,7 +181,7 @@ Future<_FakePerformedTreatmentRepository> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
-  return fakeTreatmentRepository;
+  return (visit: fakeVisitRepository, treatments: fakeTreatmentRepository);
 }
 
 void main() {
@@ -215,10 +230,10 @@ void main() {
   testWidgets('adding a treatment saves it and updates the list', (
     WidgetTester tester,
   ) async {
-    final _FakePerformedTreatmentRepository fakeRepository = await _pumpPage(
+    final fakeRepository = (await _pumpPage(
       tester,
       visit: inProgressVisit,
-    );
+    )).treatments;
 
     await tester.tap(find.text('Add treatment'));
     await tester.pumpAndSettle();
@@ -248,7 +263,7 @@ void main() {
   testWidgets('removing a treatment deletes it from the list', (
     WidgetTester tester,
   ) async {
-    final _FakePerformedTreatmentRepository fakeRepository = await _pumpPage(
+    final fakeRepository = (await _pumpPage(
       tester,
       visit: inProgressVisit,
       treatments: <PerformedTreatment>[
@@ -263,7 +278,7 @@ void main() {
           recordedAt: DateTime.now(),
         ),
       ],
-    );
+    )).treatments;
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
@@ -304,6 +319,61 @@ void main() {
       expect(find.text('Add treatment'), findsNothing);
       expect(find.byIcon(Icons.edit_outlined), findsNothing);
       expect(find.byIcon(Icons.delete_outline), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'editing diagnosis autosaves on blur without an explicit save button',
+    (WidgetTester tester) async {
+      final fakeVisitRepository = (await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+      )).visit;
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Diagnosis'),
+        'Cavity on tooth 18',
+      );
+      // Move focus elsewhere to trigger blur.
+      await tester.tap(find.widgetWithText(TextField, 'Clinical notes'));
+      await tester.pumpAndSettle();
+      // Blur the notes field too so its own autosave fires deterministically.
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+
+      expect(fakeVisitRepository.savedClinicalRecords, isNotEmpty);
+      expect(
+        fakeVisitRepository.savedClinicalRecords.any(
+          (record) => record.$1 == 'Cavity on tooth 18',
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'diagnosis and clinical notes are read-only on a completed visit',
+    (WidgetTester tester) async {
+      final VisitRecord completedVisit = VisitRecord(
+        id: 'visit-1',
+        appointmentId: 'appointment-1',
+        patientId: 'p1',
+        dentistId: 'dentist-1',
+        status: VisitStatus.completed,
+        startedAt: DateTime.now(),
+        diagnosis: 'Cavity',
+        clinicalNotes: 'Patient tolerated well',
+      );
+
+      await _pumpPage(tester, visit: completedVisit);
+
+      final TextField diagnosisField = tester.widget(
+        find.widgetWithText(TextField, 'Diagnosis'),
+      );
+      expect(diagnosisField.readOnly, isTrue);
+      expect(find.text('Cavity'), findsOneWidget);
+      expect(find.text('Patient tolerated well'), findsOneWidget);
     },
   );
 }

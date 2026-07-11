@@ -250,4 +250,61 @@ void main() {
       expect(visit?.status, VisitStatus.checkedIn);
     });
   });
+
+  group('VisitRepositoryImpl.updateClinicalRecord', () {
+    test(
+      'saves diagnosis and clinical notes on an in_progress Visit',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        final String visitId = await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+        await repository.startProgress(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        await repository.updateClinicalRecord(
+          role: Role.assistant,
+          visitId: visitId,
+          diagnosis: 'Cavity on tooth 18',
+          clinicalNotes: 'Patient tolerated well',
+        );
+
+        final Visit visit = await (db.select(
+          db.visits,
+        )..where((t) => t.id.equals(visitId))).getSingle();
+        expect(visit.diagnosis, 'Cavity on tooth 18');
+        expect(visit.clinicalNotes, 'Patient tolerated well');
+      },
+    );
+
+    test(
+      'throws VisitNotEditableException when the Visit is not in_progress',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String appointmentId = await seedAppointment(
+          patientId: patientId,
+        );
+        final String visitId = await repository.checkIn(
+          role: Role.assistant,
+          appointmentId: appointmentId,
+        );
+
+        expect(
+          () => repository.updateClinicalRecord(
+            role: Role.assistant,
+            visitId: visitId,
+            diagnosis: 'Cavity',
+            clinicalNotes: 'Notes',
+          ),
+          throwsA(isA<VisitNotEditableException>()),
+        );
+      },
+    );
+  });
 }

@@ -8,4 +8,6 @@ class Visits extends Table with SyncMetadata {
   TextColumn get status => text().withDefault(const Constant('checkedIn'))();
   DateTimeColumn get startedAt => dateTime()();
   DateTimeColumn get inProgressAt => dateTime().nullable()();
+  TextColumn get diagnosis => text().nullable()();
+  TextColumn get clinicalNotes => text().nullable()();
 }

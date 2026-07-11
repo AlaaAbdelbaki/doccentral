@@ -4,6 +4,7 @@ import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/features/visit/presentation/providers/performed_treatment_controller_provider.dart';
 import 'package:docentral/features/visit/presentation/providers/performed_treatments_provider.dart';
+import 'package:docentral/features/visit/presentation/providers/visit_controller_provider.dart';
 import 'package:docentral/features/visit/presentation/providers/visit_for_appointment_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+part 'widgets/clinical_record_section.dart';
 part 'widgets/treatment_form_dialog.dart';
 part 'widgets/treatment_row.dart';
 
@@ -72,38 +74,53 @@ class VisitDetailPage extends ConsumerWidget {
             ),
         ],
       ),
-      body: treatmentsAsync.when(
-        data: (List<PerformedTreatment> treatments) {
-          if (treatments.isEmpty) {
-            return Center(child: Text(l10n.visitNoTreatmentsYet));
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: treatments.length,
-            separatorBuilder: (BuildContext context, int index) =>
-                const SizedBox(height: AppSpacing.sm),
-            itemBuilder: (BuildContext context, int index) {
-              final PerformedTreatment treatment = treatments[index];
-              return _TreatmentRow(
-                treatment: treatment,
-                onEdit: !canEditTreatments
-                    ? null
-                    : () => _showTreatmentFormDialog(
-                        context,
-                        ref,
-                        visitId: visit.id,
-                        initial: treatment,
-                      ),
-                onRemove: !canEditTreatments
-                    ? null
-                    : () => _removeTreatment(context, ref, treatment.id),
-              );
-            },
-          );
-        },
-        error: (Object error, StackTrace stackTrace) =>
-            Center(child: Text('$error')),
-        loading: () => const Center(child: CircularProgressIndicator()),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _ClinicalRecordSection(
+            key: ValueKey<String>(visit.id),
+            visitId: visit.id,
+            diagnosis: visit.diagnosis,
+            clinicalNotes: visit.clinicalNotes,
+            editable: visit.status == VisitStatus.inProgress,
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: treatmentsAsync.when(
+              data: (List<PerformedTreatment> treatments) {
+                if (treatments.isEmpty) {
+                  return Center(child: Text(l10n.visitNoTreatmentsYet));
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  itemCount: treatments.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (BuildContext context, int index) {
+                    final PerformedTreatment treatment = treatments[index];
+                    return _TreatmentRow(
+                      treatment: treatment,
+                      onEdit: !canEditTreatments
+                          ? null
+                          : () => _showTreatmentFormDialog(
+                              context,
+                              ref,
+                              visitId: visit.id,
+                              initial: treatment,
+                            ),
+                      onRemove: !canEditTreatments
+                          ? null
+                          : () => _removeTreatment(context, ref, treatment.id),
+                    );
+                  },
+                );
+              },
+              error: (Object error, StackTrace stackTrace) =>
+                  Center(child: Text('$error')),
+              loading: () => const Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        ],
       ),
     );
   }

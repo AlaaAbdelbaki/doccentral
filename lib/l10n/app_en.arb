@@ -419,5 +419,11 @@
   "@visitTreatmentInvalidNumberError": { "description": "Validation error for a non-numeric price/quantity field" },
 
   "appointmentViewVisitButton": "View visit",
-  "@appointmentViewVisitButton": { "description": "Button/tooltip to open the visit detail page from the calendar" }
+  "@appointmentViewVisitButton": { "description": "Button/tooltip to open the visit detail page from the calendar" },
+
+  "visitDiagnosisField": "Diagnosis",
+  "@visitDiagnosisField": { "description": "Visit diagnosis field label" },
+
+  "visitClinicalNotesField": "Clinical notes",
+  "@visitClinicalNotesField": { "description": "Visit clinical notes field label" }
 }

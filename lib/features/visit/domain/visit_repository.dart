@@ -32,4 +32,16 @@ abstract class VisitRepository {
     required Role role,
     required String appointmentId,
   });
+
+  /// Updates the `diagnosis` and `clinical_notes` fields of an `in_progress`
+  /// Visit. Intended to be called on field blur (autosave), not gated by a
+  /// separate "save" action.
+  ///
+  /// Throws [VisitNotEditableException] if the Visit is not `in_progress`.
+  Future<void> updateClinicalRecord({
+    required Role role,
+    required String visitId,
+    String? diagnosis,
+    String? clinicalNotes,
+  });
 }

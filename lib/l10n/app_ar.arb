@@ -138,5 +138,7 @@
   "visitTreatmentUnitPriceField": "سعر الوحدة",
   "visitTreatmentQuantityField": "الكمية",
   "visitTreatmentInvalidNumberError": "أدخل رقماً صحيحاً",
-  "appointmentViewVisitButton": "عرض الزيارة"
+  "appointmentViewVisitButton": "عرض الزيارة",
+  "visitDiagnosisField": "التشخيص",
+  "visitClinicalNotesField": "الملاحظات السريرية"
 }
