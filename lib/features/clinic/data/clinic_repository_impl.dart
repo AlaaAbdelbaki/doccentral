@@ -94,4 +94,24 @@ class ClinicRepositoryImpl implements ClinicRepository {
           );
     });
   }
+
+  @override
+  Future<Role?> resolveRole(String authUserId) async {
+    final User? user = await (_db.select(
+      _db.users,
+    )..where((t) => t.authUserId.equals(authUserId))).getSingleOrNull();
+    if (user == null) return null;
+
+    final UserRole? userRole = await (_db.select(
+      _db.userRoles,
+    )..where((t) => t.userId.equals(user.id))).getSingleOrNull();
+    if (userRole == null) return null;
+
+    final RoleRow? role = await (_db.select(
+      _db.roles,
+    )..where((t) => t.id.equals(userRole.roleId))).getSingleOrNull();
+    if (role == null) return null;
+
+    return Role.values.asNameMap()[role.name];
+  }
 }

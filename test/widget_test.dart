@@ -1,7 +1,9 @@
 import 'package:docentral/app.dart';
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
+import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
 import 'package:docentral/shared/data/providers/shared_preferences_provider.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,10 @@ class _FakeClinicRepository implements ClinicRepository {
     required String email,
     required String password,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<Role?> resolveRole(String authUserId) =>
+      throw UnimplementedError('not exercised by this test');
 }
 
 void main() {
@@ -36,6 +42,7 @@ void main() {
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           clinicRepositoryProvider.overrideWithValue(_FakeClinicRepository()),
+          resolvedRoleProvider.overrideWith((ref) async => Role.doctor),
         ],
         child: const DocCentralApp(),
       ),

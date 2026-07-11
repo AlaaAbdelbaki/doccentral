@@ -26,4 +26,27 @@ class SupabaseAuthService implements AuthService {
       throw domain.AuthException(error.toString());
     }
   }
+
+  @override
+  Future<String> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final AuthResponse response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      final String? userId = response.user?.id;
+      if (userId == null) {
+        throw const domain.AuthException('Sign-in did not return a user id');
+      }
+      return userId;
+    } catch (error) {
+      throw domain.AuthException(error.toString());
+    }
+  }
+
+  @override
+  Future<void> signOut() => _client.auth.signOut();
 }

@@ -3,6 +3,7 @@ import 'package:docentral/features/clinic/presentation/providers/clinic_reposito
 import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/domain/auth/auth_exceptions.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,9 @@ class _FakeClinicRepository implements ClinicRepository {
     lastClinicName = clinicName;
     provisioned = true;
   }
+
+  @override
+  Future<Role?> resolveRole(String authUserId) async => Role.doctor;
 }
 
 Future<ProviderContainer> _pumpSignUpPage(

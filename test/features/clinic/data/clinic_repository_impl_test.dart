@@ -2,6 +2,7 @@ import 'package:docentral/features/clinic/data/clinic_repository_impl.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/auth/auth_exceptions.dart';
 import 'package:docentral/shared/domain/auth/auth_service.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,6 +20,18 @@ class _FakeAuthService implements AuthService {
     if (shouldFail) throw const AuthException('offline');
     return userId;
   }
+
+  @override
+  Future<String> signIn({
+    required String email,
+    required String password,
+  }) async {
+    if (shouldFail) throw const AuthException('offline');
+    return userId;
+  }
+
+  @override
+  Future<void> signOut() async {}
 }
 
 AppDatabase _createInMemoryDatabase() {
@@ -126,6 +139,42 @@ void main() {
       expect(await db.select(db.users).get(), isEmpty);
       expect(await db.select(db.roles).get(), isEmpty);
       expect(await db.select(db.userRoles).get(), isEmpty);
+    });
+  });
+
+  group('ClinicRepositoryImpl.resolveRole', () {
+    test('resolves the dentist role for the provisioning user', () async {
+      final ClinicRepositoryImpl repository = ClinicRepositoryImpl(
+        db,
+        _FakeAuthService(),
+      );
+      await repository.provisionClinic(
+        clinicName: 'Cabinet Test',
+        dentistFirstName: 'Amine',
+        dentistLastName: 'Trabelsi',
+        email: 'amine@example.com',
+        password: 'password123',
+      );
+
+      final Role? role = await repository.resolveRole(_FakeAuthService.userId);
+      expect(role, Role.doctor);
+    });
+
+    test('returns null for an unknown authUserId', () async {
+      final ClinicRepositoryImpl repository = ClinicRepositoryImpl(
+        db,
+        _FakeAuthService(),
+      );
+      await repository.provisionClinic(
+        clinicName: 'Cabinet Test',
+        dentistFirstName: 'Amine',
+        dentistLastName: 'Trabelsi',
+        email: 'amine@example.com',
+        password: 'password123',
+      );
+
+      final Role? role = await repository.resolveRole('unknown-auth-id');
+      expect(role, isNull);
     });
   });
 }

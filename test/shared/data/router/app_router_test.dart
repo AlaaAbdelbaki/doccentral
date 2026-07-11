@@ -1,8 +1,10 @@
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
+import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/router/app_router.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,17 +26,23 @@ class _FakeClinicRepository implements ClinicRepository {
     required String email,
     required String password,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<Role?> resolveRole(String authUserId) =>
+      throw UnimplementedError('not exercised by this test');
 }
 
 Future<GoRouter> _pumpRouter(
   WidgetTester tester, {
   bool hasClinic = true,
+  Role? role = Role.doctor,
 }) async {
   final ProviderContainer container = ProviderContainer(
     overrides: [
       clinicRepositoryProvider.overrideWithValue(
         _FakeClinicRepository(hasClinic: hasClinic),
       ),
+      resolvedRoleProvider.overrideWith((ref) async => role),
     ],
   );
   addTearDown(container.dispose);
@@ -88,7 +96,7 @@ void main() {
   testWidgets('redirects to sign-up when no local clinic exists', (
     WidgetTester tester,
   ) async {
-    await _pumpRouter(tester, hasClinic: false);
+    await _pumpRouter(tester, hasClinic: false, role: null);
 
     expect(find.text('Create your clinic'), findsOneWidget);
   });
@@ -103,5 +111,29 @@ void main() {
 
     expect(find.text("Today's Calendar"), findsWidgets);
     expect(find.text('Create your clinic'), findsNothing);
+  });
+
+  testWidgets(
+    'redirects to sign-in when a clinic exists but no session is active',
+    (WidgetTester tester) async {
+      await _pumpRouter(tester, hasClinic: true, role: null);
+
+      expect(find.text('Sign in'), findsWidgets);
+    },
+  );
+
+  testWidgets('redirects away from sign-in once a role is resolved', (
+    WidgetTester tester,
+  ) async {
+    final GoRouter router = await _pumpRouter(
+      tester,
+      hasClinic: true,
+      role: Role.doctor,
+    );
+
+    router.go(AppRoutes.signIn.path);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Today's Calendar"), findsWidgets);
   });
 }

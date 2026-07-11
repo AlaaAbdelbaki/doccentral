@@ -1,5 +1,7 @@
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
+import 'package:docentral/features/auth/presentation/sign_in_page.dart';
 import 'package:docentral/features/clinic/presentation/providers/has_local_clinic_provider.dart';
+import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
 import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
 import 'package:docentral/features/day_closeout/presentation/day_closeout_page.dart';
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
@@ -8,20 +10,28 @@ import 'package:docentral/features/settings/presentation/settings_page.dart';
 import 'package:docentral/shared/data/router/app_destination.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
 import 'package:docentral/shared/design_system/widgets/app_shell.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'app_router.g.dart';
 
-/// Notifies GoRouter to re-run its redirect once [hasLocalClinicProvider]
-/// resolves — a plain `ref.read` snapshot inside `redirect:` would otherwise
-/// never be re-checked after the initial (loading) evaluation.
-class _HasLocalClinicRefreshNotifier extends ChangeNotifier {
-  _HasLocalClinicRefreshNotifier(Ref ref) {
+/// Notifies GoRouter to re-run its redirect once [hasLocalClinicProvider] or
+/// [resolvedRoleProvider] resolves/changes — a plain `ref.read` snapshot
+/// inside `redirect:` would otherwise never be re-checked after the initial
+/// (loading) evaluation, or after sign-in/sign-out.
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
     ref.listen(hasLocalClinicProvider, (
       AsyncValue<bool>? previous,
       AsyncValue<bool> next,
+    ) {
+      notifyListeners();
+    });
+    ref.listen(resolvedRoleProvider, (
+      AsyncValue<Role?>? previous,
+      AsyncValue<Role?> next,
     ) {
       notifyListeners();
     });
@@ -30,20 +40,31 @@ class _HasLocalClinicRefreshNotifier extends ChangeNotifier {
 
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final _HasLocalClinicRefreshNotifier refreshNotifier =
-      _HasLocalClinicRefreshNotifier(ref);
+  final _AuthRefreshNotifier refreshNotifier = _AuthRefreshNotifier(ref);
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: AppRoutes.calendar.path,
     refreshListenable: refreshNotifier,
     redirect: (BuildContext context, GoRouterState state) {
-      final bool? hasClinic = ref.read(hasLocalClinicProvider).value;
-      final bool isSignUpRoute = state.matchedLocation == AppRoutes.signUp.path;
+      final AsyncValue<bool> hasClinicAsync = ref.read(hasLocalClinicProvider);
+      final AsyncValue<Role?> roleAsync = ref.read(resolvedRoleProvider);
+      if (hasClinicAsync.isLoading || roleAsync.isLoading) return null;
 
-      if (hasClinic == null) return null;
-      if (!hasClinic && !isSignUpRoute) return AppRoutes.signUp.path;
-      if (hasClinic && isSignUpRoute) return AppRoutes.calendar.path;
+      final bool hasClinic = hasClinicAsync.value ?? false;
+      final Role? role = roleAsync.value;
+      final String location = state.matchedLocation;
+
+      if (!hasClinic) {
+        return location == AppRoutes.signUp.path ? null : AppRoutes.signUp.path;
+      }
+      if (location == AppRoutes.signUp.path) return AppRoutes.calendar.path;
+
+      if (role == null) {
+        return location == AppRoutes.signIn.path ? null : AppRoutes.signIn.path;
+      }
+      if (location == AppRoutes.signIn.path) return AppRoutes.calendar.path;
+
       return null;
     },
     routes: <RouteBase>[
@@ -52,6 +73,12 @@ GoRouter appRouter(Ref ref) {
         name: AppRoutes.signUp.name,
         builder: (BuildContext context, GoRouterState state) =>
             const SignUpPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.signIn.path,
+        name: AppRoutes.signIn.name,
+        builder: (BuildContext context, GoRouterState state) =>
+            const SignInPage(),
       ),
       StatefulShellRoute.indexedStack(
         builder:

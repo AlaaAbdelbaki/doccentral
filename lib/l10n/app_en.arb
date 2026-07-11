@@ -40,6 +40,24 @@
   "settingsLanguage": "Language",
   "@settingsLanguage": { "description": "Language setting label" },
 
+  "settingsSignOut": "Sign out",
+  "@settingsSignOut": { "description": "Sign-out button label in Settings" },
+
+  "signInTitle": "Sign in",
+  "@signInTitle": { "description": "Sign-in page title" },
+
+  "signInEmail": "Email",
+  "@signInEmail": { "description": "Sign-in email field label" },
+
+  "signInPassword": "Password",
+  "@signInPassword": { "description": "Sign-in password field label" },
+
+  "signInSubmitButton": "Sign in",
+  "@signInSubmitButton": { "description": "Sign-in submit button label" },
+
+  "signInError": "Could not sign in. Check your credentials and connection.",
+  "@signInError": { "description": "Error shown when sign-in fails" },
+
   "requiredFieldError": "This field is required",
   "@requiredFieldError": { "description": "Generic validation error for a missing required field" },
 
