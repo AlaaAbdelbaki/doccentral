@@ -14,11 +14,22 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
 
   @override
   Stream<List<AppointmentRecord>> watchToday({required Role role}) {
-    requirePermission(role, Permission.canViewAppointments);
-
     final DateTime now = DateTime.now();
     final DateTime startOfDay = DateTime(now.year, now.month, now.day);
-    final DateTime endOfDay = startOfDay.add(const Duration(days: 1));
+    return watchRange(
+      role: role,
+      start: startOfDay,
+      end: startOfDay.add(const Duration(days: 1)),
+    );
+  }
+
+  @override
+  Stream<List<AppointmentRecord>> watchRange({
+    required Role role,
+    required DateTime start,
+    required DateTime end,
+  }) {
+    requirePermission(role, Permission.canViewAppointments);
 
     final JoinedSelectStatement<HasResultSet, dynamic> query =
         _db.select(_db.appointments).join([
@@ -29,8 +40,8 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
           ])
           ..where(
             _db.appointments.deletedAt.isNull() &
-                _db.appointments.startTime.isBiggerOrEqualValue(startOfDay) &
-                _db.appointments.startTime.isSmallerThanValue(endOfDay),
+                _db.appointments.startTime.isBiggerOrEqualValue(start) &
+                _db.appointments.startTime.isSmallerThanValue(end),
           )
           ..orderBy([OrderingTerm.asc(_db.appointments.startTime)]);
 

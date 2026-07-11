@@ -18,6 +18,20 @@ class _FakeAppointmentRepository implements AppointmentRepository {
   @override
   Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
       Stream.value(_appointments);
+
+  @override
+  Stream<List<AppointmentRecord>> watchRange({
+    required Role role,
+    required DateTime start,
+    required DateTime end,
+  }) => Stream.value(
+    _appointments
+        .where(
+          (AppointmentRecord a) =>
+              !a.startTime.isBefore(start) && a.startTime.isBefore(end),
+        )
+        .toList(),
+  );
 }
 
 Future<void> _pumpPage(
@@ -98,4 +112,59 @@ void main() {
     expect(find.text('Low-stock items'), findsOneWidget);
     expect(find.text('0'), findsOneWidget);
   });
+
+  testWidgets(
+    'switching to Week view shows today\'s appointment in its day column',
+    (WidgetTester tester) async {
+      final DateTime now = DateTime.now();
+      await _pumpPage(tester, <AppointmentRecord>[
+        AppointmentRecord(
+          id: '1',
+          patientId: 'p1',
+          patientName: 'Amine Trabelsi',
+          assignedUserId: 'dentist-1',
+          startTime: DateTime(now.year, now.month, now.day, 9),
+          endTime: DateTime(now.year, now.month, now.day, 9, 30),
+          status: AppointmentStatus.scheduled,
+        ),
+      ]);
+
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Amine Trabelsi'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'week navigation shifts the range and drops out-of-range appointments',
+    (WidgetTester tester) async {
+      final DateTime now = DateTime.now();
+      await _pumpPage(tester, <AppointmentRecord>[
+        AppointmentRecord(
+          id: '1',
+          patientId: 'p1',
+          patientName: 'Amine Trabelsi',
+          assignedUserId: 'dentist-1',
+          startTime: DateTime(now.year, now.month, now.day, 9),
+          endTime: DateTime(now.year, now.month, now.day, 9, 30),
+          status: AppointmentStatus.scheduled,
+        ),
+      ]);
+
+      await tester.tap(find.text('Week'));
+      await tester.pumpAndSettle();
+      expect(find.text('Amine Trabelsi'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Amine Trabelsi'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Amine Trabelsi'), findsOneWidget);
+    },
+  );
 }

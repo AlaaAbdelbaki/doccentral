@@ -84,5 +84,8 @@
   "appointmentStatusCancelled": "Annulé",
   "appointmentNoReasonNoted": "Aucun motif renseigné",
   "calendarSidePanelTitle": "Alertes du jour",
-  "calendarLowStockLabel": "Articles en stock faible"
+  "calendarLowStockLabel": "Articles en stock faible",
+  "calendarViewDay": "Jour",
+  "calendarViewWeek": "Semaine",
+  "appointmentEmptyDayShort": "Aucun rendez-vous"
 }

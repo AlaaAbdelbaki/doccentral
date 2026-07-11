@@ -20,6 +20,13 @@ class _FakeAppointmentRepository implements AppointmentRepository {
   @override
   Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
       Stream.value(const <AppointmentRecord>[]);
+
+  @override
+  Stream<List<AppointmentRecord>> watchRange({
+    required Role role,
+    required DateTime start,
+    required DateTime end,
+  }) => Stream.value(const <AppointmentRecord>[]);
 }
 
 class _FakeClinicRepository implements ClinicRepository {

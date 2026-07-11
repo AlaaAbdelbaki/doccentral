@@ -84,5 +84,8 @@
   "appointmentStatusCancelled": "ملغى",
   "appointmentNoReasonNoted": "لم يتم تسجيل سبب",
   "calendarSidePanelTitle": "تنبيهات اليوم",
-  "calendarLowStockLabel": "عناصر منخفضة المخزون"
+  "calendarLowStockLabel": "عناصر منخفضة المخزون",
+  "calendarViewDay": "يوم",
+  "calendarViewWeek": "أسبوع",
+  "appointmentEmptyDayShort": "لا توجد مواعيد"
 }

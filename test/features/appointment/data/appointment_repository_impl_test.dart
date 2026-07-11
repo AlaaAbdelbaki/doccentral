@@ -142,4 +142,37 @@ void main() {
       expect(appointments.single.status, AppointmentStatus.checkedIn);
     });
   });
+
+  group('AppointmentRepositoryImpl.watchRange', () {
+    test('returns appointments within [start, end) only', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final DateTime start = DateTime(2026, 6, 8);
+      final DateTime end = start.add(const Duration(days: 7));
+
+      await seedAppointment(
+        patientId: patientId,
+        startTime: DateTime(2026, 6, 7, 23, 59),
+      );
+      await seedAppointment(
+        patientId: patientId,
+        startTime: DateTime(2026, 6, 8, 9),
+      );
+      await seedAppointment(
+        patientId: patientId,
+        startTime: DateTime(2026, 6, 14, 17),
+      );
+      await seedAppointment(
+        patientId: patientId,
+        startTime: DateTime(2026, 6, 15),
+      );
+
+      final List<AppointmentRecord> appointments = await repository
+          .watchRange(role: Role.assistant, start: start, end: end)
+          .first;
+
+      expect(appointments.length, 2);
+      expect(appointments.first.startTime, DateTime(2026, 6, 8, 9));
+      expect(appointments.last.startTime, DateTime(2026, 6, 14, 17));
+    });
+  });
 }

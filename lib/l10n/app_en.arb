@@ -257,5 +257,14 @@
   "@calendarSidePanelTitle": { "description": "Calendar side panel title" },
 
   "calendarLowStockLabel": "Low-stock items",
-  "@calendarLowStockLabel": { "description": "Calendar side panel low-stock consumables count label" }
+  "@calendarLowStockLabel": { "description": "Calendar side panel low-stock consumables count label" },
+
+  "calendarViewDay": "Day",
+  "@calendarViewDay": { "description": "Day-view toggle label" },
+
+  "calendarViewWeek": "Week",
+  "@calendarViewWeek": { "description": "Week-view toggle label" },
+
+  "appointmentEmptyDayShort": "No appointments",
+  "@appointmentEmptyDayShort": { "description": "Compact empty state for a single day column in the week view" }
 }
