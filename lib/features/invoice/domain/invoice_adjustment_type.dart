@@ -1,0 +1,1 @@
+enum InvoiceAdjustmentType { discount, surcharge }

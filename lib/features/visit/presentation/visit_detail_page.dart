@@ -1,3 +1,4 @@
+import 'package:docentral/features/invoice/presentation/invoice_detail_page.dart';
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
@@ -62,6 +63,9 @@ class VisitDetailPage extends ConsumerWidget {
     final bool canUnlock =
         ref.watch(permissionCheckerProvider)(Permission.canUnlockVisit) &&
         visit.status == VisitStatus.completed;
+    final bool canViewInvoice =
+        ref.watch(permissionCheckerProvider)(Permission.canEditInvoice) &&
+        visit.status == VisitStatus.completed;
 
     return Scaffold(
       appBar: AppBar(
@@ -100,6 +104,15 @@ class VisitDetailPage extends ConsumerWidget {
                 onPressed: () => _confirmUnlockVisit(context, ref, visit.id),
                 icon: const Icon(Icons.lock_open),
                 label: Text(l10n.visitUnlockButton),
+              ),
+            ),
+          if (canViewInvoice)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: OutlinedButton.icon(
+                onPressed: () => _viewInvoice(context, visit.id),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(l10n.visitViewInvoiceButton),
               ),
             ),
         ],
@@ -295,5 +308,13 @@ class VisitDetailPage extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.visitUnlockedMessage)));
     }
+  }
+
+  void _viewInvoice(BuildContext context, String visitId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => InvoiceDetailPage(visitId: visitId),
+      ),
+    );
   }
 }

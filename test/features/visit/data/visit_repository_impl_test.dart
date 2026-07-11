@@ -365,14 +365,14 @@ void main() {
       expect(invoices.single.totalAmount, 130);
       expect(invoices.single.status, 'draft');
 
-      final List<InvoiceItem> items = await db.select(db.invoiceItems).get();
+      final List<InvoiceItemRow> items = await db.select(db.invoiceItems).get();
       expect(items.length, 2);
-      expect(items.map((InvoiceItem i) => i.description).toSet(), <String>{
+      expect(items.map((InvoiceItemRow i) => i.description).toSet(), <String>{
         'Filling',
         'Cleaning',
       });
-      final InvoiceItem fillingItem = items.firstWhere(
-        (InvoiceItem i) => i.description == 'Filling',
+      final InvoiceItemRow fillingItem = items.firstWhere(
+        (InvoiceItemRow i) => i.description == 'Filling',
       );
       expect(fillingItem.toothNumber, '18');
       expect(fillingItem.quantity, 2);

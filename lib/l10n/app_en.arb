@@ -461,5 +461,41 @@
   "@visitUnlockInvoiceFinalizedError": { "description": "Error shown when unlocking a visit whose invoice is no longer a draft" },
 
   "visitUnlockedMessage": "Visit unlocked.",
-  "@visitUnlockedMessage": { "description": "Confirmation message shown after a visit is unlocked" }
+  "@visitUnlockedMessage": { "description": "Confirmation message shown after a visit is unlocked" },
+
+  "visitViewInvoiceButton": "View invoice",
+  "@visitViewInvoiceButton": { "description": "Button on a completed visit to view its linked invoice" },
+
+  "invoiceDetailPageTitle": "Invoice",
+  "@invoiceDetailPageTitle": { "description": "Invoice detail page title" },
+
+  "invoiceTotalLabel": "Total",
+  "@invoiceTotalLabel": { "description": "Label for the invoice's total amount" },
+
+  "invoiceNoItemsYet": "No items recorded yet",
+  "@invoiceNoItemsYet": { "description": "Empty state shown when an invoice has no items" },
+
+  "invoiceAddAdjustmentButton": "Add adjustment",
+  "@invoiceAddAdjustmentButton": { "description": "Button and dialog title to add a discount or surcharge adjustment" },
+
+  "invoiceAdjustmentTypeField": "Type",
+  "@invoiceAdjustmentTypeField": { "description": "Label for the discount/surcharge dropdown field" },
+
+  "invoiceAdjustmentTypeDiscount": "Discount",
+  "@invoiceAdjustmentTypeDiscount": { "description": "Discount adjustment type option" },
+
+  "invoiceAdjustmentTypeSurcharge": "Surcharge",
+  "@invoiceAdjustmentTypeSurcharge": { "description": "Surcharge adjustment type option" },
+
+  "invoiceAdjustmentDescriptionField": "Description",
+  "@invoiceAdjustmentDescriptionField": { "description": "Label for the adjustment description field" },
+
+  "invoiceAdjustmentAmountField": "Amount",
+  "@invoiceAdjustmentAmountField": { "description": "Label for the adjustment amount field" },
+
+  "invoiceAdjustmentInvalidAmountError": "Enter a positive amount",
+  "@invoiceAdjustmentInvalidAmountError": { "description": "Validation error for a non-positive adjustment amount" },
+
+  "invoiceNotDraftError": "This invoice can no longer be adjusted.",
+  "@invoiceNotDraftError": { "description": "Error shown when adding an adjustment to a non-draft invoice" }
 }
