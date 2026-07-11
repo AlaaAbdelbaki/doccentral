@@ -5,6 +5,7 @@ import 'package:docentral/shared/data/database/tables/appointment_cancellations_
 import 'package:docentral/shared/data/database/tables/appointment_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
+import 'package:docentral/shared/data/database/tables/invoice_finalizations_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_items_table.dart';
 import 'package:docentral/shared/data/database/tables/invoices_table.dart';
 import 'package:docentral/shared/data/database/tables/patient_edit_logs_table.dart';
@@ -20,10 +21,6 @@ import 'package:drift/native.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-// sqlcipher_flutter_libs provides the SQLCipher native library; importing it
-// replaces the default sqlite3 with an encryption-capable build on all platforms.
-// ignore: unused_import
-import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 
 part 'app_database.g.dart';
 
@@ -43,6 +40,7 @@ part 'app_database.g.dart';
     Invoices,
     InvoiceItems,
     VisitUnlockLogs,
+    InvoiceFinalizations,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -50,7 +48,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,6 +85,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(invoiceItems);
       }
       if (from < 13) await m.createTable(visitUnlockLogs);
+      if (from < 14) await m.createTable(invoiceFinalizations);
     },
   );
 }

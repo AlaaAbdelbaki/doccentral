@@ -1,4 +1,5 @@
-/// Thrown when adding an adjustment to an Invoice that is no longer `draft`.
+/// Thrown when adding an adjustment to, or finalizing, an Invoice that is
+/// no longer `draft`.
 class InvoiceNotDraftException implements Exception {
   const InvoiceNotDraftException();
 

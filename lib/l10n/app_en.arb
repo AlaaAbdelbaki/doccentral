@@ -457,8 +457,8 @@
   "visitUnlockInvoiceHasPaymentsError": "This invoice has payments recorded. Void it before unlocking the visit.",
   "@visitUnlockInvoiceHasPaymentsError": { "description": "Error shown when unlocking a visit whose invoice has payments" },
 
-  "visitUnlockInvoiceFinalizedError": "This invoice has already been finalized and can no longer be unlocked.",
-  "@visitUnlockInvoiceFinalizedError": { "description": "Error shown when unlocking a visit whose invoice is no longer a draft" },
+  "visitUnlockInvoiceFinalizedError": "This invoice has been voided and can no longer be unlocked.",
+  "@visitUnlockInvoiceFinalizedError": { "description": "Error shown when unlocking a visit whose invoice has been voided" },
 
   "visitUnlockedMessage": "Visit unlocked.",
   "@visitUnlockedMessage": { "description": "Confirmation message shown after a visit is unlocked" },
@@ -497,5 +497,17 @@
   "@invoiceAdjustmentInvalidAmountError": { "description": "Validation error for a non-positive adjustment amount" },
 
   "invoiceNotDraftError": "This invoice can no longer be adjusted.",
-  "@invoiceNotDraftError": { "description": "Error shown when adding an adjustment to a non-draft invoice" }
+  "@invoiceNotDraftError": { "description": "Error shown when adding an adjustment to a non-draft invoice" },
+
+  "invoiceFinalizeButton": "Finalize invoice",
+  "@invoiceFinalizeButton": { "description": "Button to finalize a draft invoice with no payment" },
+
+  "invoiceFinalizeConfirmTitle": "Finalize this invoice?",
+  "@invoiceFinalizeConfirmTitle": { "description": "Finalize-invoice confirmation dialog title" },
+
+  "invoiceFinalizeConfirmMessage": "Items and adjustments will be locked. This can be undone by unlocking the visit, as long as no payment has been recorded.",
+  "@invoiceFinalizeConfirmMessage": { "description": "Finalize-invoice confirmation dialog message" },
+
+  "invoiceFinalizedMessage": "Invoice finalized.",
+  "@invoiceFinalizedMessage": { "description": "Confirmation message shown after an invoice is finalized" }
 }

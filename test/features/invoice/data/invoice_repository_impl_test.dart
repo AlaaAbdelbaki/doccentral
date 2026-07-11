@@ -314,4 +314,77 @@ void main() {
       );
     });
   });
+
+  group('InvoiceRepositoryImpl.finalizeInvoice', () {
+    test(
+      'transitions a draft Invoice to unpaid and logs the actor/timestamp',
+      () async {
+        final String patientId = await seedPatient();
+        final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+          patientId: patientId,
+          treatmentItems: <(String, double, int)>[('Filling', 50, 2)],
+        );
+
+        await repository.finalizeInvoice(
+          role: Role.assistant,
+          actorUserId: 'assistant-1',
+          invoiceId: seeded.invoiceId,
+        );
+
+        final Invoice invoice = await (db.select(
+          db.invoices,
+        )..where((t) => t.id.equals(seeded.invoiceId))).getSingle();
+        expect(invoice.status, InvoiceStatus.unpaid.name);
+
+        final List<InvoiceFinalization> logs = await (db.select(
+          db.invoiceFinalizations,
+        )..where((t) => t.invoiceId.equals(seeded.invoiceId))).get();
+        expect(logs.length, 1);
+        expect(logs.single.actorUserId, 'assistant-1');
+      },
+    );
+
+    test(
+      'throws InvoiceNotDraftException when the invoice is not draft',
+      () async {
+        final String patientId = await seedPatient();
+        final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+          patientId: patientId,
+          treatmentItems: <(String, double, int)>[('Filling', 50, 1)],
+          status: 'unpaid',
+        );
+
+        expect(
+          () => repository.finalizeInvoice(
+            role: Role.assistant,
+            actorUserId: 'assistant-1',
+            invoiceId: seeded.invoiceId,
+          ),
+          throwsA(isA<InvoiceNotDraftException>()),
+        );
+
+        final List<InvoiceFinalization> logs = await db
+            .select(db.invoiceFinalizations)
+            .get();
+        expect(logs, isEmpty);
+      },
+    );
+
+    test('rejects a Nurse with PermissionDeniedException', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 50, 1)],
+      );
+
+      expect(
+        () => repository.finalizeInvoice(
+          role: Role.nurse,
+          actorUserId: 'nurse-1',
+          invoiceId: seeded.invoiceId,
+        ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
 }

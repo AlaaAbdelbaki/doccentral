@@ -571,21 +571,47 @@ void main() {
       expect(visit.status, VisitStatus.completed.name);
     });
 
-    test('throws VisitInvoiceFinalizedException when the Invoice is unpaid or '
-        'voided', () async {
+    test(
+      'throws VisitInvoiceFinalizedException when the Invoice is voided',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String visitId = await completeAVisit(patientId);
+        await setInvoiceStatus(visitId, InvoiceStatus.voided.name);
+
+        expect(
+          () => repository.unlockVisit(
+            role: Role.doctor,
+            actorUserId: 'dentist-1',
+            visitId: visitId,
+            reason: 'Test reason',
+          ),
+          throwsA(isA<VisitInvoiceFinalizedException>()),
+        );
+      },
+    );
+
+    test('succeeds when the Invoice is unpaid (finalized, no payment) and '
+        'reverts it back to draft', () async {
       final String patientId = await seedPatient('Amine', 'Trabelsi');
       final String visitId = await completeAVisit(patientId);
-      await setInvoiceStatus(visitId, InvoiceStatus.voided.name);
+      await setInvoiceStatus(visitId, InvoiceStatus.unpaid.name);
 
-      expect(
-        () => repository.unlockVisit(
-          role: Role.doctor,
-          actorUserId: 'dentist-1',
-          visitId: visitId,
-          reason: 'Test reason',
-        ),
-        throwsA(isA<VisitInvoiceFinalizedException>()),
+      await repository.unlockVisit(
+        role: Role.doctor,
+        actorUserId: 'dentist-1',
+        visitId: visitId,
+        reason: 'Wrong tooth number recorded',
       );
+
+      final Visit visit = await (db.select(
+        db.visits,
+      )..where((t) => t.id.equals(visitId))).getSingle();
+      expect(visit.status, VisitStatus.inProgress.name);
+
+      final Invoice invoice = await (db.select(
+        db.invoices,
+      )..where((t) => t.visitId.equals(visitId))).getSingle();
+      expect(invoice.status, InvoiceStatus.draft.name);
     });
 
     test('rejects an Assistant with PermissionDeniedException', () async {

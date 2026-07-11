@@ -148,4 +148,46 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
       return itemId;
     });
   }
+
+  @override
+  Future<void> finalizeInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+  }) async {
+    requirePermission(role, Permission.canEditInvoice);
+
+    await _db.transaction(() async {
+      final Invoice invoice = await (_db.select(
+        _db.invoices,
+      )..where((Invoices t) => t.id.equals(invoiceId))).getSingle();
+
+      if (invoice.status != InvoiceStatus.draft.name) {
+        throw const InvoiceNotDraftException();
+      }
+
+      final DateTime now = DateTime.now().toUtc();
+
+      await (_db.update(
+        _db.invoices,
+      )..where((Invoices t) => t.id.equals(invoiceId))).write(
+        InvoicesCompanion(
+          status: Value(InvoiceStatus.unpaid.name),
+          updatedAt: Value(now),
+        ),
+      );
+
+      await _db
+          .into(_db.invoiceFinalizations)
+          .insert(
+            InvoiceFinalizationsCompanion.insert(
+              id: _uuid.v4(),
+              invoiceId: invoiceId,
+              actorUserId: actorUserId,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    });
+  }
 }

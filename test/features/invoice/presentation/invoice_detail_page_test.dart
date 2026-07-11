@@ -10,6 +10,7 @@ import 'package:docentral/features/invoice/presentation/invoice_detail_page.dart
 import 'package:docentral/features/invoice/presentation/providers/invoice_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,6 +95,33 @@ class _FakeInvoiceRepository implements InvoiceRepository {
     _changes.add(null);
     return id;
   }
+
+  final List<String> finalizedInvoiceIds = <String>[];
+  Object? finalizeInvoiceErrorToThrow;
+
+  @override
+  Future<void> finalizeInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+  }) async {
+    if (finalizeInvoiceErrorToThrow != null) {
+      throw finalizeInvoiceErrorToThrow!;
+    }
+    finalizedInvoiceIds.add(invoiceId);
+    final InvoiceRecord? existing = _invoice;
+    if (existing != null) {
+      _invoice = InvoiceRecord(
+        id: existing.id,
+        patientId: existing.patientId,
+        visitId: existing.visitId,
+        totalAmount: existing.totalAmount,
+        status: InvoiceStatus.unpaid,
+        createdByUserId: existing.createdByUserId,
+      );
+    }
+    _changes.add(null);
+  }
 }
 
 Future<_FakeInvoiceRepository> _pumpPage(
@@ -113,6 +141,7 @@ Future<_FakeInvoiceRepository> _pumpPage(
   );
   addTearDown(container.dispose);
   container.read(currentRoleProvider.notifier).setRole(role);
+  container.read(currentUserIdProvider.notifier).setUserId('actor-1');
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -294,4 +323,112 @@ void main() {
     expect(find.text('Enter a positive amount'), findsOneWidget);
     expect(fakeRepository.addedAdjustments, isEmpty);
   });
+
+  testWidgets('Finalize invoice button is hidden for a Nurse', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.nurse,
+    );
+
+    expect(find.text('Finalize invoice'), findsNothing);
+  });
+
+  testWidgets(
+    'Finalize invoice button is hidden once the invoice is no longer draft',
+    (WidgetTester tester) async {
+      const InvoiceRecord nonDraft = InvoiceRecord(
+        id: 'invoice-1',
+        patientId: 'patient-1',
+        visitId: 'visit-1',
+        totalAmount: 100,
+        status: InvoiceStatus.unpaid,
+        createdByUserId: 'dentist-1',
+      );
+
+      await _pumpPage(
+        tester,
+        invoice: nonDraft,
+        items: <InvoiceItem>[treatmentItem()],
+      );
+
+      expect(find.text('Finalize invoice'), findsNothing);
+    },
+  );
+
+  testWidgets('cancelling the finalize dialog does not call finalizeInvoice', (
+    WidgetTester tester,
+  ) async {
+    final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+    );
+
+    await tester.tap(find.text('Finalize invoice'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Finalize this invoice?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.finalizedInvoiceIds, isEmpty);
+  });
+
+  testWidgets(
+    'confirming Finalize invoice calls finalizeInvoice and shows a success '
+    'snackbar',
+    (WidgetTester tester) async {
+      final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+        tester,
+        invoice: draftInvoice(),
+        items: <InvoiceItem>[treatmentItem()],
+      );
+
+      await tester.tap(find.text('Finalize invoice'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(fakeRepository.finalizedInvoiceIds, <String>['invoice-1']);
+      expect(find.text('Invoice finalized.'), findsOneWidget);
+      expect(find.text('Finalize invoice'), findsNothing);
+      expect(find.text('Add adjustment'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'shows an error snackbar when finalizing an invoice that is no longer '
+    'draft',
+    (WidgetTester tester) async {
+      final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+        tester,
+        invoice: draftInvoice(),
+        items: <InvoiceItem>[treatmentItem()],
+      );
+      fakeRepository.finalizeInvoiceErrorToThrow =
+          const InvoiceNotDraftException();
+
+      await tester.tap(find.text('Finalize invoice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text('This invoice can no longer be adjusted.'),
+        findsOneWidget,
+      );
+    },
+  );
 }

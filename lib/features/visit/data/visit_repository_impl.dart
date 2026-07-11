@@ -288,7 +288,7 @@ class VisitRepositoryImpl implements VisitRepository {
           invoice.status == InvoiceStatus.paid.name) {
         throw const VisitInvoiceHasPaymentsException();
       }
-      if (invoice.status != InvoiceStatus.draft.name) {
+      if (invoice.status == InvoiceStatus.voided.name) {
         throw const VisitInvoiceFinalizedException();
       }
 
@@ -303,6 +303,17 @@ class VisitRepositoryImpl implements VisitRepository {
           updatedAt: Value(now),
         ),
       );
+
+      if (invoice.status == InvoiceStatus.unpaid.name) {
+        await (_db.update(
+          _db.invoices,
+        )..where((Invoices t) => t.id.equals(invoice.id))).write(
+          InvoicesCompanion(
+            status: Value(InvoiceStatus.draft.name),
+            updatedAt: Value(now),
+          ),
+        );
+      }
 
       await _db
           .into(_db.visitUnlockLogs)

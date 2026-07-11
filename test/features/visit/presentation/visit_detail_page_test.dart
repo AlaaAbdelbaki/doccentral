@@ -692,35 +692,32 @@ void main() {
     );
   });
 
-  testWidgets(
-    'shows a specific error when the invoice has already been finalized',
-    (WidgetTester tester) async {
-      final fakeVisitRepository = (await _pumpPage(
-        tester,
-        visit: completedVisit(),
-        role: Role.doctor,
-      )).visit;
-      fakeVisitRepository.unlockErrorToThrow =
-          const VisitInvoiceFinalizedException();
+  testWidgets('shows a specific error when the invoice has been voided', (
+    WidgetTester tester,
+  ) async {
+    final fakeVisitRepository = (await _pumpPage(
+      tester,
+      visit: completedVisit(),
+      role: Role.doctor,
+    )).visit;
+    fakeVisitRepository.unlockErrorToThrow =
+        const VisitInvoiceFinalizedException();
 
-      await tester.tap(find.text('Unlock visit'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Reason'),
-        'Test reason',
-      );
-      await tester.tap(find.text('Confirm'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Unlock visit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason'),
+      'Test reason',
+    );
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-      expect(
-        find.text(
-          'This invoice has already been finalized and can no longer be unlocked.',
-        ),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(
+      find.text('This invoice has been voided and can no longer be unlocked.'),
+      findsOneWidget,
+    );
+  });
 }

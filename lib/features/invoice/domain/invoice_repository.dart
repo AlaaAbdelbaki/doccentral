@@ -32,4 +32,16 @@ abstract class InvoiceRepository {
     required String description,
     required double amount,
   });
+
+  /// Finalizes a `draft` Invoice with no payment: transitions it to
+  /// `unpaid`, locking its Items and adjustments (enforced by
+  /// [addAdjustment] rejecting any further changes), and logs [actorUserId]
+  /// with a UTC timestamp.
+  ///
+  /// Throws [InvoiceNotDraftException] if the Invoice is not `draft`.
+  Future<void> finalizeInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+  });
 }

@@ -27,8 +27,10 @@ class VisitInvoiceHasPaymentsException implements Exception {
   String toString() => 'VisitInvoiceHasPaymentsException';
 }
 
-/// Thrown when unlocking a Visit whose linked Invoice has been finalized
-/// (status `unpaid` or `voided`, i.e. no longer `draft`).
+/// Thrown when unlocking a Visit whose linked Invoice has been `voided`.
+/// A finalized-but-unpaid Invoice (`unpaid`) is unlocked back to `draft`
+/// along with the Visit — see [VisitRepository.unlockVisit] — this
+/// exception is reserved for the `voided` dead end.
 class VisitInvoiceFinalizedException implements Exception {
   const VisitInvoiceFinalizedException();
 

@@ -151,7 +151,7 @@
   "visitUnlockReasonField": "السبب",
   "visitUnlockReasonRequiredError": "السبب مطلوب لإلغاء قفل هذه الزيارة.",
   "visitUnlockInvoiceHasPaymentsError": "تحتوي هذه الفاتورة على مدفوعات مسجّلة. يجب إلغاؤها قبل إلغاء قفل الزيارة.",
-  "visitUnlockInvoiceFinalizedError": "تم إنهاء هذه الفاتورة بالفعل ولم يعد بالإمكان إلغاء قفلها.",
+  "visitUnlockInvoiceFinalizedError": "تم إلغاء هذه الفاتورة ولم يعد بالإمكان إلغاء قفلها.",
   "visitUnlockedMessage": "تم إلغاء قفل الزيارة.",
   "visitViewInvoiceButton": "عرض الفاتورة",
   "invoiceDetailPageTitle": "الفاتورة",
@@ -164,5 +164,9 @@
   "invoiceAdjustmentDescriptionField": "الوصف",
   "invoiceAdjustmentAmountField": "المبلغ",
   "invoiceAdjustmentInvalidAmountError": "أدخل مبلغاً موجباً",
-  "invoiceNotDraftError": "لم يعد بالإمكان تعديل هذه الفاتورة."
+  "invoiceNotDraftError": "لم يعد بالإمكان تعديل هذه الفاتورة.",
+  "invoiceFinalizeButton": "إنهاء الفاتورة",
+  "invoiceFinalizeConfirmTitle": "هل تريد إنهاء هذه الفاتورة؟",
+  "invoiceFinalizeConfirmMessage": "سيتم قفل البنود والتعديلات. يمكن التراجع عن هذا بإلغاء قفل الزيارة، طالما لم يتم تسجيل أي دفعة.",
+  "invoiceFinalizedMessage": "تم إنهاء الفاتورة."
 }

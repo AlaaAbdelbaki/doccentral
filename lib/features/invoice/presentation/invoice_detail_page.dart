@@ -39,8 +39,9 @@ class InvoiceDetailPage extends ConsumerWidget {
     final bool canEditInvoice = ref.watch(permissionCheckerProvider)(
       Permission.canEditInvoice,
     );
-    final bool canAddAdjustment =
-        canEditInvoice && invoice.status == InvoiceStatus.draft;
+    final bool isDraft = invoice.status == InvoiceStatus.draft;
+    final bool canAddAdjustment = canEditInvoice && isDraft;
+    final bool canFinalize = canEditInvoice && isDraft;
     final AsyncValue<List<InvoiceItem>> itemsAsync = ref.watch(
       invoiceItemsProvider(invoice.id),
     );
@@ -61,6 +62,16 @@ class InvoiceDetailPage extends ConsumerWidget {
                     _showAdjustmentFormDialog(context, ref, l10n, invoice.id),
                 icon: const Icon(Icons.add),
                 label: Text(l10n.invoiceAddAdjustmentButton),
+              ),
+            ),
+          if (canFinalize)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _confirmFinalizeInvoice(context, ref, l10n, invoice.id),
+                icon: const Icon(Icons.lock_outline),
+                label: Text(l10n.invoiceFinalizeButton),
               ),
             ),
         ],
@@ -138,5 +149,49 @@ class InvoiceDetailPage extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _confirmFinalizeInvoice(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    String invoiceId,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.invoiceFinalizeConfirmTitle),
+          content: Text(l10n.invoiceFinalizeConfirmMessage),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        );
+      },
+    );
+    if (!(confirmed ?? false)) return;
+
+    await ref
+        .read(invoiceControllerProvider.notifier)
+        .finalizeInvoice(invoiceId: invoiceId);
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(invoiceControllerProvider).error;
+    if (error is InvoiceNotDraftException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invoiceNotDraftError)));
+    } else if (error == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invoiceFinalizedMessage)));
+    }
   }
 }

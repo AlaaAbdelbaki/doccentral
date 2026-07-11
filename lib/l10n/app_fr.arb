@@ -151,7 +151,7 @@
   "visitUnlockReasonField": "Motif",
   "visitUnlockReasonRequiredError": "Un motif est requis pour déverrouiller cette visite.",
   "visitUnlockInvoiceHasPaymentsError": "Cette facture comporte des paiements enregistrés. Annulez-la avant de déverrouiller la visite.",
-  "visitUnlockInvoiceFinalizedError": "Cette facture a déjà été finalisée et ne peut plus être déverrouillée.",
+  "visitUnlockInvoiceFinalizedError": "Cette facture a été annulée et ne peut plus être déverrouillée.",
   "visitUnlockedMessage": "Visite déverrouillée.",
   "visitViewInvoiceButton": "Voir la facture",
   "invoiceDetailPageTitle": "Facture",
@@ -164,5 +164,9 @@
   "invoiceAdjustmentDescriptionField": "Description",
   "invoiceAdjustmentAmountField": "Montant",
   "invoiceAdjustmentInvalidAmountError": "Saisissez un montant positif",
-  "invoiceNotDraftError": "Cette facture ne peut plus être ajustée."
+  "invoiceNotDraftError": "Cette facture ne peut plus être ajustée.",
+  "invoiceFinalizeButton": "Finaliser la facture",
+  "invoiceFinalizeConfirmTitle": "Finaliser cette facture ?",
+  "invoiceFinalizeConfirmMessage": "Les articles et ajustements seront verrouillés. Cette action peut être annulée en déverrouillant la visite, tant qu'aucun paiement n'a été enregistré.",
+  "invoiceFinalizedMessage": "Facture finalisée."
 }

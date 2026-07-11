@@ -65,13 +65,15 @@ abstract class VisitRepository {
   /// Treatments editable again, and records the unlock with [actorUserId],
   /// a timestamp, and [reason].
   ///
-  /// Only allowed when the linked Invoice is still `draft`. Doctor-only.
+  /// Allowed when the linked Invoice is `draft` or `unpaid` (finalized but
+  /// with no payment) — in the `unpaid` case, the Invoice is also reverted
+  /// to `draft` as part of the same unlock. Doctor-only.
   ///
   /// Throws [VisitNotEditableException] if the Visit is not `completed`.
   /// Throws [VisitInvoiceHasPaymentsException] if the Invoice has payments
   /// recorded (`partially_paid` or `paid`).
-  /// Throws [VisitInvoiceFinalizedException] if the Invoice is no longer
-  /// `draft` for any other reason (`unpaid` or `voided`).
+  /// Throws [VisitInvoiceFinalizedException] if the Invoice has been
+  /// `voided`.
   Future<void> unlockVisit({
     required Role role,
     required String actorUserId,
