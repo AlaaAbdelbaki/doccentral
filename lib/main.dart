@@ -1,6 +1,5 @@
+import 'package:docentral/app.dart';
 import 'package:docentral/core/firebase/firebase_options.dart';
-import 'package:docentral/l10n/app_localizations.dart';
-import 'package:docentral/shared/data/providers/locale_provider.dart';
 import 'package:docentral/shared/data/providers/shared_preferences_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -10,30 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  final prefs = await SharedPreferences.getInstance();
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const MyApp(),
+      child: const DocCentralApp(),
     ),
   );
-}
-
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(appLocaleProvider);
-    return MaterialApp(
-      title: 'DocCentral',
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const Scaffold(),
-    );
-  }
 }

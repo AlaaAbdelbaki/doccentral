@@ -29,15 +29,17 @@ void main() {
       final now = DateTime.now();
       const clinicId = '00000000-0000-0000-0000-000000000001';
 
-      await db.into(db.clinics).insert(
-        ClinicsCompanion.insert(
-          id: clinicId,
-          name: 'Cabinet Dentaire Test',
-          createdAt: now,
-          updatedAt: now,
-          syncStatus: const Value('pending'),
-        ),
-      );
+      await db
+          .into(db.clinics)
+          .insert(
+            ClinicsCompanion.insert(
+              id: clinicId,
+              name: 'Cabinet Dentaire Test',
+              createdAt: now,
+              updatedAt: now,
+              syncStatus: const Value('pending'),
+            ),
+          );
 
       final rows = await db.select(db.clinics).get();
       expect(rows.length, 1);
@@ -53,18 +55,20 @@ void main() {
       final now = DateTime.now();
       const clinicId = '00000000-0000-0000-0000-000000000002';
 
-      await db.into(db.clinics).insert(
-        ClinicsCompanion.insert(
-          id: clinicId,
-          name: 'Test Clinic',
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
+      await db
+          .into(db.clinics)
+          .insert(
+            ClinicsCompanion.insert(
+              id: clinicId,
+              name: 'Test Clinic',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
 
-      final clinic = await (db.select(db.clinics)
-            ..where((t) => t.id.equals(clinicId)))
-          .getSingle();
+      final clinic = await (db.select(
+        db.clinics,
+      )..where((t) => t.id.equals(clinicId))).getSingle();
 
       expect(clinic.syncStatus, 'pending');
     });
@@ -73,25 +77,36 @@ void main() {
       final now = DateTime.now();
       const clinicId = '00000000-0000-0000-0000-000000000003';
 
-      await db.into(db.clinics).insert(
-        ClinicsCompanion.insert(
-          id: clinicId,
-          name: 'To Be Deleted',
-          createdAt: now,
-          updatedAt: now,
+      await db
+          .into(db.clinics)
+          .insert(
+            ClinicsCompanion.insert(
+              id: clinicId,
+              name: 'To Be Deleted',
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await (db.update(db.clinics)..where((t) => t.id.equals(clinicId))).write(
+        ClinicsCompanion(
+          deletedAt: Value(now),
+          syncStatus: const Value('pending'),
         ),
       );
 
-      await (db.update(db.clinics)..where((t) => t.id.equals(clinicId))).write(
-        ClinicsCompanion(deletedAt: Value(now), syncStatus: const Value('pending')),
-      );
-
-      final clinic = await (db.select(db.clinics)
-            ..where((t) => t.id.equals(clinicId)))
-          .getSingle();
+      final clinic = await (db.select(
+        db.clinics,
+      )..where((t) => t.id.equals(clinicId))).getSingle();
 
       expect(clinic.deletedAt, isNotNull);
       expect(clinic.name, 'To Be Deleted');
+    });
+
+    test('schema includes the patients table (v2)', () async {
+      expect(db.schemaVersion, 2);
+      final rows = await db.select(db.patients).get();
+      expect(rows, isEmpty);
     });
   });
 }

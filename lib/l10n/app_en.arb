@@ -38,5 +38,89 @@
   "@unauthorized": { "description": "Permission denied message" },
 
   "settingsLanguage": "Language",
-  "@settingsLanguage": { "description": "Language setting label" }
+  "@settingsLanguage": { "description": "Language setting label" },
+
+  "navCalendar": "Today's Calendar",
+  "@navCalendar": { "description": "Navigation label for the calendar destination" },
+
+  "navPatients": "Patients",
+  "@navPatients": { "description": "Navigation label for the patient list destination" },
+
+  "navInventory": "Inventory",
+  "@navInventory": { "description": "Navigation label for the inventory destination" },
+
+  "navDayCloseout": "Day Closeout",
+  "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
+
+  "navSettings": "Settings",
+  "@navSettings": { "description": "Navigation label for the settings destination" },
+
+  "patientsPageTitle": "Patients",
+  "@patientsPageTitle": { "description": "Patients page title" },
+
+  "patientsSubtitle": "{count} active records",
+  "@patientsSubtitle": {
+    "description": "Subtitle showing active patient count",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "patientSearchHint": "Search name or phone…",
+  "@patientSearchHint": { "description": "Patient search input hint" },
+
+  "patientAddButton": "Add patient",
+  "@patientAddButton": { "description": "Button to open the add-patient dialog" },
+
+  "patientEmptyList": "No patients match",
+  "@patientEmptyList": { "description": "Empty state when search has no results" },
+
+  "patientSelectPrompt": "Select a patient",
+  "@patientSelectPrompt": { "description": "Detail pane prompt when no patient is selected" },
+
+  "patientFirstName": "First name",
+  "@patientFirstName": { "description": "Patient first name field label" },
+
+  "patientLastName": "Last name",
+  "@patientLastName": { "description": "Patient last name field label" },
+
+  "patientDateOfBirth": "Date of birth",
+  "@patientDateOfBirth": { "description": "Patient date of birth field label" },
+
+  "patientPhone": "Phone",
+  "@patientPhone": { "description": "Patient phone field label" },
+
+  "patientEmail": "Email",
+  "@patientEmail": { "description": "Patient email field label (optional)" },
+
+  "patientHistoryNotes": "History notes",
+  "@patientHistoryNotes": { "description": "Freeform paper-history backfill field label" },
+
+  "patientRequiredFieldError": "This field is required",
+  "@patientRequiredFieldError": { "description": "Validation error for a missing required field" },
+
+  "patientFormTitle": "New patient",
+  "@patientFormTitle": { "description": "Add-patient dialog title" },
+
+  "patientOverviewSection": "Overview",
+  "@patientOverviewSection": { "description": "Patient detail overview section title" },
+
+  "patientRecentVisitsSection": "Recent visits",
+  "@patientRecentVisitsSection": { "description": "Patient detail recent visits section title" },
+
+  "patientNoVisitsYet": "Visit history isn't available yet",
+  "@patientNoVisitsYet": { "description": "Empty state for the recent visits section" },
+
+  "patientTreatmentPlanSection": "Treatment plan",
+  "@patientTreatmentPlanSection": { "description": "Patient detail treatment plan section title" },
+
+  "patientNoTreatmentPlanYet": "Treatment planning isn't available yet",
+  "@patientNoTreatmentPlanYet": { "description": "Empty state for the treatment plan section" },
+
+  "patientOutstandingBalanceSection": "Outstanding balance",
+  "@patientOutstandingBalanceSection": { "description": "Patient detail balance section title" },
+
+  "patientAttachmentsSection": "Attachments",
+  "@patientAttachmentsSection": { "description": "Patient detail attachments section title" },
+
+  "patientNoAttachmentsYet": "Attachments aren't available yet",
+  "@patientNoAttachmentsYet": { "description": "Empty state for the attachments section" }
 }

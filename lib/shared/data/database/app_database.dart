@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:docentral/shared/data/database/database_key_service.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
+import 'package:docentral/shared/data/database/tables/patients_table.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,12 +15,21 @@ import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Clinics])
+@DriftDatabase(tables: [Clinics, Patients])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openEncryptedConnection());
+  AppDatabase([QueryExecutor? executor])
+    : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) => m.createAll(),
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) await m.createTable(patients);
+    },
+  );
 }
 
 QueryExecutor _openEncryptedConnection() {
