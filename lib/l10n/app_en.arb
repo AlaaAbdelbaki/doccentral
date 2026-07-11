@@ -196,6 +196,18 @@
   "patientEditButton": "Edit",
   "@patientEditButton": { "description": "Button/tooltip to open the edit-patient dialog" },
 
+  "patientDeleteButton": "Delete patient",
+  "@patientDeleteButton": { "description": "Button/tooltip to soft-delete the selected patient" },
+
+  "patientDeleteConfirmTitle": "Delete this patient?",
+  "@patientDeleteConfirmTitle": { "description": "Soft-delete confirmation dialog title" },
+
+  "patientDeleteConfirmMessage": "{name} will no longer appear in search or lists. This can only be undone by a developer.",
+  "@patientDeleteConfirmMessage": {
+    "description": "Soft-delete confirmation dialog message",
+    "placeholders": { "name": { "type": "String" } }
+  },
+
   "patientOverviewSection": "Overview",
   "@patientOverviewSection": { "description": "Patient detail overview section title" },
 

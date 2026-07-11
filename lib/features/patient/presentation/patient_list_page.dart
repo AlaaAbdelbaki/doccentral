@@ -36,6 +36,9 @@ class PatientListPage extends ConsumerWidget {
     final bool canEdit = ref.watch(permissionCheckerProvider)(
       Permission.canEditPatient,
     );
+    final bool canDelete = ref.watch(permissionCheckerProvider)(
+      Permission.canDeletePatient,
+    );
     final int patientCount = patientsAsync.value?.length ?? 0;
 
     return Scaffold(
@@ -85,6 +88,12 @@ class PatientListPage extends ConsumerWidget {
               onEdit: () {
                 if (selected != null) {
                   _showEditPatientDialog(context, ref, selected);
+                }
+              },
+              canDelete: canDelete,
+              onDelete: () {
+                if (selected != null) {
+                  _confirmDeletePatient(context, ref, selected);
                 }
               },
             ),
@@ -142,5 +151,43 @@ class PatientListPage extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _confirmDeletePatient(
+    BuildContext context,
+    WidgetRef ref,
+    PatientRecord patient,
+  ) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.patientDeleteConfirmTitle),
+          content: Text(
+            l10n.patientDeleteConfirmMessage(
+              '${patient.firstName} ${patient.lastName}',
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.delete),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed ?? false) {
+      await ref
+          .read(patientControllerProvider.notifier)
+          .deletePatient(patientId: patient.id);
+      ref.read(selectedPatientProvider.notifier).select(null);
+    }
   }
 }

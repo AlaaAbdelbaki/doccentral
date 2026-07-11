@@ -170,4 +170,17 @@ class PatientRepositoryImpl implements PatientRepository {
       }
     });
   }
+
+  @override
+  Future<void> deletePatient({
+    required Role role,
+    required String patientId,
+  }) async {
+    requirePermission(role, Permission.canDeletePatient);
+
+    final DateTime now = DateTime.now().toUtc();
+    await (_db.update(_db.patients)
+          ..where((Patients t) => t.id.equals(patientId)))
+        .write(PatientsCompanion(deletedAt: Value(now), updatedAt: Value(now)));
+  }
 }

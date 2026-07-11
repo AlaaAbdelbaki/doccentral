@@ -28,4 +28,9 @@ abstract class PatientRepository {
     String? email,
     String? historyNotes,
   });
+
+  /// Soft-deletes a patient: sets deleted_at so the patient disappears from
+  /// search and lists. Existing Invoice/Payment records (Epic 7, not yet
+  /// built) are unaffected — they key off patientId, not this deleted_at.
+  Future<void> deletePatient({required Role role, required String patientId});
 }

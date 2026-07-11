@@ -243,4 +243,54 @@ void main() {
       },
     );
   });
+
+  group('PatientRepositoryImpl.deletePatient', () {
+    test(
+      'soft-deletes the patient: sets deletedAt and it disappears from search',
+      () async {
+        await seed();
+        final PatientRecord toDelete =
+            (await repository.watchAll(role: Role.doctor).first).firstWhere(
+              (PatientRecord p) => p.lastName == 'Trabelsi',
+            );
+
+        await repository.deletePatient(
+          role: Role.doctor,
+          patientId: toDelete.id,
+        );
+
+        final Patient row = await (db.select(
+          db.patients,
+        )..where((t) => t.id.equals(toDelete.id))).getSingle();
+        expect(row.deletedAt, isNotNull);
+
+        final List<PatientRecord> remaining = await repository
+            .watchAll(role: Role.doctor)
+            .first;
+        expect(
+          remaining.any((PatientRecord p) => p.id == toDelete.id),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'throws PermissionDeniedException when role lacks canDeletePatient',
+      () async {
+        await seed();
+        final PatientRecord toDelete =
+            (await repository.watchAll(role: Role.doctor).first).firstWhere(
+              (PatientRecord p) => p.lastName == 'Trabelsi',
+            );
+
+        expect(
+          () => repository.deletePatient(
+            role: Role.assistant,
+            patientId: toDelete.id,
+          ),
+          throwsA(isA<PermissionDeniedException>()),
+        );
+      },
+    );
+  });
 }

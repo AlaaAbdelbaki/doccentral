@@ -82,6 +82,16 @@ class _FakePatientRepository implements PatientRepository {
       ),
     );
   }
+
+  final List<String> deleted = <String>[];
+
+  @override
+  Future<void> deletePatient({
+    required Role role,
+    required String patientId,
+  }) async {
+    deleted.add(patientId);
+  }
 }
 
 Future<ProviderContainer> _pumpPage(
@@ -198,5 +208,55 @@ void main() {
     expect(fakeRepository.updated.length, 1);
     expect(fakeRepository.updated.first.id, '1');
     expect(fakeRepository.updated.first.lastName, 'Ben Salah');
+  });
+
+  testWidgets('doctor can confirm deleting the selected patient', (
+    WidgetTester tester,
+  ) async {
+    final _FakePatientRepository fakeRepository = _FakePatientRepository(
+      seedPatients,
+    );
+    final ProviderContainer container = ProviderContainer(
+      overrides: [patientRepositoryProvider.overrideWithValue(fakeRepository)],
+    );
+    addTearDown(container.dispose);
+    container.read(currentRoleProvider.notifier).setRole(Role.doctor);
+    container.read(currentUserIdProvider.notifier).setUserId('actor-1');
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: PatientListPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete this patient?'), findsOneWidget);
+
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.deleted, <String>['1']);
+  });
+
+  testWidgets('assistant does not see the delete control', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, _FakePatientRepository(seedPatients));
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
   });
 }

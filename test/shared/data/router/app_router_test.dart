@@ -46,6 +46,10 @@ class _FakePatientRepository implements PatientRepository {
     String? email,
     String? historyNotes,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> deletePatient({required Role role, required String patientId}) =>
+      throw UnimplementedError('not exercised by this test');
 }
 
 class _FakeClinicRepository implements ClinicRepository {

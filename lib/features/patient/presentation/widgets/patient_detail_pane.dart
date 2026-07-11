@@ -5,11 +5,15 @@ class _PatientDetailPane extends StatelessWidget {
     required this.patient,
     required this.canEdit,
     required this.onEdit,
+    required this.canDelete,
+    required this.onDelete,
   });
 
   final PatientRecord? patient;
   final bool canEdit;
   final VoidCallback onEdit;
+  final bool canDelete;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,12 @@ class _PatientDetailPane extends StatelessWidget {
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: l10n.patientEditButton,
+                ),
+              if (canDelete)
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: l10n.patientDeleteButton,
                 ),
             ],
           ),

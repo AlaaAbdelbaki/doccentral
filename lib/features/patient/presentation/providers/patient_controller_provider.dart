@@ -82,4 +82,22 @@ class PatientController extends _$PatientController {
           ),
     );
   }
+
+  Future<void> deletePatient({required String patientId}) async {
+    final Role? role = ref.read(currentRoleProvider);
+    if (role == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canDeletePatient),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(patientRepositoryProvider)
+          .deletePatient(role: role, patientId: patientId),
+    );
+  }
 }

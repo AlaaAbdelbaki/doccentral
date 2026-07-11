@@ -8,6 +8,7 @@ const _doctorPermissions = {
   Permission.canAssignRoles,
   Permission.canViewFinances,
   Permission.canUnlockVisit,
+  Permission.canDeletePatient,
 };
 
 const assistantPermissions = {

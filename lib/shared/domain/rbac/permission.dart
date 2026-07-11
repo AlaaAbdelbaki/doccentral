@@ -5,6 +5,7 @@ enum Permission {
   canAssignRoles,
   canViewFinances,
   canUnlockVisit,
+  canDeletePatient,
 
   // Doctor + Assistant
   canCreatePatient,
