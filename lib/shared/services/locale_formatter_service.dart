@@ -8,9 +8,12 @@ class LocaleFormatterService {
 
   final Locale _locale;
 
-  /// Date format: DD/MM/YYYY for all locales.
+  /// Date format: DD/MM/YYYY for FR/AR, YYYY-MM-DD for EN.
   String formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
+    final String pattern = _locale.languageCode == 'en'
+        ? 'yyyy-MM-dd'
+        : 'dd/MM/yyyy';
+    return DateFormat(pattern).format(date);
   }
 
   /// Time format: 24h for all locales.

@@ -6,6 +6,7 @@ import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/shared_preferences_provider.dart';
 import 'package:docentral/shared/data/router/app_router.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakePatientRepository implements PatientRepository {
   @override
@@ -70,6 +72,9 @@ Future<GoRouter> _pumpRouter(
   bool hasClinic = true,
   Role? role = Role.doctor,
 }) async {
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+
   final ProviderContainer container = ProviderContainer(
     overrides: [
       clinicRepositoryProvider.overrideWithValue(
@@ -77,6 +82,7 @@ Future<GoRouter> _pumpRouter(
       ),
       resolvedRoleProvider.overrideWith((ref) async => role),
       patientRepositoryProvider.overrideWithValue(_FakePatientRepository()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );
   addTearDown(container.dispose);

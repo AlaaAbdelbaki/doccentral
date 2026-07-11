@@ -1,0 +1,108 @@
+import 'package:docentral/app.dart';
+import 'package:docentral/features/clinic/domain/clinic_repository.dart';
+import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
+import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
+import 'package:docentral/shared/data/providers/locale_provider.dart';
+import 'package:docentral/shared/data/providers/shared_preferences_provider.dart';
+import 'package:docentral/shared/data/router/app_router.dart';
+import 'package:docentral/shared/data/router/app_routes.dart';
+import 'package:docentral/shared/domain/rbac/role.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class _FakeClinicRepository implements ClinicRepository {
+  @override
+  Future<bool> hasLocalClinic() async => true;
+
+  @override
+  Future<void> provisionClinic({
+    required String clinicName,
+    required String dentistFirstName,
+    required String dentistLastName,
+    required String email,
+    required String password,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<Role?> resolveRole(String authUserId) =>
+      throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> addStaffUser({
+    required Role actingRole,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+    required Role role,
+  }) => throw UnimplementedError('not exercised by this test');
+}
+
+Future<ProviderContainer> _pumpSettingsPage(WidgetTester tester) async {
+  SharedPreferences.setMockInitialValues(<String, Object>{});
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  final ProviderContainer container = ProviderContainer(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      clinicRepositoryProvider.overrideWithValue(_FakeClinicRepository()),
+      resolvedRoleProvider.overrideWith((ref) async => Role.doctor),
+    ],
+  );
+  addTearDown(container.dispose);
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const DocCentralApp(),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final GoRouter router = container.read(appRouterProvider);
+  router.goNamed(AppRoutes.settings.name);
+  await tester.pumpAndSettle();
+
+  return container;
+}
+
+void main() {
+  testWidgets('defaults to French', (WidgetTester tester) async {
+    final ProviderContainer container = await _pumpSettingsPage(tester);
+
+    expect(container.read(appLocaleProvider), const Locale('fr'));
+    expect(find.text('Français'), findsOneWidget);
+  });
+
+  testWidgets('switching to English updates appLocaleProvider immediately', (
+    WidgetTester tester,
+  ) async {
+    final ProviderContainer container = await _pumpSettingsPage(tester);
+
+    await tester.tap(find.byType(DropdownButton<Locale>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+
+    expect(container.read(appLocaleProvider), const Locale('en'));
+  });
+
+  testWidgets('switching to Arabic flips the layout to RTL', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSettingsPage(tester);
+
+    await tester.tap(find.byType(DropdownButton<Locale>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العربية').last);
+    await tester.pumpAndSettle();
+
+    final Directionality directionality = tester.widget(
+      find.byType(Directionality).first,
+    );
+    expect(directionality.textDirection, TextDirection.rtl);
+  });
+}
