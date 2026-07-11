@@ -1,5 +1,6 @@
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 
 abstract class AppointmentRepository {
@@ -53,4 +54,44 @@ abstract class AppointmentRepository {
     String? notes,
     bool overrideOverlap = false,
   });
+
+  /// Cancels a `scheduled` appointment with a required [reason], freeing its
+  /// calendar slot. Records a Cancellation entry (actor, UTC timestamp,
+  /// reason).
+  ///
+  /// [reason] must not be [CancellationReason.rescheduled] — use
+  /// [rescheduleAppointment] for that flow instead.
+  ///
+  /// Throws [AppointmentNotEditableException] if the appointment is not
+  /// currently `scheduled`.
+  Future<void> cancelAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required CancellationReason reason,
+  });
+
+  /// Atomically creates a replacement appointment and cancels
+  /// [appointmentId] (reason [CancellationReason.rescheduled]), linking both
+  /// via `rescheduledToAppointmentId`. The original appointment is cancelled
+  /// only if the replacement is created successfully.
+  ///
+  /// Throws [AppointmentNotEditableException] if [appointmentId] is not
+  /// currently `scheduled`. Throws [AppointmentOverlapException] under the
+  /// same conditions as [createAppointment] for the replacement's time slot,
+  /// unless [overrideOverlap] is true.
+  Future<String> rescheduleAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  });
+
+  /// Number of `no_show` cancellations ever recorded for [patientId].
+  Stream<int> watchNoShowCount({required Role role, required String patientId});
 }

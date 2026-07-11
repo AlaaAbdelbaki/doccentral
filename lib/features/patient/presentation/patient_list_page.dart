@@ -1,3 +1,4 @@
+import 'package:docentral/features/appointment/presentation/providers/no_show_pattern_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_controller_provider.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_list_provider.dart';
@@ -40,6 +41,9 @@ class PatientListPage extends ConsumerWidget {
       Permission.canDeletePatient,
     );
     final int patientCount = patientsAsync.value?.length ?? 0;
+    final bool hasNoShowPattern = selected == null
+        ? false
+        : ref.watch(hasNoShowPatternProvider(selected.id)).value ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +100,7 @@ class PatientListPage extends ConsumerWidget {
                   _confirmDeletePatient(context, ref, selected);
                 }
               },
+              hasNoShowPattern: hasNoShowPattern,
             ),
           ),
         ],

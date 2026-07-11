@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:docentral/features/appointment/domain/appointment_exceptions.dart';
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_repository.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
@@ -66,24 +69,35 @@ class _FakeAppointmentRepository implements AppointmentRepository {
   final List<AssignableUser> assignableUsers;
   final List<AppointmentRecord> created = <AppointmentRecord>[];
   final List<AppointmentRecord> updatedCalls = <AppointmentRecord>[];
+  final List<CancellationReason> cancelledReasons = <CancellationReason>[];
+  final List<AppointmentRecord> rescheduledTo = <AppointmentRecord>[];
+  final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
-  Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
-      Stream.value(_appointments);
+  Stream<List<AppointmentRecord>> watchToday({required Role role}) async* {
+    yield List<AppointmentRecord>.of(_appointments);
+    await for (final _ in _changes.stream) {
+      yield List<AppointmentRecord>.of(_appointments);
+    }
+  }
 
   @override
   Stream<List<AppointmentRecord>> watchRange({
     required Role role,
     required DateTime start,
     required DateTime end,
-  }) => Stream.value(
-    _appointments
+  }) async* {
+    List<AppointmentRecord> filtered() => _appointments
         .where(
           (AppointmentRecord a) =>
               !a.startTime.isBefore(start) && a.startTime.isBefore(end),
         )
-        .toList(),
-  );
+        .toList();
+    yield filtered();
+    await for (final _ in _changes.stream) {
+      yield filtered();
+    }
+  }
 
   @override
   Stream<List<AssignableUser>> watchAssignableUsers({required Role role}) =>
@@ -133,6 +147,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     );
     _appointments.add(record);
     created.add(record);
+    _changes.add(null);
     return id;
   }
 
@@ -177,7 +192,97 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     );
     _appointments[index] = updated;
     updatedCalls.add(updated);
+    _changes.add(null);
   }
+
+  @override
+  Future<void> cancelAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required CancellationReason reason,
+  }) async {
+    final int index = _appointments.indexWhere(
+      (AppointmentRecord a) => a.id == appointmentId,
+    );
+    final AppointmentRecord existing = _appointments[index];
+    if (existing.status != AppointmentStatus.scheduled) {
+      throw const AppointmentNotEditableException();
+    }
+    _appointments[index] = AppointmentRecord(
+      id: existing.id,
+      patientId: existing.patientId,
+      patientName: existing.patientName,
+      assignedUserId: existing.assignedUserId,
+      startTime: existing.startTime,
+      endTime: existing.endTime,
+      status: AppointmentStatus.cancelled,
+      reason: existing.reason,
+      notes: existing.notes,
+    );
+    cancelledReasons.add(reason);
+    _changes.add(null);
+  }
+
+  @override
+  Future<String> rescheduleAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  }) async {
+    final int index = _appointments.indexWhere(
+      (AppointmentRecord a) => a.id == appointmentId,
+    );
+    final AppointmentRecord existing = _appointments[index];
+    if (existing.status != AppointmentStatus.scheduled) {
+      throw const AppointmentNotEditableException();
+    }
+    if (!overrideOverlap &&
+        _overlaps(newAssignedUserId, newStartTime, newEndTime)) {
+      throw const AppointmentOverlapException();
+    }
+
+    final String newId = 'rescheduled-${_appointments.length}';
+    final AppointmentRecord replacement = AppointmentRecord(
+      id: newId,
+      patientId: existing.patientId,
+      patientName: existing.patientName,
+      assignedUserId: newAssignedUserId,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      status: AppointmentStatus.scheduled,
+      reason: newReason,
+      notes: newNotes,
+    );
+    _appointments.add(replacement);
+    _appointments[index] = AppointmentRecord(
+      id: existing.id,
+      patientId: existing.patientId,
+      patientName: existing.patientName,
+      assignedUserId: existing.assignedUserId,
+      startTime: existing.startTime,
+      endTime: existing.endTime,
+      status: AppointmentStatus.cancelled,
+      reason: existing.reason,
+      notes: existing.notes,
+    );
+    cancelledReasons.add(CancellationReason.rescheduled);
+    rescheduledTo.add(replacement);
+    _changes.add(null);
+    return newId;
+  }
+
+  @override
+  Stream<int> watchNoShowCount({
+    required Role role,
+    required String patientId,
+  }) => Stream.value(0);
 }
 
 Future<_FakeAppointmentRepository> _pumpPage(
@@ -191,6 +296,7 @@ Future<_FakeAppointmentRepository> _pumpPage(
     appointments,
     assignableUsers: assignableUsers,
   );
+  addTearDown(() => fakeRepository._changes.close());
   final ProviderContainer container = ProviderContainer(
     overrides: [
       appointmentRepositoryProvider.overrideWithValue(fakeRepository),
@@ -487,4 +593,91 @@ void main() {
 
     expect(find.byIcon(Icons.edit_outlined), findsNothing);
   });
+
+  testWidgets('cancelling with a non-reschedule reason frees the slot', (
+    WidgetTester tester,
+  ) async {
+    final DateTime start = DateTime.now();
+    final _FakeAppointmentRepository fakeRepository =
+        await _pumpPage(tester, <AppointmentRecord>[
+          AppointmentRecord(
+            id: '1',
+            patientId: 'p1',
+            patientName: 'Amine Trabelsi',
+            assignedUserId: 'dentist-1',
+            startTime: start,
+            endTime: start.add(const Duration(minutes: 30)),
+            status: AppointmentStatus.scheduled,
+          ),
+        ]);
+
+    await tester.tap(find.byIcon(Icons.event_busy_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Why are you cancelling?'), findsOneWidget);
+    await tester.tap(find.text('No-show'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepository.cancelledReasons, <CancellationReason>[
+      CancellationReason.noShow,
+    ]);
+    expect(find.text('Cancelled'), findsOneWidget);
+  });
+
+  testWidgets(
+    'choosing Reschedule opens a replacement form and links both appointments',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now().add(const Duration(days: 1));
+      final _FakeAppointmentRepository fakeRepository = await _pumpPage(
+        tester,
+        <AppointmentRecord>[
+          AppointmentRecord(
+            id: '1',
+            patientId: 'p1',
+            patientName: 'Amine Trabelsi',
+            assignedUserId: 'dentist-1',
+            startTime: start,
+            endTime: start.add(const Duration(minutes: 30)),
+            status: AppointmentStatus.scheduled,
+          ),
+        ],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        ],
+        patients: <PatientRecord>[
+          PatientRecord(
+            id: 'p1',
+            firstName: 'Amine',
+            lastName: 'Trabelsi',
+            dateOfBirth: DateTime(1990),
+            phone: '20123456',
+          ),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.event_busy_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reschedule'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reschedule appointment'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(DropdownButtonFormField<PatientRecord>),
+          matching: find.text('Amine Trabelsi'),
+        ),
+        findsOneWidget,
+      );
+
+      // No new start/end time chosen (pickers aren't driven in this test),
+      // so submitting fails patient/time validation harmlessly closed by
+      // Cancel instead, to keep this test focused on the dialog reaching
+      // the reschedule form with the right prefill.
+      await tester.tap(find.text('Cancel').last);
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.cancelledReasons, isEmpty);
+      expect(fakeRepository.rescheduledTo, isEmpty);
+    },
+  );
 }

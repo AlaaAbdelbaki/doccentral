@@ -2,6 +2,7 @@ import 'package:docentral/features/appointment/domain/appointment_exceptions.dar
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_controller_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_patient_options_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/assignable_users_provider.dart';
@@ -22,6 +23,7 @@ import 'package:intl/intl.dart';
 part 'widgets/appointment_form_dialog.dart';
 part 'widgets/appointment_row.dart';
 part 'widgets/calendar_side_panel.dart';
+part 'widgets/cancel_reason_dialog.dart';
 part 'widgets/day_view.dart';
 part 'widgets/status_badge.dart';
 part 'widgets/week_view.dart';
@@ -187,6 +189,113 @@ Future<void> _handleSubmit(
         overrideOverlap: true,
       );
     }
+  } else if (error is AppointmentNotEditableException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
+  }
+}
+
+Future<void> _cancelAppointmentFlow(
+  BuildContext context,
+  WidgetRef ref,
+  AppointmentRecord appointment, {
+  required List<PatientRecord> patients,
+  required List<AssignableUser> assignableUsers,
+}) async {
+  final CancellationReason? reason = await showDialog<CancellationReason>(
+    context: context,
+    builder: (BuildContext dialogContext) => const _CancelReasonDialog(),
+  );
+  if (reason == null) return;
+
+  if (reason == CancellationReason.rescheduled) {
+    if (!context.mounted) return;
+    await _showRescheduleDialog(
+      context,
+      ref,
+      original: appointment,
+      patients: patients,
+      assignableUsers: assignableUsers,
+    );
+    return;
+  }
+
+  await ref
+      .read(appointmentControllerProvider.notifier)
+      .cancel(appointmentId: appointment.id, reason: reason);
+
+  final Object? error = ref.read(appointmentControllerProvider).error;
+  if (error is AppointmentNotEditableException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
+  }
+}
+
+Future<void> _showRescheduleDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required AppointmentRecord original,
+  required List<PatientRecord> patients,
+  required List<AssignableUser> assignableUsers,
+}) {
+  final AppLocalizations l10n = AppLocalizations.of(context)!;
+  return showDialog<void>(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return _AppointmentFormDialog(
+        title: l10n.appointmentRescheduleFormTitle,
+        patients: patients,
+        assignableUsers: assignableUsers,
+        prefillPatientId: original.patientId,
+        prefillAssignedUserId: original.assignedUserId,
+        onSubmit: (AppointmentFormResult result) {
+          _handleReschedule(context, ref, original: original, result: result);
+        },
+      );
+    },
+  );
+}
+
+Future<void> _handleReschedule(
+  BuildContext context,
+  WidgetRef ref, {
+  required AppointmentRecord original,
+  required AppointmentFormResult result,
+}) async {
+  final AppointmentController controller = ref.read(
+    appointmentControllerProvider.notifier,
+  );
+
+  await controller.reschedule(
+    appointmentId: original.id,
+    newAssignedUserId: result.assignedUserId,
+    newStartTime: result.startTime,
+    newEndTime: result.endTime,
+    newReason: result.reason,
+    newNotes: result.notes,
+  );
+
+  final Object? error = ref.read(appointmentControllerProvider).error;
+  if (error is AppointmentOverlapException) {
+    if (!context.mounted) return;
+    final bool confirmed = await _confirmOverlap(context);
+    if (!confirmed) return;
+
+    await controller.reschedule(
+      appointmentId: original.id,
+      newAssignedUserId: result.assignedUserId,
+      newStartTime: result.startTime,
+      newEndTime: result.endTime,
+      newReason: result.reason,
+      newNotes: result.notes,
+      overrideOverlap: true,
+    );
   } else if (error is AppointmentNotEditableException) {
     if (!context.mounted) return;
     final AppLocalizations l10n = AppLocalizations.of(context)!;

@@ -101,5 +101,13 @@
   "appointmentNotesField": "ملاحظات",
   "appointmentOverlapConfirmTitle": "هذا الموعد يتداخل مع موعد آخر",
   "appointmentOverlapConfirmMessage": "الموظف المعيّن لديه بالفعل موعد في هذا الوقت. هل تريد الحفظ رغم ذلك؟",
-  "appointmentNotEditableError": "لم يعد بالإمكان تعديل هذا الموعد."
+  "appointmentNotEditableError": "لم يعد بالإمكان تعديل هذا الموعد.",
+  "appointmentCancelButton": "إلغاء الموعد",
+  "appointmentCancelReasonTitle": "لماذا تقوم بالإلغاء؟",
+  "cancellationReasonPatientCancelled": "ألغاه المريض",
+  "cancellationReasonNoShow": "لم يحضر",
+  "cancellationReasonClinicCancelled": "ألغته العيادة",
+  "cancellationReasonRescheduled": "إعادة الجدولة",
+  "appointmentRescheduleFormTitle": "إعادة جدولة الموعد",
+  "patientNoShowPatternWarning": "لهذا المريض سجل من الغياب المتكرر عن المواعيد"
 }

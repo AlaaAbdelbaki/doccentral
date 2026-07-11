@@ -9,4 +9,5 @@ class Appointments extends Table with SyncMetadata {
   TextColumn get status => text().withDefault(const Constant('scheduled'))();
   TextColumn get reason => text().nullable()();
   TextColumn get notes => text().nullable()();
+  TextColumn get rescheduledToAppointmentId => text().nullable()();
 }

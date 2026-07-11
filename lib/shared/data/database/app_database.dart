@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:docentral/shared/data/database/database_key_service.dart';
+import 'package:docentral/shared/data/database/tables/appointment_cancellations_table.dart';
 import 'package:docentral/shared/data/database/tables/appointment_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
@@ -31,6 +32,7 @@ part 'app_database.g.dart';
     PatientEditLogs,
     Appointments,
     AppointmentEditLogs,
+    AppointmentCancellations,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -38,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -55,6 +57,13 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) await m.createTable(patientEditLogs);
       if (from < 5) await m.createTable(appointments);
       if (from < 6) await m.createTable(appointmentEditLogs);
+      if (from < 7) {
+        await m.addColumn(
+          appointments,
+          appointments.rescheduledToAppointmentId,
+        );
+        await m.createTable(appointmentCancellations);
+      }
     },
   );
 }

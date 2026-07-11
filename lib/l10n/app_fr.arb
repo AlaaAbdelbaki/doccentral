@@ -101,5 +101,13 @@
   "appointmentNotesField": "Notes",
   "appointmentOverlapConfirmTitle": "Ce créneau chevauche un autre rendez-vous",
   "appointmentOverlapConfirmMessage": "Le membre du personnel assigné a déjà un rendez-vous à cette heure. Enregistrer quand même ?",
-  "appointmentNotEditableError": "Ce rendez-vous ne peut plus être modifié."
+  "appointmentNotEditableError": "Ce rendez-vous ne peut plus être modifié.",
+  "appointmentCancelButton": "Annuler le rendez-vous",
+  "appointmentCancelReasonTitle": "Pourquoi annulez-vous ?",
+  "cancellationReasonPatientCancelled": "Annulé par le patient",
+  "cancellationReasonNoShow": "Absence",
+  "cancellationReasonClinicCancelled": "Annulé par le cabinet",
+  "cancellationReasonRescheduled": "Reporter",
+  "appointmentRescheduleFormTitle": "Reporter le rendez-vous",
+  "patientNoShowPatternWarning": "Ce patient a des antécédents d'absences répétées"
 }

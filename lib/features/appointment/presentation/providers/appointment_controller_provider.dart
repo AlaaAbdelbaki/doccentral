@@ -1,3 +1,4 @@
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
@@ -80,6 +81,70 @@ class AppointmentController extends _$AppointmentController {
             endTime: endTime,
             reason: reason,
             notes: notes,
+            overrideOverlap: overrideOverlap,
+          ),
+    );
+  }
+
+  Future<void> cancel({
+    required String appointmentId,
+    required CancellationReason reason,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canManageAppointments),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(appointmentRepositoryProvider)
+          .cancelAppointment(
+            role: role,
+            actorUserId: actorUserId,
+            appointmentId: appointmentId,
+            reason: reason,
+          ),
+    );
+  }
+
+  Future<void> reschedule({
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canManageAppointments),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(appointmentRepositoryProvider)
+          .rescheduleAppointment(
+            role: role,
+            actorUserId: actorUserId,
+            appointmentId: appointmentId,
+            newAssignedUserId: newAssignedUserId,
+            newStartTime: newStartTime,
+            newEndTime: newEndTime,
+            newReason: newReason,
+            newNotes: newNotes,
             overrideOverlap: overrideOverlap,
           ),
     );

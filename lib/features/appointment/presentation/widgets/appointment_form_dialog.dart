@@ -24,12 +24,23 @@ class _AppointmentFormDialog extends ConsumerStatefulWidget {
     required this.patients,
     required this.assignableUsers,
     this.initial,
+    this.title,
+    this.prefillPatientId,
+    this.prefillAssignedUserId,
   });
 
   final void Function(AppointmentFormResult result) onSubmit;
   final List<PatientRecord> patients;
   final List<AssignableUser> assignableUsers;
+
+  /// Non-null means "editing this exact appointment" — its id is used by
+  /// the caller's onSubmit handler. For a fresh appointment prefilled from
+  /// another one (the reschedule flow), use [prefillPatientId] /
+  /// [prefillAssignedUserId] instead and leave this null.
   final AppointmentRecord? initial;
+  final String? title;
+  final String? prefillPatientId;
+  final String? prefillAssignedUserId;
 
   @override
   ConsumerState<_AppointmentFormDialog> createState() =>
@@ -65,10 +76,24 @@ class _AppointmentFormDialogState
       _reasonController.text = initial.reason ?? '';
       _notesController.text = initial.notes ?? '';
     } else {
-      for (final AssignableUser user in widget.assignableUsers) {
-        if (user.role == Role.doctor) {
-          _selectedAssignedUserId = user.id;
-          break;
+      final String? prefillPatientId = widget.prefillPatientId;
+      if (prefillPatientId != null) {
+        for (final PatientRecord patient in widget.patients) {
+          if (patient.id == prefillPatientId) {
+            _selectedPatient = patient;
+            break;
+          }
+        }
+      }
+      final String? prefillAssignedUserId = widget.prefillAssignedUserId;
+      if (prefillAssignedUserId != null) {
+        _selectedAssignedUserId = prefillAssignedUserId;
+      } else {
+        for (final AssignableUser user in widget.assignableUsers) {
+          if (user.role == Role.doctor) {
+            _selectedAssignedUserId = user.id;
+            break;
+          }
         }
       }
     }
@@ -172,9 +197,10 @@ class _AppointmentFormDialogState
 
     return AlertDialog(
       title: Text(
-        widget.initial == null
-            ? l10n.appointmentFormTitle
-            : l10n.appointmentEditFormTitle,
+        widget.title ??
+            (widget.initial == null
+                ? l10n.appointmentFormTitle
+                : l10n.appointmentEditFormTitle),
       ),
       content: SizedBox(
         width: 420,

@@ -44,6 +44,15 @@ class _DayView extends ConsumerWidget {
                       assignableUsers: assignableUsers,
                       initial: appointment,
                     ),
+              onCancel: !canEdit
+                  ? null
+                  : () => _cancelAppointmentFlow(
+                      context,
+                      ref,
+                      appointment,
+                      patients: patients,
+                      assignableUsers: assignableUsers,
+                    ),
             );
           },
         );

@@ -7,6 +7,7 @@ class _PatientDetailPane extends StatelessWidget {
     required this.onEdit,
     required this.canDelete,
     required this.onDelete,
+    required this.hasNoShowPattern,
   });
 
   final PatientRecord? patient;
@@ -14,6 +15,7 @@ class _PatientDetailPane extends StatelessWidget {
   final VoidCallback onEdit;
   final bool canDelete;
   final VoidCallback onDelete;
+  final bool hasNoShowPattern;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +65,31 @@ class _PatientDetailPane extends StatelessWidget {
                 ),
             ],
           ),
+          if (hasNoShowPattern) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppSpacing.xs),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.warning_amber_outlined,
+                    color: Colors.red.shade700,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      l10n.patientNoShowPatternWarning,
+                      style: TextStyle(color: Colors.red.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.lg),
           _SectionCard(
             title: l10n.patientOverviewSection,

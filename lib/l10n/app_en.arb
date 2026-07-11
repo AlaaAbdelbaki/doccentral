@@ -308,5 +308,29 @@
   "@appointmentOverlapConfirmMessage": { "description": "Overlap-override confirmation dialog message" },
 
   "appointmentNotEditableError": "This appointment can no longer be edited.",
-  "@appointmentNotEditableError": { "description": "Error shown when attempting to edit a non-scheduled appointment" }
+  "@appointmentNotEditableError": { "description": "Error shown when attempting to edit a non-scheduled appointment" },
+
+  "appointmentCancelButton": "Cancel appointment",
+  "@appointmentCancelButton": { "description": "Button/tooltip to open the cancel-appointment reason picker" },
+
+  "appointmentCancelReasonTitle": "Why are you cancelling?",
+  "@appointmentCancelReasonTitle": { "description": "Cancellation reason picker dialog title" },
+
+  "cancellationReasonPatientCancelled": "Patient cancelled",
+  "@cancellationReasonPatientCancelled": { "description": "Cancellation reason option" },
+
+  "cancellationReasonNoShow": "No-show",
+  "@cancellationReasonNoShow": { "description": "Cancellation reason option" },
+
+  "cancellationReasonClinicCancelled": "Clinic cancelled",
+  "@cancellationReasonClinicCancelled": { "description": "Cancellation reason option" },
+
+  "cancellationReasonRescheduled": "Reschedule",
+  "@cancellationReasonRescheduled": { "description": "Cancellation reason option that starts the reschedule flow" },
+
+  "appointmentRescheduleFormTitle": "Reschedule appointment",
+  "@appointmentRescheduleFormTitle": { "description": "Reschedule replacement-appointment dialog title" },
+
+  "patientNoShowPatternWarning": "This patient has a history of repeated no-shows",
+  "@patientNoShowPatternWarning": { "description": "Warning shown on the Patient File for patients with a no-show pattern" }
 }

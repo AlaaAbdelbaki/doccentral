@@ -3,6 +3,7 @@ import 'package:docentral/features/appointment/domain/appointment_exceptions.dar
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -472,5 +473,250 @@ void main() {
         );
       },
     );
+  });
+
+  group('AppointmentRepositoryImpl.cancelAppointment', () {
+    test(
+      'creates a Cancellation record with non-null reason, actor, and timestamp, and frees the slot',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String id = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+        );
+
+        await repository.cancelAppointment(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          appointmentId: id,
+          reason: CancellationReason.noShow,
+        );
+
+        final Appointment appointment = await (db.select(
+          db.appointments,
+        )..where((t) => t.id.equals(id))).getSingle();
+        expect(appointment.status, AppointmentStatus.cancelled.name);
+
+        final List<AppointmentCancellation> cancellations = await db
+            .select(db.appointmentCancellations)
+            .get();
+        expect(cancellations.length, 1);
+        expect(cancellations.first.appointmentId, id);
+        expect(cancellations.first.actorUserId, 'actor-1');
+        expect(cancellations.first.reason, CancellationReason.noShow.name);
+        expect(cancellations.first.createdAt, isNotNull);
+      },
+    );
+
+    test(
+      'the cancelled slot no longer overlaps a new appointment for the same user',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String id = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+        );
+
+        await repository.cancelAppointment(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          appointmentId: id,
+          reason: CancellationReason.patientCancelled,
+        );
+
+        final String newId = await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+        );
+
+        expect(newId, isNotEmpty);
+      },
+    );
+
+    test(
+      'throws AppointmentNotEditableException for a non-scheduled appointment',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String id = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+          status: 'completed',
+        );
+
+        expect(
+          () => repository.cancelAppointment(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            appointmentId: id,
+            reason: CancellationReason.noShow,
+          ),
+          throwsA(isA<AppointmentNotEditableException>()),
+        );
+      },
+    );
+  });
+
+  group('AppointmentRepositoryImpl.rescheduleAppointment', () {
+    test(
+      'creates a replacement appointment, cancels the original, and links both',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String originalId = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+        );
+
+        final String newId = await repository.rescheduleAppointment(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          appointmentId: originalId,
+          newAssignedUserId: 'dentist-2',
+          newStartTime: start.add(const Duration(days: 1)),
+          newEndTime: start.add(const Duration(days: 1, minutes: 30)),
+        );
+
+        final Appointment original = await (db.select(
+          db.appointments,
+        )..where((t) => t.id.equals(originalId))).getSingle();
+        expect(original.status, AppointmentStatus.cancelled.name);
+        expect(original.rescheduledToAppointmentId, newId);
+
+        final Appointment replacement = await (db.select(
+          db.appointments,
+        )..where((t) => t.id.equals(newId))).getSingle();
+        expect(replacement.status, AppointmentStatus.scheduled.name);
+        expect(replacement.assignedUserId, 'dentist-2');
+        expect(replacement.patientId, patientId);
+
+        final List<AppointmentCancellation> cancellations = await db
+            .select(db.appointmentCancellations)
+            .get();
+        expect(
+          cancellations.single.reason,
+          CancellationReason.rescheduled.name,
+        );
+      },
+    );
+
+    test(
+      'does not cancel the original when the replacement overlaps without override',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String originalId = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+        );
+        await seedAppointment(
+          patientId: patientId,
+          startTime: start.add(const Duration(days: 1)),
+        );
+
+        await expectLater(
+          repository.rescheduleAppointment(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            appointmentId: originalId,
+            newAssignedUserId: 'dentist-1',
+            newStartTime: start.add(const Duration(days: 1)),
+            newEndTime: start.add(const Duration(days: 1, minutes: 30)),
+          ),
+          throwsA(isA<AppointmentOverlapException>()),
+        );
+
+        final Appointment original = await (db.select(
+          db.appointments,
+        )..where((t) => t.id.equals(originalId))).getSingle();
+        expect(original.status, AppointmentStatus.scheduled.name);
+      },
+    );
+
+    test(
+      'throws AppointmentNotEditableException for a non-scheduled original',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String originalId = await seedAppointment(
+          patientId: patientId,
+          startTime: start,
+          status: 'cancelled',
+        );
+
+        expect(
+          () => repository.rescheduleAppointment(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            appointmentId: originalId,
+            newAssignedUserId: 'dentist-1',
+            newStartTime: start.add(const Duration(days: 1)),
+            newEndTime: start.add(const Duration(days: 1, minutes: 30)),
+          ),
+          throwsA(isA<AppointmentNotEditableException>()),
+        );
+      },
+    );
+  });
+
+  group('AppointmentRepositoryImpl.watchNoShowCount', () {
+    test('counts only no_show cancellations for the given patient', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String otherPatientId = await seedPatient('Sarra', 'Ben Youssef');
+      final DateTime start = DateTime(2026, 6, 8, 9);
+
+      final String a = await seedAppointment(
+        patientId: patientId,
+        startTime: start,
+      );
+      final String b = await seedAppointment(
+        patientId: patientId,
+        startTime: start.add(const Duration(days: 1)),
+      );
+      final String c = await seedAppointment(
+        patientId: patientId,
+        startTime: start.add(const Duration(days: 2)),
+      );
+      final String d = await seedAppointment(
+        patientId: otherPatientId,
+        startTime: start.add(const Duration(days: 3)),
+      );
+
+      await repository.cancelAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: a,
+        reason: CancellationReason.noShow,
+      );
+      await repository.cancelAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: b,
+        reason: CancellationReason.noShow,
+      );
+      await repository.cancelAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: c,
+        reason: CancellationReason.patientCancelled,
+      );
+      await repository.cancelAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: d,
+        reason: CancellationReason.noShow,
+      );
+
+      final int count = await repository
+          .watchNoShowCount(role: Role.assistant, patientId: patientId)
+          .first;
+
+      expect(count, 2);
+    });
   });
 }

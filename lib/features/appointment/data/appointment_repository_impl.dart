@@ -3,6 +3,7 @@ import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_repository.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
@@ -241,5 +242,157 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
             );
       }
     });
+  }
+
+  @override
+  Future<void> cancelAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required CancellationReason reason,
+  }) async {
+    assert(
+      reason != CancellationReason.rescheduled,
+      'Use rescheduleAppointment for CancellationReason.rescheduled',
+    );
+    requirePermission(role, Permission.canManageAppointments);
+
+    await _db.transaction(() async {
+      await _cancel(
+        appointmentId: appointmentId,
+        actorUserId: actorUserId,
+        reason: reason,
+      );
+    });
+  }
+
+  /// Validates the appointment is `scheduled`, marks it `cancelled`, and
+  /// inserts a Cancellation record. Must run inside a transaction.
+  Future<void> _cancel({
+    required String appointmentId,
+    required String actorUserId,
+    required CancellationReason reason,
+    String? rescheduledToAppointmentId,
+  }) async {
+    final Appointment existing = await (_db.select(
+      _db.appointments,
+    )..where((Appointments t) => t.id.equals(appointmentId))).getSingle();
+
+    if (existing.status != AppointmentStatus.scheduled.name) {
+      throw const AppointmentNotEditableException();
+    }
+
+    final DateTime now = DateTime.now().toUtc();
+
+    await (_db.update(
+      _db.appointments,
+    )..where((Appointments t) => t.id.equals(appointmentId))).write(
+      AppointmentsCompanion(
+        status: Value(AppointmentStatus.cancelled.name),
+        rescheduledToAppointmentId: Value(rescheduledToAppointmentId),
+        updatedAt: Value(now),
+      ),
+    );
+
+    await _db
+        .into(_db.appointmentCancellations)
+        .insert(
+          AppointmentCancellationsCompanion.insert(
+            id: _uuid.v4(),
+            appointmentId: appointmentId,
+            actorUserId: actorUserId,
+            reason: reason.name,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+  }
+
+  @override
+  Future<String> rescheduleAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  }) async {
+    requirePermission(role, Permission.canManageAppointments);
+
+    if (!overrideOverlap) {
+      final bool overlaps = await _hasOverlap(
+        assignedUserId: newAssignedUserId,
+        startTime: newStartTime,
+        endTime: newEndTime,
+      );
+      if (overlaps) throw const AppointmentOverlapException();
+    }
+
+    return _db.transaction(() async {
+      final Appointment original = await (_db.select(
+        _db.appointments,
+      )..where((Appointments t) => t.id.equals(appointmentId))).getSingle();
+
+      if (original.status != AppointmentStatus.scheduled.name) {
+        throw const AppointmentNotEditableException();
+      }
+
+      final String newId = _uuid.v4();
+      final DateTime now = DateTime.now().toUtc();
+
+      await _db
+          .into(_db.appointments)
+          .insert(
+            AppointmentsCompanion.insert(
+              id: newId,
+              patientId: original.patientId,
+              assignedUserId: newAssignedUserId,
+              startTime: newStartTime,
+              endTime: newEndTime,
+              status: Value(AppointmentStatus.scheduled.name),
+              reason: Value(newReason?.trim()),
+              notes: Value(newNotes?.trim()),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await _cancel(
+        appointmentId: appointmentId,
+        actorUserId: actorUserId,
+        reason: CancellationReason.rescheduled,
+        rescheduledToAppointmentId: newId,
+      );
+
+      return newId;
+    });
+  }
+
+  @override
+  Stream<int> watchNoShowCount({
+    required Role role,
+    required String patientId,
+  }) {
+    requirePermission(role, Permission.canViewAppointments);
+
+    final JoinedSelectStatement<HasResultSet, dynamic> query =
+        _db.select(_db.appointmentCancellations).join([
+          innerJoin(
+            _db.appointments,
+            _db.appointments.id.equalsExp(
+              _db.appointmentCancellations.appointmentId,
+            ),
+          ),
+        ])..where(
+          _db.appointments.patientId.equals(patientId) &
+              _db.appointmentCancellations.reason.equals(
+                CancellationReason.noShow.name,
+              ),
+        );
+
+    return query.watch().map((List<TypedResult> rows) => rows.length);
   }
 }
