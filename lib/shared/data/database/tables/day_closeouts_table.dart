@@ -7,4 +7,5 @@ class DayCloseouts extends Table with SyncMetadata {
   RealColumn get countedCash => real()();
   RealColumn get delta => real()();
   TextColumn get actorUserId => text()();
+  DateTimeColumn get reopenedAt => dateTime().nullable()();
 }

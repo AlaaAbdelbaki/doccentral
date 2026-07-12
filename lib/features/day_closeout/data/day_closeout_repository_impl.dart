@@ -71,7 +71,7 @@ class DayCloseoutRepositoryImpl implements DayCloseoutRepository {
                 _db.dayCloseouts,
               )..where((DayCloseouts t) => t.closeoutDate.equals(closeoutDate)))
               .getSingleOrNull();
-      if (existing != null) {
+      if (existing != null && existing.reopenedAt == null) {
         throw const DayCloseoutAlreadyExistsException();
       }
 
@@ -79,9 +79,25 @@ class DayCloseoutRepositoryImpl implements DayCloseoutRepository {
         closeoutDate,
         closeoutDate.add(const Duration(days: 1)),
       );
+      final DateTime now = DateTime.now().toUtc();
+
+      if (existing != null) {
+        await (_db.update(
+          _db.dayCloseouts,
+        )..where((DayCloseouts t) => t.id.equals(existing.id))).write(
+          DayCloseoutsCompanion(
+            expectedCash: Value(expectedCash),
+            countedCash: Value(countedCash),
+            delta: Value(expectedCash - countedCash),
+            actorUserId: Value(actorUserId),
+            reopenedAt: const Value(null),
+            updatedAt: Value(now),
+          ),
+        );
+        return existing.id;
+      }
 
       final String id = _uuid.v4();
-      final DateTime now = DateTime.now().toUtc();
       await _db
           .into(_db.dayCloseouts)
           .insert(
@@ -136,8 +152,42 @@ class DayCloseoutRepositoryImpl implements DayCloseoutRepository {
               delta: row.delta,
               actorUserId: row.actorUserId,
               recordedAt: row.createdAt,
+              reopenedAt: row.reopenedAt,
             ),
     );
+  }
+
+  @override
+  Future<void> reopenCloseout({
+    required Role role,
+    required String actorUserId,
+    required String dayCloseoutId,
+    required String reason,
+  }) async {
+    requirePermission(role, Permission.canReopenDayCloseout);
+
+    final DateTime now = DateTime.now().toUtc();
+
+    await _db.transaction(() async {
+      await (_db.update(
+        _db.dayCloseouts,
+      )..where((DayCloseouts t) => t.id.equals(dayCloseoutId))).write(
+        DayCloseoutsCompanion(reopenedAt: Value(now), updatedAt: Value(now)),
+      );
+
+      await _db
+          .into(_db.dayCloseoutReopenLogs)
+          .insert(
+            DayCloseoutReopenLogsCompanion.insert(
+              id: _uuid.v4(),
+              dayCloseoutId: dayCloseoutId,
+              actorUserId: actorUserId,
+              reason: reason.trim(),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+    });
   }
 
   Stream<int> _watchCompletedVisitsCount(DateTime start, DateTime end) {

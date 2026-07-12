@@ -6,6 +6,7 @@ import 'package:docentral/shared/data/database/tables/appointment_edit_logs_tabl
 import 'package:docentral/shared/data/database/tables/appointment_planned_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
+import 'package:docentral/shared/data/database/tables/day_closeout_reopen_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/day_closeouts_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_finalizations_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_items_table.dart';
@@ -57,6 +58,7 @@ part 'app_database.g.dart';
     RestockEvents,
     StockAdjustments,
     DayCloseouts,
+    DayCloseoutReopenLogs,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -64,7 +66,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -110,6 +112,10 @@ class AppDatabase extends _$AppDatabase {
       if (from < 20) await m.createTable(restockEvents);
       if (from < 21) await m.createTable(stockAdjustments);
       if (from < 22) await m.createTable(dayCloseouts);
+      if (from < 23) {
+        await m.addColumn(dayCloseouts, dayCloseouts.reopenedAt);
+        await m.createTable(dayCloseoutReopenLogs);
+      }
     },
   );
 }

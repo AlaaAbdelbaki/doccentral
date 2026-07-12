@@ -39,4 +39,31 @@ class DayCloseoutController extends _$DayCloseoutController {
           ),
     );
   }
+
+  Future<void> reopenCloseout({
+    required String dayCloseoutId,
+    required String reason,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canReopenDayCloseout),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(dayCloseoutRepositoryProvider)
+          .reopenCloseout(
+            role: role,
+            actorUserId: actorUserId,
+            dayCloseoutId: dayCloseoutId,
+            reason: reason,
+          ),
+    );
+  }
 }

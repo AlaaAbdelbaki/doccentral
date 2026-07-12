@@ -23,6 +23,7 @@ class _FakeDayCloseoutRepository implements DayCloseoutRepository {
   DayCloseoutRecord? _closeout;
   Object? confirmErrorToThrow;
   final List<double> confirmedCountedCash = <double>[];
+  final List<String> reopenReasons = <String>[];
   final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
@@ -66,6 +67,30 @@ class _FakeDayCloseoutRepository implements DayCloseoutRepository {
     await for (final _ in _changes.stream) {
       yield _closeout;
     }
+  }
+
+  @override
+  Future<void> reopenCloseout({
+    required Role role,
+    required String actorUserId,
+    required String dayCloseoutId,
+    required String reason,
+  }) async {
+    reopenReasons.add(reason);
+    final DayCloseoutRecord? existing = _closeout;
+    if (existing != null) {
+      _closeout = DayCloseoutRecord(
+        id: existing.id,
+        closeoutDate: existing.closeoutDate,
+        expectedCash: existing.expectedCash,
+        countedCash: existing.countedCash,
+        delta: existing.delta,
+        actorUserId: existing.actorUserId,
+        recordedAt: existing.recordedAt,
+        reopenedAt: DateTime.now(),
+      );
+    }
+    _changes.add(null);
   }
 }
 
@@ -280,6 +305,144 @@ void main() {
         find.text('This day has already been closed out.'),
         findsOneWidget,
       );
+    },
+  );
+
+  DayCloseoutRecord closedRecord() => DayCloseoutRecord(
+    id: 'closeout-1',
+    closeoutDate: DateTime.now(),
+    expectedCash: 100,
+    countedCash: 100,
+    delta: 0,
+    actorUserId: 'actor-1',
+    recordedAt: DateTime.now(),
+  );
+
+  testWidgets('the Reopen button is hidden for an Assistant', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      role: Role.assistant,
+      summary: const DayCloseoutSummary(
+        completedVisitsCount: 0,
+        paymentTotalsByMethod: <PaymentMethod, double>{},
+        newInvoicesTotal: 0,
+        outstandingInvoicesCount: 0,
+      ),
+      initialCloseout: closedRecord(),
+    );
+
+    expect(find.text('Reopen'), findsNothing);
+  });
+
+  testWidgets(
+    'reopening unlocks counted cash for re-entry and shows Confirm closeout again',
+    (WidgetTester tester) async {
+      final _FakeDayCloseoutRepository fakeRepository = await _pumpPage(
+        tester,
+        role: Role.doctor,
+        summary: const DayCloseoutSummary(
+          completedVisitsCount: 0,
+          paymentTotalsByMethod: <PaymentMethod, double>{},
+          newInvoicesTotal: 0,
+          outstandingInvoicesCount: 0,
+        ),
+        initialCloseout: closedRecord(),
+      );
+
+      expect(find.text('Confirm closeout'), findsNothing);
+
+      await tester.tap(find.text('Reopen'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Missed cash payment needs correction',
+      );
+      await tester.tap(find.text('Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(fakeRepository.reopenReasons, <String>[
+        'Missed cash payment needs correction',
+      ]);
+      expect(find.text('Day closeout reopened.'), findsOneWidget);
+      expect(find.text('Confirm closeout'), findsOneWidget);
+      expect(find.text('Reopen'), findsNothing);
+    },
+  );
+
+  testWidgets('confirming a blank reopen reason shows a validation error', (
+    WidgetTester tester,
+  ) async {
+    final _FakeDayCloseoutRepository fakeRepository = await _pumpPage(
+      tester,
+      role: Role.doctor,
+      summary: const DayCloseoutSummary(
+        completedVisitsCount: 0,
+        paymentTotalsByMethod: <PaymentMethod, double>{},
+        newInvoicesTotal: 0,
+        outstandingInvoicesCount: 0,
+      ),
+      initialCloseout: closedRecord(),
+    );
+
+    await tester.tap(find.text('Reopen'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('A reason is required to reopen this day closeout.'),
+      findsOneWidget,
+    );
+    expect(fakeRepository.reopenReasons, isEmpty);
+  });
+
+  testWidgets(
+    'reconfirming after reopening updates the same record with a new counted cash and delta',
+    (WidgetTester tester) async {
+      final _FakeDayCloseoutRepository fakeRepository = await _pumpPage(
+        tester,
+        role: Role.doctor,
+        summary: const DayCloseoutSummary(
+          completedVisitsCount: 0,
+          paymentTotalsByMethod: <PaymentMethod, double>{
+            PaymentMethod.cash: 100,
+          },
+          newInvoicesTotal: 0,
+          outstandingInvoicesCount: 0,
+        ),
+        initialCloseout: closedRecord(),
+      );
+
+      await tester.tap(find.text('Reopen'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Correcting a missed payment',
+      );
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Confirm closeout'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Counted cash'),
+        '90',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.confirmedCountedCash, <double>[90]);
+      // Re-locked after re-confirmation: Reopen is offered again, Confirm
+      // closeout is hidden again.
+      expect(find.text('Confirm closeout'), findsNothing);
+      expect(find.text('Reopen'), findsOneWidget);
     },
   );
 }

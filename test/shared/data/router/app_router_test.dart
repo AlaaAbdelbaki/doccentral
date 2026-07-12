@@ -209,6 +209,14 @@ class _FakeDayCloseoutRepository implements DayCloseoutRepository {
     required Role role,
     required DateTime day,
   }) => Stream.value(null);
+
+  @override
+  Future<void> reopenCloseout({
+    required Role role,
+    required String actorUserId,
+    required String dayCloseoutId,
+    required String reason,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 class _FakeInventoryRepository implements InventoryRepository {

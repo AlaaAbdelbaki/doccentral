@@ -265,6 +265,18 @@
   "dayCloseoutRecordSection": "Closeout record",
   "@dayCloseoutRecordSection": { "description": "Section title for the confirmed Day Closeout record (expected/counted/delta)" },
 
+  "dayCloseoutReopenButton": "Reopen",
+  "@dayCloseoutReopenButton": { "description": "Button and dialog title to reopen a closed day" },
+
+  "dayCloseoutReopenReasonField": "Reason",
+  "@dayCloseoutReopenReasonField": { "description": "Label for the required reason field on the reopen-day dialog" },
+
+  "dayCloseoutReopenReasonRequiredError": "A reason is required to reopen this day closeout.",
+  "@dayCloseoutReopenReasonRequiredError": { "description": "Validation error shown when the reopen reason is left blank" },
+
+  "dayCloseoutReopenedMessage": "Day closeout reopened.",
+  "@dayCloseoutReopenedMessage": { "description": "Success message shown after reopening a Day Closeout" },
+
   "navSettings": "Settings",
   "@navSettings": { "description": "Navigation label for the settings destination" },
 

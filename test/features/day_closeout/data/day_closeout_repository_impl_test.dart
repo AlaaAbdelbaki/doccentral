@@ -347,4 +347,102 @@ void main() {
       expect(closeout, isNull);
     });
   });
+
+  group('DayCloseoutRepositoryImpl.reopenCloseout', () {
+    test(
+      'unlocks the closeout and logs the actor, timestamp, and reason',
+      () async {
+        await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 100,
+        );
+        final DayCloseoutRecord before = (await repository
+            .watchCloseoutForDay(role: Role.doctor, day: today)
+            .first)!;
+        expect(before.isReopened, isFalse);
+
+        await repository.reopenCloseout(
+          role: Role.doctor,
+          actorUserId: 'doctor-1',
+          dayCloseoutId: before.id,
+          reason: 'Missed cash payment needs correction',
+        );
+
+        final DayCloseoutRecord after = (await repository
+            .watchCloseoutForDay(role: Role.doctor, day: today)
+            .first)!;
+        expect(after.isReopened, isTrue);
+        expect(after.reopenedAt, isNotNull);
+
+        final List<DayCloseoutReopenLog> logs = await db
+            .select(db.dayCloseoutReopenLogs)
+            .get();
+        expect(logs.single.dayCloseoutId, before.id);
+        expect(logs.single.actorUserId, 'doctor-1');
+        expect(logs.single.reason, 'Missed cash payment needs correction');
+      },
+    );
+
+    test(
+      'reconfirming after reopening updates the same record with a new counted cash, delta, and timestamp',
+      () async {
+        final String id = await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 100,
+        );
+
+        await repository.reopenCloseout(
+          role: Role.doctor,
+          actorUserId: 'doctor-1',
+          dayCloseoutId: id,
+          reason: 'Correcting a missed payment',
+        );
+
+        await seedPayment(
+          paymentDate: today.add(const Duration(hours: 9)),
+          amount: 60,
+        );
+
+        final String reconfirmedId = await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-2',
+          day: today,
+          countedCash: 55,
+        );
+
+        expect(reconfirmedId, id);
+        final DayCloseoutRecord closeout = (await repository
+            .watchCloseoutForDay(role: Role.assistant, day: today)
+            .first)!;
+        expect(closeout.expectedCash, 60);
+        expect(closeout.countedCash, 55);
+        expect(closeout.delta, 5);
+        expect(closeout.actorUserId, 'actor-2');
+        expect(closeout.isReopened, isFalse); // re-locked
+      },
+    );
+
+    test('throws PermissionDeniedException for an Assistant', () async {
+      final String id = await repository.confirmCloseout(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        day: today,
+        countedCash: 100,
+      );
+
+      expect(
+        () => repository.reopenCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          dayCloseoutId: id,
+          reason: 'Any reason',
+        ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
 }

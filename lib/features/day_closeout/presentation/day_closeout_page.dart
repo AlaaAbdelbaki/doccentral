@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 part 'widgets/confirm_closeout_dialog.dart';
+part 'widgets/reopen_closeout_dialog.dart';
 
 class DayCloseoutPage extends ConsumerWidget {
   const DayCloseoutPage({super.key});
@@ -58,18 +59,29 @@ class DayCloseoutPage extends ConsumerWidget {
     final bool canConfirm = ref.watch(permissionCheckerProvider)(
       Permission.canConfirmDayCloseout,
     );
+    final bool canReopen = ref.watch(permissionCheckerProvider)(
+      Permission.canReopenDayCloseout,
+    );
     final DayCloseoutRecord? closeout = closeoutAsync.value;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.navDayCloseout),
         actions: <Widget>[
-          if (canConfirm && closeout == null)
+          if (canConfirm && (closeout == null || closeout.isReopened))
             Padding(
               padding: const EdgeInsets.only(right: AppSpacing.md),
               child: FilledButton(
                 onPressed: () => _showConfirmDialog(context, ref),
                 child: Text(l10n.dayCloseoutConfirmButton),
+              ),
+            ),
+          if (canReopen && closeout != null && !closeout.isReopened)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: OutlinedButton(
+                onPressed: () => _showReopenDialog(context, ref, closeout.id),
+                child: Text(l10n.dayCloseoutReopenButton),
               ),
             ),
         ],
@@ -168,6 +180,31 @@ class DayCloseoutPage extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.dayCloseoutConfirmedMessage)));
+    }
+  }
+
+  Future<void> _showReopenDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String dayCloseoutId,
+  ) async {
+    final String? reason = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) => const _ReopenCloseoutDialog(),
+    );
+    if (reason == null) return;
+
+    await ref
+        .read(dayCloseoutControllerProvider.notifier)
+        .reopenCloseout(dayCloseoutId: dayCloseoutId, reason: reason);
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(dayCloseoutControllerProvider).error;
+    if (error == null) {
+      final AppLocalizations l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.dayCloseoutReopenedMessage)));
     }
   }
 }

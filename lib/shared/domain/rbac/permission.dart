@@ -8,6 +8,7 @@ enum Permission {
   canDeletePatient,
   canVoidInvoice,
   canManageTreatmentPlan,
+  canReopenDayCloseout,
 
   // Doctor + Assistant
   canCreatePatient,

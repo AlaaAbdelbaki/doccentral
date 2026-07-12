@@ -11,6 +11,7 @@ const _doctorPermissions = {
   Permission.canDeletePatient,
   Permission.canVoidInvoice,
   Permission.canManageTreatmentPlan,
+  Permission.canReopenDayCloseout,
 };
 
 const assistantPermissions = {
