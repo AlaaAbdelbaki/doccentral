@@ -61,7 +61,12 @@ GoRouter appRouter(Ref ref) {
       final String location = state.matchedLocation;
 
       if (!hasClinic) {
-        return location == AppRoutes.signUp.path ? null : AppRoutes.signUp.path;
+        // /sign-in stays reachable even without a local clinic so staff who
+        // already have an account can attempt to log in on a new device.
+        final bool onAuthPage =
+            location == AppRoutes.signUp.path ||
+            location == AppRoutes.signIn.path;
+        return onAuthPage ? null : AppRoutes.signUp.path;
       }
       if (location == AppRoutes.signUp.path) return AppRoutes.calendar.path;
 

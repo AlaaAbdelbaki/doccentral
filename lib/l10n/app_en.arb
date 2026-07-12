@@ -130,6 +130,9 @@
   "signUpOfflineError": "Could not create your clinic. Check your connection and try again.",
   "@signUpOfflineError": { "description": "Error shown when sign-up fails (e.g. offline)" },
 
+  "signUpLoginLinkButton": "Already have an account? Log in",
+  "@signUpLoginLinkButton": { "description": "Link on the sign-up page navigating to the sign-in page" },
+
   "navCalendar": "Today's Calendar",
   "@navCalendar": { "description": "Navigation label for the calendar destination" },
 

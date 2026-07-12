@@ -72,6 +72,11 @@ Future<ProviderContainer> _pumpSignUpPage(
         name: 'calendar',
         builder: (context, state) => const Text('Calendar Page'),
       ),
+      GoRoute(
+        path: '/sign-in',
+        name: 'signIn',
+        builder: (context, state) => const Text('Sign In Page'),
+      ),
     ],
   );
 
@@ -214,5 +219,17 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('tapping the login link navigates to sign-in', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUpPage(tester, _FakeClinicRepository());
+
+    await tester.ensureVisible(find.text('Already have an account? Log in'));
+    await tester.tap(find.text('Already have an account? Log in'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign In Page'), findsOneWidget);
   });
 }

@@ -351,6 +351,23 @@ void main() {
     expect(find.text('Create your clinic'), findsOneWidget);
   });
 
+  testWidgets(
+    'allows navigating to sign-in even when no local clinic exists yet',
+    (WidgetTester tester) async {
+      final GoRouter router = await _pumpRouter(
+        tester,
+        hasClinic: false,
+        role: null,
+      );
+
+      router.goNamed(AppRoutes.signIn.name);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign in'), findsWidgets);
+      expect(find.text('Create your clinic'), findsNothing);
+    },
+  );
+
   testWidgets('redirects away from sign-up once a clinic exists', (
     WidgetTester tester,
   ) async {

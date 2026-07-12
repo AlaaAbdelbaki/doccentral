@@ -53,6 +53,7 @@ class SignUpPage extends ConsumerWidget {
                       password: result.password,
                     );
               },
+              onLoginTap: () => context.goNamed(AppRoutes.signIn.name),
             ),
           ),
         ),

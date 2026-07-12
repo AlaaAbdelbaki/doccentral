@@ -44,6 +44,7 @@
   "signUpPasswordMismatchError": "Les mots de passe ne correspondent pas",
   "signUpSubmitButton": "Créer le cabinet",
   "signUpOfflineError": "Impossible de créer votre cabinet. Vérifiez votre connexion et réessayez.",
+  "signUpLoginLinkButton": "Vous avez déjà un compte ? Connectez-vous",
   "navCalendar": "Calendrier du jour",
   "navPatients": "Patients",
   "navInventory": "Inventaire",

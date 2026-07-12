@@ -44,6 +44,7 @@
   "signUpPasswordMismatchError": "كلمتا المرور غير متطابقتين",
   "signUpSubmitButton": "إنشاء العيادة",
   "signUpOfflineError": "تعذر إنشاء عيادتك. تحقق من اتصالك وحاول مرة أخرى.",
+  "signUpLoginLinkButton": "هل لديك حساب بالفعل؟ سجّل الدخول",
   "navCalendar": "تقويم اليوم",
   "navPatients": "المرضى",
   "navInventory": "المخزون",

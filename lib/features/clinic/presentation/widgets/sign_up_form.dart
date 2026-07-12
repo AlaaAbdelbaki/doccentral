@@ -17,10 +17,15 @@ class SignUpFormResult {
 }
 
 class _SignUpForm extends StatefulWidget {
-  const _SignUpForm({required this.isSubmitting, required this.onSubmit});
+  const _SignUpForm({
+    required this.isSubmitting,
+    required this.onSubmit,
+    required this.onLoginTap,
+  });
 
   final bool isSubmitting;
   final void Function(SignUpFormResult result) onSubmit;
+  final VoidCallback onLoginTap;
 
   @override
   State<_SignUpForm> createState() => _SignUpFormState();
@@ -146,6 +151,11 @@ class _SignUpFormState extends State<_SignUpForm> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(l10n.signUpSubmitButton),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextButton(
+            onPressed: widget.isSubmitting ? null : widget.onLoginTap,
+            child: Text(l10n.signUpLoginLinkButton),
           ),
         ],
       ),
