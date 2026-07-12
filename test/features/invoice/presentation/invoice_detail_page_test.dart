@@ -6,8 +6,13 @@ import 'package:docentral/features/invoice/domain/invoice_item.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
 import 'package:docentral/features/invoice/domain/invoice_repository.dart';
 import 'package:docentral/features/invoice/domain/invoice_status.dart';
+import 'package:docentral/features/invoice/domain/payment.dart';
+import 'package:docentral/features/invoice/domain/payment_exceptions.dart';
+import 'package:docentral/features/invoice/domain/payment_method.dart';
+import 'package:docentral/features/invoice/domain/payment_repository.dart';
 import 'package:docentral/features/invoice/presentation/invoice_detail_page.dart';
 import 'package:docentral/features/invoice/presentation/providers/invoice_repository_provider.dart';
+import 'package:docentral/features/invoice/presentation/providers/payment_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
 import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
@@ -124,20 +129,97 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   }
 }
 
-Future<_FakeInvoiceRepository> _pumpPage(
+class _FakePaymentRepository implements PaymentRepository {
+  _FakePaymentRepository(List<Payment> payments)
+    : _payments = List<Payment>.of(payments);
+
+  final List<Payment> _payments;
+  final List<
+    ({double amount, PaymentMethod method, DateTime paymentDate, String? notes})
+  >
+  recordedPayments =
+      <
+        ({
+          double amount,
+          PaymentMethod method,
+          DateTime paymentDate,
+          String? notes,
+        })
+      >[];
+  Object? recordPaymentErrorToThrow;
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<List<Payment>> watchPaymentsForInvoice({
+    required Role role,
+    required String invoiceId,
+  }) async* {
+    yield List<Payment>.of(_payments);
+    await for (final _ in _changes.stream) {
+      yield List<Payment>.of(_payments);
+    }
+  }
+
+  @override
+  Future<String> recordPayment({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+    required double amount,
+    PaymentMethod method = PaymentMethod.cash,
+    DateTime? paymentDate,
+    String? notes,
+  }) async {
+    if (recordPaymentErrorToThrow != null) {
+      throw recordPaymentErrorToThrow!;
+    }
+    final DateTime resolvedDate = paymentDate ?? DateTime.now();
+    recordedPayments.add((
+      amount: amount,
+      method: method,
+      paymentDate: resolvedDate,
+      notes: notes,
+    ));
+    final String id = 'payment-${_payments.length}';
+    _payments.add(
+      Payment(
+        id: id,
+        invoiceId: invoiceId,
+        amount: amount,
+        method: method,
+        paymentDate: resolvedDate,
+        recordedByUserId: actorUserId,
+        notes: notes,
+      ),
+    );
+    _changes.add(null);
+    return id;
+  }
+}
+
+Future<({_FakeInvoiceRepository invoice, _FakePaymentRepository payment})>
+_pumpPage(
   WidgetTester tester, {
   required InvoiceRecord? invoice,
   List<InvoiceItem> items = const <InvoiceItem>[],
+  List<Payment> payments = const <Payment>[],
   Role role = Role.assistant,
 }) async {
-  final _FakeInvoiceRepository fakeRepository = _FakeInvoiceRepository(
+  final _FakeInvoiceRepository fakeInvoiceRepository = _FakeInvoiceRepository(
     invoice,
     items,
   );
-  addTearDown(() => fakeRepository._changes.close());
+  addTearDown(() => fakeInvoiceRepository._changes.close());
+  final _FakePaymentRepository fakePaymentRepository = _FakePaymentRepository(
+    payments,
+  );
+  addTearDown(() => fakePaymentRepository._changes.close());
 
   final ProviderContainer container = ProviderContainer(
-    overrides: [invoiceRepositoryProvider.overrideWithValue(fakeRepository)],
+    overrides: [
+      invoiceRepositoryProvider.overrideWithValue(fakeInvoiceRepository),
+      paymentRepositoryProvider.overrideWithValue(fakePaymentRepository),
+    ],
   );
   addTearDown(container.dispose);
   container.read(currentRoleProvider.notifier).setRole(role);
@@ -154,7 +236,7 @@ Future<_FakeInvoiceRepository> _pumpPage(
     ),
   );
   await tester.pumpAndSettle();
-  return fakeRepository;
+  return (invoice: fakeInvoiceRepository, payment: fakePaymentRepository);
 }
 
 void main() {
@@ -237,11 +319,11 @@ void main() {
     'submitting the adjustment dialog calls addAdjustment and updates the '
     'list and total',
     (WidgetTester tester) async {
-      final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+      final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
         tester,
         invoice: draftInvoice(),
         items: <InvoiceItem>[treatmentItem()],
-      );
+      )).invoice;
 
       await tester.tap(find.text('Add adjustment'));
       await tester.pumpAndSettle();
@@ -275,11 +357,11 @@ void main() {
   testWidgets('shows an error snackbar when the invoice is no longer draft', (
     WidgetTester tester,
   ) async {
-    final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+    final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
       tester,
       invoice: draftInvoice(),
       items: <InvoiceItem>[treatmentItem()],
-    );
+    )).invoice;
     fakeRepository.addAdjustmentErrorToThrow = const InvoiceNotDraftException();
 
     await tester.tap(find.text('Add adjustment'));
@@ -304,11 +386,11 @@ void main() {
   testWidgets('rejects a non-positive amount before calling addAdjustment', (
     WidgetTester tester,
   ) async {
-    final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+    final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
       tester,
       invoice: draftInvoice(),
       items: <InvoiceItem>[treatmentItem()],
-    );
+    )).invoice;
 
     await tester.tap(find.text('Add adjustment'));
     await tester.pumpAndSettle();
@@ -362,11 +444,11 @@ void main() {
   testWidgets('cancelling the finalize dialog does not call finalizeInvoice', (
     WidgetTester tester,
   ) async {
-    final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+    final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
       tester,
       invoice: draftInvoice(),
       items: <InvoiceItem>[treatmentItem()],
-    );
+    )).invoice;
 
     await tester.tap(find.text('Finalize invoice'));
     await tester.pumpAndSettle();
@@ -383,11 +465,11 @@ void main() {
     'confirming Finalize invoice calls finalizeInvoice and shows a success '
     'snackbar',
     (WidgetTester tester) async {
-      final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+      final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
         tester,
         invoice: draftInvoice(),
         items: <InvoiceItem>[treatmentItem()],
-      );
+      )).invoice;
 
       await tester.tap(find.text('Finalize invoice'));
       await tester.pumpAndSettle();
@@ -409,11 +491,11 @@ void main() {
     'shows an error snackbar when finalizing an invoice that is no longer '
     'draft',
     (WidgetTester tester) async {
-      final _FakeInvoiceRepository fakeRepository = await _pumpPage(
+      final _FakeInvoiceRepository fakeRepository = (await _pumpPage(
         tester,
         invoice: draftInvoice(),
         items: <InvoiceItem>[treatmentItem()],
-      );
+      )).invoice;
       fakeRepository.finalizeInvoiceErrorToThrow =
           const InvoiceNotDraftException();
 
@@ -427,6 +509,161 @@ void main() {
 
       expect(
         find.text('This invoice can no longer be adjusted.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('shows the invoice status and the empty payments state', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+    );
+
+    expect(find.textContaining('Draft'), findsOneWidget);
+    expect(find.text('No payments recorded yet'), findsOneWidget);
+  });
+
+  testWidgets('shows recorded payments', (WidgetTester tester) async {
+    final Payment payment = Payment(
+      id: 'payment-1',
+      invoiceId: 'invoice-1',
+      amount: 40,
+      method: PaymentMethod.cash,
+      paymentDate: DateTime(2026, 1, 15),
+      recordedByUserId: 'assistant-1',
+      notes: 'Paid in full for the visit',
+    );
+
+    await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      payments: <Payment>[payment],
+    );
+
+    expect(find.textContaining('Cash'), findsOneWidget);
+    expect(find.text('Paid in full for the visit'), findsOneWidget);
+  });
+
+  testWidgets('Record payment button is hidden for a Nurse', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.nurse,
+    );
+
+    expect(find.text('Record payment'), findsNothing);
+  });
+
+  testWidgets('Record payment button is hidden once the invoice is voided', (
+    WidgetTester tester,
+  ) async {
+    const InvoiceRecord voided = InvoiceRecord(
+      id: 'invoice-1',
+      patientId: 'patient-1',
+      visitId: 'visit-1',
+      totalAmount: 100,
+      status: InvoiceStatus.voided,
+      createdByUserId: 'dentist-1',
+    );
+
+    await _pumpPage(
+      tester,
+      invoice: voided,
+      items: <InvoiceItem>[treatmentItem()],
+    );
+
+    expect(find.text('Record payment'), findsNothing);
+  });
+
+  testWidgets('submitting the payment dialog calls recordPayment and shows a '
+      'success snackbar', (WidgetTester tester) async {
+    final fakePaymentRepository = (await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+    )).payment;
+
+    await tester.tap(find.text('Record payment'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '40');
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(fakePaymentRepository.recordedPayments.length, 1);
+    expect(fakePaymentRepository.recordedPayments.single.amount, 40);
+    expect(
+      fakePaymentRepository.recordedPayments.single.method,
+      PaymentMethod.cash,
+    );
+    expect(find.text('Payment recorded.'), findsOneWidget);
+  });
+
+  testWidgets('rejects a non-positive amount before calling recordPayment', (
+    WidgetTester tester,
+  ) async {
+    final fakePaymentRepository = (await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+    )).payment;
+
+    await tester.tap(find.text('Record payment'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Amount'), '0');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter a positive amount'), findsOneWidget);
+    expect(fakePaymentRepository.recordedPayments, isEmpty);
+  });
+
+  testWidgets(
+    'shows an error snackbar when recording a payment on a voided invoice',
+    (WidgetTester tester) async {
+      const InvoiceRecord unpaid = InvoiceRecord(
+        id: 'invoice-1',
+        patientId: 'patient-1',
+        visitId: 'visit-1',
+        totalAmount: 100,
+        status: InvoiceStatus.unpaid,
+        createdByUserId: 'dentist-1',
+      );
+      final fakePaymentRepository = (await _pumpPage(
+        tester,
+        invoice: unpaid,
+        items: <InvoiceItem>[treatmentItem()],
+      )).payment;
+      fakePaymentRepository.recordPaymentErrorToThrow =
+          const PaymentInvoiceVoidedException();
+
+      await tester.tap(find.text('Record payment'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Amount'),
+        '40',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'This invoice has been voided. No further payments can be recorded.',
+        ),
         findsOneWidget,
       );
     },

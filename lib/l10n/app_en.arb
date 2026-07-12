@@ -509,5 +509,62 @@
   "@invoiceFinalizeConfirmMessage": { "description": "Finalize-invoice confirmation dialog message" },
 
   "invoiceFinalizedMessage": "Invoice finalized.",
-  "@invoiceFinalizedMessage": { "description": "Confirmation message shown after an invoice is finalized" }
+  "@invoiceFinalizedMessage": { "description": "Confirmation message shown after an invoice is finalized" },
+
+  "invoiceStatusDraft": "Draft",
+  "@invoiceStatusDraft": { "description": "Invoice status: draft" },
+
+  "invoiceStatusUnpaid": "Unpaid",
+  "@invoiceStatusUnpaid": { "description": "Invoice status: unpaid" },
+
+  "invoiceStatusPartiallyPaid": "Partially paid",
+  "@invoiceStatusPartiallyPaid": { "description": "Invoice status: partially paid" },
+
+  "invoiceStatusPaid": "Paid",
+  "@invoiceStatusPaid": { "description": "Invoice status: paid" },
+
+  "invoiceStatusVoided": "Voided",
+  "@invoiceStatusVoided": { "description": "Invoice status: voided" },
+
+  "invoicePaymentsSection": "Payments",
+  "@invoicePaymentsSection": { "description": "Payments section title on the invoice detail page" },
+
+  "invoiceNoPaymentsYet": "No payments recorded yet",
+  "@invoiceNoPaymentsYet": { "description": "Empty state shown when an invoice has no payments" },
+
+  "invoiceRecordPaymentButton": "Record payment",
+  "@invoiceRecordPaymentButton": { "description": "Button and dialog title to record a payment" },
+
+  "invoicePaymentAmountField": "Amount",
+  "@invoicePaymentAmountField": { "description": "Label for the payment amount field" },
+
+  "invoicePaymentMethodField": "Method",
+  "@invoicePaymentMethodField": { "description": "Label for the payment method dropdown field" },
+
+  "invoicePaymentMethodCash": "Cash",
+  "@invoicePaymentMethodCash": { "description": "Cash payment method option" },
+
+  "invoicePaymentMethodCard": "Card",
+  "@invoicePaymentMethodCard": { "description": "Card payment method option" },
+
+  "invoicePaymentMethodBankTransfer": "Bank transfer",
+  "@invoicePaymentMethodBankTransfer": { "description": "Bank transfer payment method option" },
+
+  "invoicePaymentMethodOther": "Other",
+  "@invoicePaymentMethodOther": { "description": "Other payment method option" },
+
+  "invoicePaymentDateField": "Payment date",
+  "@invoicePaymentDateField": { "description": "Label for the payment date field" },
+
+  "invoicePaymentNotesField": "Notes",
+  "@invoicePaymentNotesField": { "description": "Label for the optional payment notes field" },
+
+  "invoicePaymentInvalidAmountError": "Enter a positive amount",
+  "@invoicePaymentInvalidAmountError": { "description": "Validation error for a non-positive payment amount" },
+
+  "invoicePaymentRecordedMessage": "Payment recorded.",
+  "@invoicePaymentRecordedMessage": { "description": "Confirmation message shown after a payment is recorded" },
+
+  "invoiceVoidedError": "This invoice has been voided. No further payments can be recorded.",
+  "@invoiceVoidedError": { "description": "Error shown when recording a payment against a voided invoice" }
 }
