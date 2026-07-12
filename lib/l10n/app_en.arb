@@ -220,7 +220,7 @@
   "patientTreatmentPlanSection": "Treatment plan",
   "@patientTreatmentPlanSection": { "description": "Patient detail treatment plan section title" },
 
-  "patientNoTreatmentPlanYet": "Treatment planning isn't available yet",
+  "patientNoTreatmentPlanYet": "No planned treatments yet",
   "@patientNoTreatmentPlanYet": { "description": "Empty state for the treatment plan section" },
 
   "patientOutstandingBalanceSection": "Outstanding balance",
@@ -611,5 +611,41 @@
   "@patientsWithBalanceDaysSinceLastPayment": {
     "description": "Days since the patient's last payment",
     "placeholders": { "days": { "type": "int" } }
-  }
+  },
+
+  "treatmentPlanAddButton": "Add planned treatment",
+  "@treatmentPlanAddButton": { "description": "Button and dialog title to add a planned treatment" },
+
+  "treatmentPlanProcedureField": "Procedure",
+  "@treatmentPlanProcedureField": { "description": "Label for the planned-treatment procedure field" },
+
+  "treatmentPlanToothNumberField": "Tooth number",
+  "@treatmentPlanToothNumberField": { "description": "Label for the planned-treatment tooth number field" },
+
+  "treatmentPlanEstimatedPriceField": "Estimated unit price",
+  "@treatmentPlanEstimatedPriceField": { "description": "Label for the planned-treatment estimated unit price field" },
+
+  "treatmentPlanInvalidPriceError": "Enter a positive amount",
+  "@treatmentPlanInvalidPriceError": { "description": "Validation error for a non-positive estimated unit price" },
+
+  "treatmentPlanTargetDateField": "Target date",
+  "@treatmentPlanTargetDateField": { "description": "Label for the planned-treatment target date field" },
+
+  "treatmentPlanNextAvailable": "Next available",
+  "@treatmentPlanNextAvailable": { "description": "Shown when a planned treatment has no fixed target date" },
+
+  "treatmentPlanStatusPlanned": "Planned",
+  "@treatmentPlanStatusPlanned": { "description": "Planned treatment status: planned" },
+
+  "treatmentPlanStatusScheduled": "Scheduled",
+  "@treatmentPlanStatusScheduled": { "description": "Planned treatment status: scheduled" },
+
+  "treatmentPlanStatusInProgress": "In progress",
+  "@treatmentPlanStatusInProgress": { "description": "Planned treatment status: in progress" },
+
+  "treatmentPlanStatusDone": "Done",
+  "@treatmentPlanStatusDone": { "description": "Planned treatment status: done" },
+
+  "treatmentPlanStatusCancelled": "Cancelled",
+  "@treatmentPlanStatusCancelled": { "description": "Planned treatment status: cancelled" }
 }

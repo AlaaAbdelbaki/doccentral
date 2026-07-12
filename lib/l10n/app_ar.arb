@@ -72,7 +72,7 @@
   "patientRecentVisitsSection": "الزيارات الأخيرة",
   "patientNoVisitsYet": "لا توجد زيارات بعد",
   "patientTreatmentPlanSection": "خطة العلاج",
-  "patientNoTreatmentPlanYet": "تخطيط العلاج غير متوفر بعد",
+  "patientNoTreatmentPlanYet": "لا توجد علاجات مخططة بعد",
   "patientOutstandingBalanceSection": "الرصيد المستحق",
   "patientAttachmentsSection": "المرفقات",
   "patientNoAttachmentsYet": "المرفقات غير متوفرة بعد",
@@ -201,5 +201,17 @@
   "patientsWithBalanceSortByDaysSinceLastPayment": "الأيام منذ آخر دفعة",
   "patientsWithBalanceEmptyState": "لا يوجد مرضى لديهم رصيد مستحق حالياً",
   "patientsWithBalanceNoPaymentYet": "لم يتم تسجيل أي دفعة بعد",
-  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{آخر دفعة اليوم} =1{آخر دفعة قبل يوم واحد} other{آخر دفعة قبل {days} يوماً}}"
+  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{آخر دفعة اليوم} =1{آخر دفعة قبل يوم واحد} other{آخر دفعة قبل {days} يوماً}}",
+  "treatmentPlanAddButton": "إضافة علاج مخطط",
+  "treatmentPlanProcedureField": "الإجراء",
+  "treatmentPlanToothNumberField": "رقم السن",
+  "treatmentPlanEstimatedPriceField": "السعر التقديري للوحدة",
+  "treatmentPlanInvalidPriceError": "أدخل مبلغاً موجباً",
+  "treatmentPlanTargetDateField": "التاريخ المستهدف",
+  "treatmentPlanNextAvailable": "أقرب موعد متاح",
+  "treatmentPlanStatusPlanned": "مخطط",
+  "treatmentPlanStatusScheduled": "مجدول",
+  "treatmentPlanStatusInProgress": "قيد التنفيذ",
+  "treatmentPlanStatusDone": "منجز",
+  "treatmentPlanStatusCancelled": "ملغى"
 }

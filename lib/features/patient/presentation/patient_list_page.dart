@@ -1,6 +1,10 @@
 import 'package:docentral/features/appointment/presentation/providers/no_show_pattern_provider.dart';
 import 'package:docentral/features/invoice/presentation/providers/outstanding_balance_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
+import 'package:docentral/features/treatment_plan/presentation/providers/planned_treatment_controller_provider.dart';
+import 'package:docentral/features/treatment_plan/presentation/providers/planned_treatments_provider.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/features/visit/presentation/providers/recent_visits_provider.dart';
@@ -24,6 +28,8 @@ part 'widgets/patient_list_pane.dart';
 part 'widgets/patient_row.dart';
 part 'widgets/patient_search_bar.dart';
 part 'widgets/patient_section_card.dart';
+part 'widgets/planned_treatment_form_dialog.dart';
+part 'widgets/planned_treatment_row.dart';
 
 class PatientListPage extends ConsumerWidget {
   const PatientListPage({super.key});
@@ -60,6 +66,13 @@ class PatientListPage extends ConsumerWidget {
     final double outstandingBalance = selected == null
         ? 0
         : ref.watch(outstandingBalanceProvider(selected.id)).value ?? 0;
+    final bool canManageTreatmentPlan = ref.watch(permissionCheckerProvider)(
+      Permission.canManageTreatmentPlan,
+    );
+    final List<PlannedTreatment> plannedTreatments = selected == null
+        ? const <PlannedTreatment>[]
+        : ref.watch(plannedTreatmentsProvider(selected.id)).value ??
+              const <PlannedTreatment>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -129,6 +142,13 @@ class PatientListPage extends ConsumerWidget {
               hasNoShowPattern: hasNoShowPattern,
               recentVisits: recentVisits,
               outstandingBalance: outstandingBalance,
+              plannedTreatments: plannedTreatments,
+              canManageTreatmentPlan: canManageTreatmentPlan,
+              onAddPlannedTreatment: () {
+                if (selected != null) {
+                  _showAddPlannedTreatmentDialog(context, ref, selected.id);
+                }
+              },
             ),
           ),
         ],
@@ -222,5 +242,30 @@ class PatientListPage extends ConsumerWidget {
           .deletePatient(patientId: patient.id);
       ref.read(selectedPatientProvider.notifier).select(null);
     }
+  }
+
+  Future<void> _showAddPlannedTreatmentDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String patientId,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return _PlannedTreatmentFormDialog(
+          onSubmit: (PlannedTreatmentFormResult result) {
+            ref
+                .read(plannedTreatmentControllerProvider.notifier)
+                .add(
+                  patientId: patientId,
+                  procedureName: result.procedureName,
+                  toothNumber: result.toothNumber,
+                  estimatedUnitPrice: result.estimatedUnitPrice,
+                  targetDate: result.targetDate,
+                );
+          },
+        );
+      },
+    );
   }
 }

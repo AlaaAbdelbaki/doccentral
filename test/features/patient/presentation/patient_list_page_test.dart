@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_repository.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
@@ -13,6 +15,10 @@ import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_repository.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
+import 'package:docentral/features/treatment_plan/presentation/providers/planned_treatment_repository_provider.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
@@ -196,6 +202,53 @@ class _FakeInvoiceRepository implements InvoiceRepository {
       Stream.value(const <PatientBalance>[]);
 }
 
+class _FakePlannedTreatmentRepository implements PlannedTreatmentRepository {
+  _FakePlannedTreatmentRepository([
+    List<PlannedTreatment> treatments = const [],
+  ]) : _treatments = List<PlannedTreatment>.of(treatments);
+
+  final List<PlannedTreatment> _treatments;
+  final List<PlannedTreatment> added = <PlannedTreatment>[];
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<List<PlannedTreatment>> watchForPatient({
+    required Role role,
+    required String patientId,
+  }) async* {
+    yield List<PlannedTreatment>.of(_treatments);
+    await for (final _ in _changes.stream) {
+      yield List<PlannedTreatment>.of(_treatments);
+    }
+  }
+
+  @override
+  Future<String> addPlannedTreatment({
+    required Role role,
+    required String patientId,
+    required String procedureName,
+    required String toothNumber,
+    required double estimatedUnitPrice,
+    DateTime? targetDate,
+  }) async {
+    final String id = 'planned-${_treatments.length}';
+    final PlannedTreatment treatment = PlannedTreatment(
+      id: id,
+      patientId: patientId,
+      procedureName: procedureName,
+      toothNumber: toothNumber,
+      estimatedUnitPrice: estimatedUnitPrice,
+      sequenceNumber: _treatments.length + 1,
+      status: PlannedTreatmentStatus.planned,
+      targetDate: targetDate,
+    );
+    _treatments.add(treatment);
+    added.add(treatment);
+    _changes.add(null);
+    return id;
+  }
+}
+
 class _FakePatientRepository implements PatientRepository {
   _FakePatientRepository(this._patients);
 
@@ -284,7 +337,12 @@ Future<ProviderContainer> _pumpPage(
   WidgetTester tester,
   _FakePatientRepository fakeRepository, {
   List<VisitRecord> visits = const <VisitRecord>[],
+  _FakePlannedTreatmentRepository? plannedTreatments,
+  Role role = Role.assistant,
 }) async {
+  final _FakePlannedTreatmentRepository fakePlannedTreatments =
+      plannedTreatments ?? _FakePlannedTreatmentRepository();
+  addTearDown(() => fakePlannedTreatments._changes.close());
   final ProviderContainer container = ProviderContainer(
     overrides: [
       patientRepositoryProvider.overrideWithValue(fakeRepository),
@@ -295,10 +353,13 @@ Future<ProviderContainer> _pumpPage(
         _FakeVisitRepository(visits: visits),
       ),
       invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
+      plannedTreatmentRepositoryProvider.overrideWithValue(
+        fakePlannedTreatments,
+      ),
     ],
   );
   addTearDown(container.dispose);
-  container.read(currentRoleProvider.notifier).setRole(Role.assistant);
+  container.read(currentRoleProvider.notifier).setRole(role);
   container.read(currentUserIdProvider.notifier).setUserId('actor-1');
 
   await tester.pumpWidget(
@@ -416,6 +477,9 @@ void main() {
       overrides: [
         patientRepositoryProvider.overrideWithValue(fakeRepository),
         invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
+        plannedTreatmentRepositoryProvider.overrideWithValue(
+          _FakePlannedTreatmentRepository(),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -496,4 +560,94 @@ void main() {
 
     expect(find.text('No visits yet'), findsOneWidget);
   });
+
+  testWidgets('shows the empty state when there is no treatment plan yet', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, _FakePatientRepository(seedPatients));
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('No planned treatments yet'), findsOneWidget);
+  });
+
+  testWidgets('shows planned treatments in sequence order', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      _FakePatientRepository(seedPatients),
+      plannedTreatments: _FakePlannedTreatmentRepository(<PlannedTreatment>[
+        const PlannedTreatment(
+          id: 'pt1',
+          patientId: '1',
+          procedureName: 'Filling',
+          toothNumber: '18',
+          estimatedUnitPrice: 50,
+          sequenceNumber: 1,
+          status: PlannedTreatmentStatus.planned,
+        ),
+      ]),
+    );
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Filling'), findsOneWidget);
+    expect(find.textContaining('Next available'), findsOneWidget);
+    expect(find.text('Planned'), findsOneWidget);
+  });
+
+  testWidgets('Add planned treatment button is hidden for an Assistant', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(tester, _FakePatientRepository(seedPatients));
+
+    await tester.tap(find.text('Amine Trabelsi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add planned treatment'), findsNothing);
+  });
+
+  testWidgets(
+    'a doctor can add a planned treatment and it appears in the list',
+    (WidgetTester tester) async {
+      final _FakePlannedTreatmentRepository fakePlannedTreatments =
+          _FakePlannedTreatmentRepository();
+      await _pumpPage(
+        tester,
+        _FakePatientRepository(seedPatients),
+        plannedTreatments: fakePlannedTreatments,
+        role: Role.doctor,
+      );
+
+      await tester.tap(find.text('Amine Trabelsi'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Add planned treatment'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Procedure'),
+        'Root canal',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Tooth number'),
+        '14',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Estimated unit price'),
+        '200',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakePlannedTreatments.added.length, 1);
+      expect(fakePlannedTreatments.added.single.procedureName, 'Root canal');
+      expect(fakePlannedTreatments.added.single.toothNumber, '14');
+      expect(fakePlannedTreatments.added.single.estimatedUnitPrice, 200);
+      expect(find.textContaining('Root canal'), findsOneWidget);
+    },
+  );
 }

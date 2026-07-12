@@ -72,7 +72,7 @@
   "patientRecentVisitsSection": "Visites récentes",
   "patientNoVisitsYet": "Aucune visite pour le moment",
   "patientTreatmentPlanSection": "Plan de traitement",
-  "patientNoTreatmentPlanYet": "La planification des traitements n'est pas encore disponible",
+  "patientNoTreatmentPlanYet": "Aucun traitement planifié",
   "patientOutstandingBalanceSection": "Solde impayé",
   "patientAttachmentsSection": "Pièces jointes",
   "patientNoAttachmentsYet": "Les pièces jointes ne sont pas encore disponibles",
@@ -201,5 +201,17 @@
   "patientsWithBalanceSortByDaysSinceLastPayment": "Jours depuis le dernier paiement",
   "patientsWithBalanceEmptyState": "Aucun patient n'a actuellement de solde impayé",
   "patientsWithBalanceNoPaymentYet": "Aucun paiement effectué",
-  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{Dernier paiement aujourd'hui} =1{Dernier paiement il y a 1 jour} other{Dernier paiement il y a {days} jours}}"
+  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{Dernier paiement aujourd'hui} =1{Dernier paiement il y a 1 jour} other{Dernier paiement il y a {days} jours}}",
+  "treatmentPlanAddButton": "Ajouter un traitement planifié",
+  "treatmentPlanProcedureField": "Acte",
+  "treatmentPlanToothNumberField": "Numéro de dent",
+  "treatmentPlanEstimatedPriceField": "Prix unitaire estimé",
+  "treatmentPlanInvalidPriceError": "Saisissez un montant positif",
+  "treatmentPlanTargetDateField": "Date cible",
+  "treatmentPlanNextAvailable": "Prochaine disponibilité",
+  "treatmentPlanStatusPlanned": "Planifié",
+  "treatmentPlanStatusScheduled": "Programmé",
+  "treatmentPlanStatusInProgress": "En cours",
+  "treatmentPlanStatusDone": "Terminé",
+  "treatmentPlanStatusCancelled": "Annulé"
 }

@@ -10,6 +10,9 @@ class _PatientDetailPane extends StatelessWidget {
     required this.hasNoShowPattern,
     required this.recentVisits,
     required this.outstandingBalance,
+    required this.plannedTreatments,
+    required this.canManageTreatmentPlan,
+    required this.onAddPlannedTreatment,
   });
 
   final PatientRecord? patient;
@@ -20,6 +23,9 @@ class _PatientDetailPane extends StatelessWidget {
   final bool hasNoShowPattern;
   final List<VisitRecord> recentVisits;
   final double outstandingBalance;
+  final List<PlannedTreatment> plannedTreatments;
+  final bool canManageTreatmentPlan;
+  final VoidCallback onAddPlannedTreatment;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +141,24 @@ class _PatientDetailPane extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           _SectionCard(
             title: l10n.patientTreatmentPlanSection,
-            child: Text(l10n.patientNoTreatmentPlanYet),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (plannedTreatments.isEmpty)
+                  Text(l10n.patientNoTreatmentPlanYet)
+                else
+                  for (final PlannedTreatment treatment in plannedTreatments)
+                    _PlannedTreatmentRow(treatment: treatment),
+                if (canManageTreatmentPlan) ...<Widget>[
+                  const SizedBox(height: AppSpacing.sm),
+                  OutlinedButton.icon(
+                    onPressed: onAddPlannedTreatment,
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.treatmentPlanAddButton),
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           _SectionCard(
