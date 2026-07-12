@@ -94,4 +94,31 @@ class PerformedTreatmentController extends _$PerformedTreatmentController {
           .removeTreatment(role: role, treatmentId: treatmentId),
     );
   }
+
+  Future<void> markPlannedTreatmentPerformed({
+    required String visitId,
+    required String plannedTreatmentId,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canEditVisit),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(performedTreatmentRepositoryProvider)
+          .markPlannedTreatmentPerformed(
+            role: role,
+            actorUserId: actorUserId,
+            visitId: visitId,
+            plannedTreatmentId: plannedTreatmentId,
+          ),
+    );
+  }
 }

@@ -1,4 +1,8 @@
+import 'package:docentral/features/appointment/presentation/providers/linked_planned_treatments_provider.dart';
 import 'package:docentral/features/invoice/presentation/invoice_detail_page.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
@@ -16,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 part 'widgets/clinical_record_section.dart';
+part 'widgets/planned_treatments_to_perform_section.dart';
 part 'widgets/treatment_form_dialog.dart';
 part 'widgets/treatment_row.dart';
 part 'widgets/unlock_visit_dialog.dart';
@@ -127,6 +132,17 @@ class VisitDetailPage extends ConsumerWidget {
             clinicalNotes: visit.clinicalNotes,
             editable: visit.status == VisitStatus.inProgress,
           ),
+          if (canEditTreatments)
+            _PlannedTreatmentsToPerformSection(
+              appointmentId: visit.appointmentId,
+              onMarkPerformed: (String plannedTreatmentId) =>
+                  _markPlannedTreatmentPerformed(
+                    context,
+                    ref,
+                    visitId: visit.id,
+                    plannedTreatmentId: plannedTreatmentId,
+                  ),
+            ),
           const Divider(height: 1),
           Expanded(
             child: treatmentsAsync.when(
@@ -222,6 +238,33 @@ class VisitDetailPage extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+    }
+  }
+
+  Future<void> _markPlannedTreatmentPerformed(
+    BuildContext context,
+    WidgetRef ref, {
+    required String visitId,
+    required String plannedTreatmentId,
+  }) async {
+    await ref
+        .read(performedTreatmentControllerProvider.notifier)
+        .markPlannedTreatmentPerformed(
+          visitId: visitId,
+          plannedTreatmentId: plannedTreatmentId,
+        );
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(performedTreatmentControllerProvider).error;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    if (error is VisitNotEditableException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.visitNotEditableError)));
+    } else if (error is PlannedTreatmentNotScheduledException) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.visitPlannedTreatmentNotScheduledError)),
+      );
     }
   }
 

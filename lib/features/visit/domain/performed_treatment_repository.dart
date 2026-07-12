@@ -43,4 +43,19 @@ abstract class PerformedTreatmentRepository {
     required Role role,
     required String treatmentId,
   });
+
+  /// Creates a Performed Treatment on [visitId] matching the procedure,
+  /// tooth, and price of the linked Planned Treatment [plannedTreatmentId]
+  /// (quantity 1), and transitions that Planned Treatment from `scheduled`
+  /// to `done`. Returns the new Performed Treatment's id.
+  ///
+  /// Throws [VisitNotEditableException] if the Visit is not `in_progress`.
+  /// Throws [PlannedTreatmentNotScheduledException] if the Planned Treatment
+  /// is not currently `scheduled`.
+  Future<String> markPlannedTreatmentPerformed({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String plannedTreatmentId,
+  });
 }

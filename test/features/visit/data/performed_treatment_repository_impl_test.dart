@@ -1,3 +1,4 @@
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
 import 'package:docentral/features/visit/data/performed_treatment_repository_impl.dart';
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
@@ -74,6 +75,30 @@ void main() {
           ),
         );
     return visitId;
+  }
+
+  Future<String> seedPlannedTreatment({
+    required String patientId,
+    String status = 'scheduled',
+  }) async {
+    final String id = uuid.v4();
+    final DateTime now = DateTime.now();
+    await db
+        .into(db.plannedTreatments)
+        .insert(
+          PlannedTreatmentsCompanion.insert(
+            id: id,
+            patientId: patientId,
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: Value(status),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return id;
   }
 
   group('PerformedTreatmentRepositoryImpl.addTreatment', () {
@@ -247,5 +272,76 @@ void main() {
         expect(treatments.length, 1);
       },
     );
+  });
+
+  group('PerformedTreatmentRepositoryImpl.markPlannedTreatmentPerformed', () {
+    test('creates exactly one Performed Treatment matching the Planned '
+        'Treatment and transitions it to done', () async {
+      final String visitId = await seedVisit();
+      final String plannedTreatmentId = await seedPlannedTreatment(
+        patientId: 'patient-1',
+      );
+
+      final String id = await repository.markPlannedTreatmentPerformed(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        visitId: visitId,
+        plannedTreatmentId: plannedTreatmentId,
+      );
+
+      final List<PerformedTreatment> treatments = await repository
+          .watchForVisit(role: Role.assistant, visitId: visitId)
+          .first;
+      expect(treatments.single.id, id);
+      expect(treatments.single.toothNumber, '14');
+      expect(treatments.single.procedureName, 'Root canal');
+      expect(treatments.single.unitPrice, 250);
+      expect(treatments.single.quantity, 1);
+      expect(treatments.single.recordedByUserId, 'actor-1');
+
+      final PlannedTreatmentRow plannedTreatment = await (db.select(
+        db.plannedTreatments,
+      )..where((t) => t.id.equals(plannedTreatmentId))).getSingle();
+      expect(plannedTreatment.status, 'done');
+    });
+
+    test(
+      'throws VisitNotEditableException when the Visit is not in_progress',
+      () async {
+        final String visitId = await seedVisit(status: 'checkedIn');
+        final String plannedTreatmentId = await seedPlannedTreatment(
+          patientId: 'patient-1',
+        );
+
+        expect(
+          () => repository.markPlannedTreatmentPerformed(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            visitId: visitId,
+            plannedTreatmentId: plannedTreatmentId,
+          ),
+          throwsA(isA<VisitNotEditableException>()),
+        );
+      },
+    );
+
+    test('throws PlannedTreatmentNotScheduledException when the Planned '
+        'Treatment is not scheduled', () async {
+      final String visitId = await seedVisit();
+      final String plannedTreatmentId = await seedPlannedTreatment(
+        patientId: 'patient-1',
+        status: 'planned',
+      );
+
+      expect(
+        () => repository.markPlannedTreatmentPerformed(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          visitId: visitId,
+          plannedTreatmentId: plannedTreatmentId,
+        ),
+        throwsA(isA<PlannedTreatmentNotScheduledException>()),
+      );
+    });
   });
 }

@@ -1,9 +1,12 @@
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/performed_treatment_repository.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/performed_treatments_table.dart';
+import 'package:docentral/shared/data/database/tables/planned_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/visits_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
@@ -148,5 +151,54 @@ class PerformedTreatmentRepositoryImpl implements PerformedTreatmentRepository {
         updatedAt: Value(now),
       ),
     );
+  }
+
+  @override
+  Future<String> markPlannedTreatmentPerformed({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String plannedTreatmentId,
+  }) async {
+    requirePermission(role, Permission.canEditVisit);
+    await _requireInProgressVisit(visitId);
+
+    final PlannedTreatmentRow plannedTreatment =
+        await (_db.select(_db.plannedTreatments)
+              ..where((PlannedTreatments t) => t.id.equals(plannedTreatmentId)))
+            .getSingle();
+    if (plannedTreatment.status != PlannedTreatmentStatus.scheduled.name) {
+      throw const PlannedTreatmentNotScheduledException();
+    }
+
+    final String id = _uuid.v4();
+    final DateTime now = DateTime.now().toUtc();
+    await _db.transaction(() async {
+      await _db
+          .into(_db.performedTreatments)
+          .insert(
+            PerformedTreatmentsCompanion.insert(
+              id: id,
+              visitId: visitId,
+              toothNumber: plannedTreatment.toothNumber,
+              procedureName: plannedTreatment.procedureName,
+              unitPrice: plannedTreatment.estimatedUnitPrice,
+              quantity: 1,
+              recordedByUserId: actorUserId,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await (_db.update(
+        _db.plannedTreatments,
+      )..where((PlannedTreatments t) => t.id.equals(plannedTreatmentId))).write(
+        PlannedTreatmentsCompanion(
+          status: Value(PlannedTreatmentStatus.done.name),
+          updatedAt: Value(now),
+        ),
+      );
+    });
+    return id;
   }
 }

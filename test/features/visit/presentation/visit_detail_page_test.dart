@@ -1,5 +1,13 @@
 import 'dart:async';
 
+import 'package:docentral/features/appointment/domain/appointment_record.dart';
+import 'package:docentral/features/appointment/domain/appointment_repository.dart';
+import 'package:docentral/features/appointment/domain/assignable_user.dart';
+import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
+import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
 import 'package:docentral/features/visit/domain/performed_treatment.dart';
 import 'package:docentral/features/visit/domain/performed_treatment_repository.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
@@ -206,6 +214,121 @@ class _FakePerformedTreatmentRepository
     _treatments.removeWhere((PerformedTreatment t) => t.id == treatmentId);
     _changes.add(null);
   }
+
+  final List<String> markedPerformedPlannedTreatmentIds = <String>[];
+  Object? markPerformedErrorToThrow;
+
+  @override
+  Future<String> markPlannedTreatmentPerformed({
+    required Role role,
+    required String actorUserId,
+    required String visitId,
+    required String plannedTreatmentId,
+  }) async {
+    if (markPerformedErrorToThrow != null) {
+      throw markPerformedErrorToThrow!;
+    }
+    markedPerformedPlannedTreatmentIds.add(plannedTreatmentId);
+    final String id = 'treatment-${_treatments.length}';
+    final PerformedTreatment treatment = PerformedTreatment(
+      id: id,
+      visitId: visitId,
+      toothNumber: '14',
+      procedureName: 'Root canal',
+      unitPrice: 250,
+      quantity: 1,
+      recordedByUserId: actorUserId,
+      recordedAt: DateTime.now(),
+    );
+    _treatments.add(treatment);
+    added.add(treatment);
+    _changes.add(null);
+    return id;
+  }
+}
+
+class _FakeAppointmentRepository implements AppointmentRepository {
+  _FakeAppointmentRepository([
+    Map<String, PlannedTreatment> plannedTreatmentsById =
+        const <String, PlannedTreatment>{},
+  ]) : _plannedTreatmentsById = plannedTreatmentsById;
+
+  final Map<String, PlannedTreatment> _plannedTreatmentsById;
+
+  @override
+  Stream<List<PlannedTreatment>> watchLinkedPlannedTreatments({
+    required Role role,
+    required String appointmentId,
+  }) => Stream.value(_plannedTreatmentsById.values.toList());
+
+  @override
+  Stream<List<AppointmentRecord>> watchToday({required Role role}) =>
+      throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<AppointmentRecord>> watchRange({
+    required Role role,
+    required DateTime start,
+    required DateTime end,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<AssignableUser>> watchAssignableUsers({required Role role}) =>
+      throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> createAppointment({
+    required Role role,
+    required String patientId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> updateAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String assignedUserId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? reason,
+    String? notes,
+    bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> cancelAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required CancellationReason reason,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> rescheduleAppointment({
+    required Role role,
+    required String actorUserId,
+    required String appointmentId,
+    required String newAssignedUserId,
+    required DateTime newStartTime,
+    required DateTime newEndTime,
+    String? newReason,
+    String? newNotes,
+    bool overrideOverlap = false,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<int> watchNoShowCount({
+    required Role role,
+    required String patientId,
+  }) => throw UnimplementedError('not exercised by this test');
 }
 
 Future<
@@ -215,6 +338,7 @@ _pumpPage(
   WidgetTester tester, {
   required VisitRecord? visit,
   List<PerformedTreatment> treatments = const <PerformedTreatment>[],
+  List<PlannedTreatment> linkedPlannedTreatments = const <PlannedTreatment>[],
   Role role = Role.assistant,
 }) async {
   final _FakePerformedTreatmentRepository fakeTreatmentRepository =
@@ -227,6 +351,11 @@ _pumpPage(
       visitRepositoryProvider.overrideWithValue(fakeVisitRepository),
       performedTreatmentRepositoryProvider.overrideWithValue(
         fakeTreatmentRepository,
+      ),
+      appointmentRepositoryProvider.overrideWithValue(
+        _FakeAppointmentRepository(<String, PlannedTreatment>{
+          for (final PlannedTreatment t in linkedPlannedTreatments) t.id: t,
+        }),
       ),
     ],
   );
@@ -720,4 +849,144 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'shows linked planned treatments awaiting performance with a Mark performed button',
+    (WidgetTester tester) async {
+      await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+        linkedPlannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt1',
+            patientId: 'p1',
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: PlannedTreatmentStatus.scheduled,
+          ),
+        ],
+      );
+
+      expect(find.text('Planned treatments for this visit'), findsOneWidget);
+      expect(find.textContaining('Root canal'), findsOneWidget);
+      expect(find.text('Mark performed'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a linked planned treatment that is not scheduled is not offered for marking performed',
+    (WidgetTester tester) async {
+      await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+        linkedPlannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt1',
+            patientId: 'p1',
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: PlannedTreatmentStatus.done,
+          ),
+        ],
+      );
+
+      expect(find.text('Planned treatments for this visit'), findsNothing);
+      expect(find.text('Mark performed'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'tapping Mark performed creates a matching Performed Treatment and removes the row',
+    (WidgetTester tester) async {
+      final result = await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+        linkedPlannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt1',
+            patientId: 'p1',
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: PlannedTreatmentStatus.scheduled,
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('Mark performed'));
+      await tester.pumpAndSettle();
+
+      expect(result.treatments.markedPerformedPlannedTreatmentIds, <String>[
+        'pt1',
+      ]);
+      expect(result.treatments.added.single.toothNumber, '14');
+      expect(result.treatments.added.single.procedureName, 'Root canal');
+      expect(result.treatments.added.single.unitPrice, 250);
+      expect(result.treatments.added.single.quantity, 1);
+    },
+  );
+
+  testWidgets('the planned-treatments section is hidden on a completed visit', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      visit: completedVisit(),
+      role: Role.doctor,
+      linkedPlannedTreatments: const <PlannedTreatment>[
+        PlannedTreatment(
+          id: 'pt1',
+          patientId: 'p1',
+          procedureName: 'Root canal',
+          toothNumber: '14',
+          estimatedUnitPrice: 250,
+          sequenceNumber: 1,
+          status: PlannedTreatmentStatus.scheduled,
+        ),
+      ],
+    );
+
+    expect(find.text('Planned treatments for this visit'), findsNothing);
+  });
+
+  testWidgets(
+    'shows an error when marking performed fails because the planned treatment is no longer scheduled',
+    (WidgetTester tester) async {
+      final result = await _pumpPage(
+        tester,
+        visit: inProgressVisit,
+        linkedPlannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt1',
+            patientId: 'p1',
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: PlannedTreatmentStatus.scheduled,
+          ),
+        ],
+      );
+      result.treatments.markPerformedErrorToThrow =
+          const PlannedTreatmentNotScheduledException();
+
+      await tester.tap(find.text('Mark performed'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'This planned treatment is no longer scheduled for this visit.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

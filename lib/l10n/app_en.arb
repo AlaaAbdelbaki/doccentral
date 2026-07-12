@@ -397,6 +397,15 @@
   "visitRemoveTreatmentButton": "Remove treatment",
   "@visitRemoveTreatmentButton": { "description": "Button/tooltip to remove a performed treatment" },
 
+  "visitPlannedTreatmentsSection": "Planned treatments for this visit",
+  "@visitPlannedTreatmentsSection": { "description": "Section title listing the linked Planned Treatments still awaiting performance" },
+
+  "visitMarkPerformedButton": "Mark performed",
+  "@visitMarkPerformedButton": { "description": "Button to record a linked Planned Treatment as performed" },
+
+  "visitPlannedTreatmentNotScheduledError": "This planned treatment is no longer scheduled for this visit.",
+  "@visitPlannedTreatmentNotScheduledError": { "description": "Error shown when marking a Planned Treatment performed fails because it is not currently scheduled" },
+
   "visitTreatmentFormTitle": "New treatment",
   "@visitTreatmentFormTitle": { "description": "Add-treatment dialog title" },
 
