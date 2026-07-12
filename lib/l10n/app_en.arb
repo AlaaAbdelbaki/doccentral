@@ -139,6 +139,45 @@
   "navInventory": "Inventory",
   "@navInventory": { "description": "Navigation label for the inventory destination" },
 
+  "inventoryAddItemButton": "Add item",
+  "@inventoryAddItemButton": { "description": "Button and dialog title to add an inventory item" },
+
+  "inventoryNameField": "Name",
+  "@inventoryNameField": { "description": "Label for the inventory item name field" },
+
+  "inventoryCategoryField": "Category",
+  "@inventoryCategoryField": { "description": "Label for the inventory item category field" },
+
+  "inventoryCategoryCleaning": "Cleaning",
+  "@inventoryCategoryCleaning": { "description": "Inventory category: cleaning supplies" },
+
+  "inventoryCategoryMedicament": "Medicament",
+  "@inventoryCategoryMedicament": { "description": "Inventory category: medicaments" },
+
+  "inventoryCategorySupply": "Supply",
+  "@inventoryCategorySupply": { "description": "Inventory category: general supplies" },
+
+  "inventoryCategoryOther": "Other",
+  "@inventoryCategoryOther": { "description": "Inventory category: other" },
+
+  "inventoryUnitField": "Unit",
+  "@inventoryUnitField": { "description": "Label for the inventory item unit field (e.g. box of 100)" },
+
+  "inventoryOnHandQuantityField": "On-hand quantity",
+  "@inventoryOnHandQuantityField": { "description": "Label for the inventory item on-hand quantity field" },
+
+  "inventoryLowStockThresholdField": "Low-stock threshold",
+  "@inventoryLowStockThresholdField": { "description": "Label for the inventory item low-stock threshold field" },
+
+  "inventoryNegativeQuantityError": "On-hand quantity cannot be negative",
+  "@inventoryNegativeQuantityError": { "description": "Validation error for a negative on-hand quantity" },
+
+  "inventoryNegativeThresholdError": "Low-stock threshold cannot be negative",
+  "@inventoryNegativeThresholdError": { "description": "Validation error for a negative low-stock threshold" },
+
+  "inventoryEmptyState": "No inventory items yet",
+  "@inventoryEmptyState": { "description": "Empty state shown when there are no inventory items" },
+
   "navDayCloseout": "Day Closeout",
   "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
 

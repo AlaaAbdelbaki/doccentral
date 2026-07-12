@@ -104,7 +104,7 @@ void main() {
     });
 
     test('schema includes the patients table (v2)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       final rows = await db.select(db.patients).get();
       expect(rows, isEmpty);
     });
@@ -112,7 +112,7 @@ void main() {
     test(
       'schema includes clinic locale/currency and the auth tables (v3)',
       () async {
-        expect(db.schemaVersion, 18);
+        expect(db.schemaVersion, 19);
         expect(await db.select(db.users).get(), isEmpty);
         expect(await db.select(db.roles).get(), isEmpty);
         expect(await db.select(db.userRoles).get(), isEmpty);
@@ -139,35 +139,35 @@ void main() {
     );
 
     test('schema includes the patient_edit_logs table (v4)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.patientEditLogs).get(), isEmpty);
     });
 
     test('schema includes the appointments table (v5)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.appointments).get(), isEmpty);
     });
 
     test('schema includes the appointment_edit_logs table (v6)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.appointmentEditLogs).get(), isEmpty);
     });
 
     test(
       'schema includes the appointment_cancellations table and rescheduledToAppointmentId column (v7)',
       () async {
-        expect(db.schemaVersion, 18);
+        expect(db.schemaVersion, 19);
         expect(await db.select(db.appointmentCancellations).get(), isEmpty);
       },
     );
 
     test('schema includes the visits table (v8)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.visits).get(), isEmpty);
     });
 
     test('schema includes the visits.inProgressAt column (v9)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       final now = DateTime.now();
       const visitId = '00000000-0000-0000-0000-000000000005';
       await db
@@ -191,14 +191,14 @@ void main() {
     });
 
     test('schema includes the performed_treatments table (v10)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.performedTreatments).get(), isEmpty);
     });
 
     test(
       'schema includes visits.diagnosis and visits.clinicalNotes columns (v11)',
       () async {
-        expect(db.schemaVersion, 18);
+        expect(db.schemaVersion, 19);
         final now = DateTime.now();
         const visitId = '00000000-0000-0000-0000-000000000006';
         await db
@@ -226,7 +226,7 @@ void main() {
     test(
       'schema includes visits.endedAt and the invoices/invoice_items tables (v12)',
       () async {
-        expect(db.schemaVersion, 18);
+        expect(db.schemaVersion, 19);
         final now = DateTime.now();
         const visitId = '00000000-0000-0000-0000-000000000007';
         await db
@@ -274,7 +274,7 @@ void main() {
     );
 
     test('schema includes the visit_unlock_logs table (v13)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.visitUnlockLogs).get(), isEmpty);
 
       final now = DateTime.now();
@@ -314,7 +314,7 @@ void main() {
     });
 
     test('schema includes the invoice_finalizations table (v14)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.invoiceFinalizations).get(), isEmpty);
 
       final now = DateTime.now();
@@ -354,7 +354,7 @@ void main() {
     });
 
     test('schema includes the payments table (v15)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.payments).get(), isEmpty);
 
       final now = DateTime.now();
@@ -398,7 +398,7 @@ void main() {
     });
 
     test('schema includes the invoice_voids table (v16)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.invoiceVoids).get(), isEmpty);
 
       final now = DateTime.now();
@@ -439,7 +439,7 @@ void main() {
     });
 
     test('schema includes the planned_treatments table (v17)', () async {
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(await db.select(db.plannedTreatments).get(), isEmpty);
 
       final now = DateTime.now();
@@ -469,7 +469,7 @@ void main() {
     test(
       'schema includes the appointment_planned_treatments join table (v18)',
       () async {
-        expect(db.schemaVersion, 18);
+        expect(db.schemaVersion, 19);
         expect(await db.select(db.appointmentPlannedTreatments).get(), isEmpty);
 
         final now = DateTime.now();
@@ -493,5 +493,35 @@ void main() {
         expect(link.plannedTreatmentId, 'treatment-1');
       },
     );
+
+    test('schema includes the inventory_items table (v19)', () async {
+      expect(db.schemaVersion, 19);
+      expect(await db.select(db.inventoryItems).get(), isEmpty);
+
+      final now = DateTime.now();
+      const itemId = '00000000-0000-0000-0000-000000000022';
+      await db
+          .into(db.inventoryItems)
+          .insert(
+            InventoryItemsCompanion.insert(
+              id: itemId,
+              name: 'Gauze',
+              category: 'supply',
+              unit: 'box of 100',
+              onHandQuantity: 20,
+              lowStockThreshold: 5,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      final item = await (db.select(
+        db.inventoryItems,
+      )..where((t) => t.id.equals(itemId))).getSingle();
+      expect(item.name, 'Gauze');
+      expect(item.category, 'supply');
+      expect(item.onHandQuantity, 20);
+      expect(item.lowStockThreshold, 5);
+    });
   });
 }

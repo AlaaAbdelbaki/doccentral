@@ -10,6 +10,10 @@ import 'package:docentral/features/day_closeout/domain/day_closeout_repository.d
 import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
 import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_repository_provider.dart';
 import 'package:docentral/features/invoice/domain/payment_method.dart';
+import 'package:docentral/features/inventory/domain/inventory_category.dart';
+import 'package:docentral/features/inventory/domain/inventory_item.dart';
+import 'package:docentral/features/inventory/domain/inventory_repository.dart';
+import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
@@ -190,6 +194,22 @@ class _FakeDayCloseoutRepository implements DayCloseoutRepository {
   );
 }
 
+class _FakeInventoryRepository implements InventoryRepository {
+  @override
+  Stream<List<InventoryItem>> watchAll({required Role role}) =>
+      Stream.value(const <InventoryItem>[]);
+
+  @override
+  Future<String> create({
+    required Role role,
+    required String name,
+    required InventoryCategory category,
+    required String unit,
+    required int onHandQuantity,
+    required int lowStockThreshold,
+  }) => throw UnimplementedError('not exercised by this test');
+}
+
 Future<GoRouter> _pumpRouter(
   WidgetTester tester, {
   bool hasClinic = true,
@@ -211,6 +231,7 @@ Future<GoRouter> _pumpRouter(
       dayCloseoutRepositoryProvider.overrideWithValue(
         _FakeDayCloseoutRepository(),
       ),
+      inventoryRepositoryProvider.overrideWithValue(_FakeInventoryRepository()),
       sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );

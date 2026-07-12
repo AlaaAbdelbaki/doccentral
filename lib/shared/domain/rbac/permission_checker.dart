@@ -26,6 +26,7 @@ const assistantPermissions = {
   Permission.canManageAppointments,
   Permission.canCheckInPatient,
   Permission.canViewDayCloseout,
+  Permission.canManageInventory,
 };
 
 const nursePermissions = {
@@ -33,6 +34,7 @@ const nursePermissions = {
   Permission.canViewVisits,
   Permission.canViewAppointments,
   Permission.canAddClinicalNotes,
+  Permission.canViewInventory,
 };
 
 const _matrix = {
