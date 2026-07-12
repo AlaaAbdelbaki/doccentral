@@ -187,5 +187,12 @@
   "invoicePaymentNotesField": "ملاحظات",
   "invoicePaymentInvalidAmountError": "أدخل مبلغاً موجباً",
   "invoicePaymentRecordedMessage": "تم تسجيل الدفعة.",
-  "invoiceVoidedError": "تم إلغاء هذه الفاتورة. لا يمكن تسجيل أي دفعات إضافية."
+  "invoiceVoidedError": "تم إلغاء هذه الفاتورة. لا يمكن تسجيل أي دفعات إضافية.",
+  "invoiceVoidButton": "إلغاء الفاتورة",
+  "invoiceVoidConfirmTitle": "هل تريد إلغاء هذه الفاتورة؟",
+  "invoiceVoidReasonField": "السبب",
+  "invoiceVoidReasonRequiredError": "السبب مطلوب لإلغاء هذه الفاتورة.",
+  "invoiceRefundOwedLabel": "المبلغ المستحق استرداده",
+  "invoiceAlreadyVoidedError": "تم إلغاء هذه الفاتورة بالفعل.",
+  "invoiceVoidedMessage": "تم إلغاء الفاتورة."
 }

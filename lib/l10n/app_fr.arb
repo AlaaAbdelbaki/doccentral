@@ -187,5 +187,12 @@
   "invoicePaymentNotesField": "Notes",
   "invoicePaymentInvalidAmountError": "Saisissez un montant positif",
   "invoicePaymentRecordedMessage": "Paiement enregistré.",
-  "invoiceVoidedError": "Cette facture a été annulée. Aucun autre paiement ne peut être enregistré."
+  "invoiceVoidedError": "Cette facture a été annulée. Aucun autre paiement ne peut être enregistré.",
+  "invoiceVoidButton": "Annuler la facture",
+  "invoiceVoidConfirmTitle": "Annuler cette facture ?",
+  "invoiceVoidReasonField": "Motif",
+  "invoiceVoidReasonRequiredError": "Un motif est requis pour annuler cette facture.",
+  "invoiceRefundOwedLabel": "Remboursement dû",
+  "invoiceAlreadyVoidedError": "Cette facture a déjà été annulée.",
+  "invoiceVoidedMessage": "Facture annulée."
 }

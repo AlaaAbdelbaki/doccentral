@@ -387,4 +387,97 @@ void main() {
       );
     });
   });
+
+  group('InvoiceRepositoryImpl.voidInvoice', () {
+    test('transitions any non-voided Invoice to voided and logs the '
+        'actor/reason/timestamp', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 50, 2)],
+        status: 'paid',
+      );
+
+      await repository.voidInvoice(
+        role: Role.doctor,
+        actorUserId: 'dentist-1',
+        invoiceId: seeded.invoiceId,
+        reason: 'Billed to the wrong patient',
+      );
+
+      final Invoice invoice = await (db.select(
+        db.invoices,
+      )..where((t) => t.id.equals(seeded.invoiceId))).getSingle();
+      expect(invoice.status, InvoiceStatus.voided.name);
+
+      final List<InvoiceVoid> logs = await (db.select(
+        db.invoiceVoids,
+      )..where((t) => t.invoiceId.equals(seeded.invoiceId))).get();
+      expect(logs.length, 1);
+      expect(logs.single.actorUserId, 'dentist-1');
+      expect(logs.single.reason, 'Billed to the wrong patient');
+    });
+
+    test('preserves prior Invoice Items unchanged', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 50, 2)],
+        status: 'unpaid',
+      );
+
+      await repository.voidInvoice(
+        role: Role.doctor,
+        actorUserId: 'dentist-1',
+        invoiceId: seeded.invoiceId,
+        reason: 'Test reason',
+      );
+
+      final List<InvoiceItemRow> items = await (db.select(
+        db.invoiceItems,
+      )..where((t) => t.invoiceId.equals(seeded.invoiceId))).get();
+      expect(items.length, 1);
+      expect(items.single.description, 'Filling');
+    });
+
+    test('throws InvoiceAlreadyVoidedException when already voided', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 50, 1)],
+        status: 'voided',
+      );
+
+      expect(
+        () => repository.voidInvoice(
+          role: Role.doctor,
+          actorUserId: 'dentist-1',
+          invoiceId: seeded.invoiceId,
+          reason: 'Test reason',
+        ),
+        throwsA(isA<InvoiceAlreadyVoidedException>()),
+      );
+
+      final List<InvoiceVoid> logs = await db.select(db.invoiceVoids).get();
+      expect(logs, isEmpty);
+    });
+
+    test('rejects an Assistant with PermissionDeniedException', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) seeded = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 50, 1)],
+      );
+
+      expect(
+        () => repository.voidInvoice(
+          role: Role.assistant,
+          actorUserId: 'assistant-1',
+          invoiceId: seeded.invoiceId,
+          reason: 'Test reason',
+        ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
 }

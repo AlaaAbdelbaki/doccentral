@@ -65,4 +65,31 @@ class InvoiceController extends _$InvoiceController {
           ),
     );
   }
+
+  Future<void> voidInvoice({
+    required String invoiceId,
+    required String reason,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canVoidInvoice),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(invoiceRepositoryProvider)
+          .voidInvoice(
+            role: role,
+            actorUserId: actorUserId,
+            invoiceId: invoiceId,
+            reason: reason,
+          ),
+    );
+  }
 }

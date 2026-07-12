@@ -7,6 +7,7 @@ import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_finalizations_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_items_table.dart';
+import 'package:docentral/shared/data/database/tables/invoice_voids_table.dart';
 import 'package:docentral/shared/data/database/tables/invoices_table.dart';
 import 'package:docentral/shared/data/database/tables/patient_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/patients_table.dart';
@@ -43,6 +44,7 @@ part 'app_database.g.dart';
     VisitUnlockLogs,
     InvoiceFinalizations,
     Payments,
+    InvoiceVoids,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -50,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +91,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 13) await m.createTable(visitUnlockLogs);
       if (from < 14) await m.createTable(invoiceFinalizations);
       if (from < 15) await m.createTable(payments);
+      if (from < 16) await m.createTable(invoiceVoids);
     },
   );
 }

@@ -566,5 +566,26 @@
   "@invoicePaymentRecordedMessage": { "description": "Confirmation message shown after a payment is recorded" },
 
   "invoiceVoidedError": "This invoice has been voided. No further payments can be recorded.",
-  "@invoiceVoidedError": { "description": "Error shown when recording a payment against a voided invoice" }
+  "@invoiceVoidedError": { "description": "Error shown when recording a payment against a voided invoice" },
+
+  "invoiceVoidButton": "Void invoice",
+  "@invoiceVoidButton": { "description": "Button to void an invoice" },
+
+  "invoiceVoidConfirmTitle": "Void this invoice?",
+  "@invoiceVoidConfirmTitle": { "description": "Void-invoice confirmation dialog title" },
+
+  "invoiceVoidReasonField": "Reason",
+  "@invoiceVoidReasonField": { "description": "Label for the reason field in the void-invoice dialog" },
+
+  "invoiceVoidReasonRequiredError": "A reason is required to void this invoice.",
+  "@invoiceVoidReasonRequiredError": { "description": "Validation error when the void reason is left blank" },
+
+  "invoiceRefundOwedLabel": "Refund owed",
+  "@invoiceRefundOwedLabel": { "description": "Label for the refund owed amount on a voided invoice with prior payments" },
+
+  "invoiceAlreadyVoidedError": "This invoice has already been voided.",
+  "@invoiceAlreadyVoidedError": { "description": "Error shown when voiding an invoice that is already voided" },
+
+  "invoiceVoidedMessage": "Invoice voided.",
+  "@invoiceVoidedMessage": { "description": "Confirmation message shown after an invoice is voided" }
 }

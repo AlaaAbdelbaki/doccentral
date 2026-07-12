@@ -23,6 +23,7 @@ part 'widgets/adjustment_form_dialog.dart';
 part 'widgets/invoice_item_row.dart';
 part 'widgets/payment_form_dialog.dart';
 part 'widgets/payment_row.dart';
+part 'widgets/void_invoice_dialog.dart';
 
 class InvoiceDetailPage extends ConsumerWidget {
   const InvoiceDetailPage({super.key, required this.visitId});
@@ -52,6 +53,9 @@ class InvoiceDetailPage extends ConsumerWidget {
     final bool canRecordPayment =
         ref.watch(permissionCheckerProvider)(Permission.canRecordPayment) &&
         invoice.status != InvoiceStatus.voided;
+    final bool canVoid =
+        ref.watch(permissionCheckerProvider)(Permission.canVoidInvoice) &&
+        invoice.status != InvoiceStatus.voided;
     final AsyncValue<List<InvoiceItem>> itemsAsync = ref.watch(
       invoiceItemsProvider(invoice.id),
     );
@@ -78,9 +82,26 @@ class InvoiceDetailPage extends ConsumerWidget {
                   '${_statusLabel(l10n, invoice.status)}',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
+                if (invoice.status == InvoiceStatus.voided)
+                  Builder(
+                    builder: (BuildContext context) {
+                      final List<Payment> payments =
+                          paymentsAsync.value ?? const <Payment>[];
+                      final double totalPaid = payments.fold(
+                        0.0,
+                        (double sum, Payment p) => sum + p.amount,
+                      );
+                      if (totalPaid <= 0) return const SizedBox.shrink();
+                      return Text(
+                        '${l10n.invoiceRefundOwedLabel}: ${currency.format(totalPaid)}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      );
+                    },
+                  ),
                 if (canAddAdjustment ||
                     canFinalize ||
-                    canRecordPayment) ...<Widget>[
+                    canRecordPayment ||
+                    canVoid) ...<Widget>[
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
                     spacing: AppSpacing.sm,
@@ -118,6 +139,13 @@ class InvoiceDetailPage extends ConsumerWidget {
                           ),
                           icon: const Icon(Icons.payments_outlined),
                           label: Text(l10n.invoiceRecordPaymentButton),
+                        ),
+                      if (canVoid)
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _confirmVoidInvoice(context, ref, invoice.id),
+                          icon: const Icon(Icons.block),
+                          label: Text(l10n.invoiceVoidButton),
                         ),
                     ],
                   ),
@@ -321,5 +349,34 @@ class InvoiceDetailPage extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _confirmVoidInvoice(
+    BuildContext context,
+    WidgetRef ref,
+    String invoiceId,
+  ) async {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String? reason = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) => const _VoidInvoiceDialog(),
+    );
+    if (reason == null) return;
+
+    await ref
+        .read(invoiceControllerProvider.notifier)
+        .voidInvoice(invoiceId: invoiceId, reason: reason);
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(invoiceControllerProvider).error;
+    if (error is InvoiceAlreadyVoidedException) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invoiceAlreadyVoidedError)));
+    } else if (error == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invoiceVoidedMessage)));
+    }
   }
 }

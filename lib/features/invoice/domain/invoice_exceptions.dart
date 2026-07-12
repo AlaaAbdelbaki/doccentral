@@ -16,3 +16,11 @@ class InvoiceAdjustmentValidationException implements Exception {
   @override
   String toString() => 'InvoiceAdjustmentValidationException: $message';
 }
+
+/// Thrown when voiding an Invoice that has already been voided.
+class InvoiceAlreadyVoidedException implements Exception {
+  const InvoiceAlreadyVoidedException();
+
+  @override
+  String toString() => 'InvoiceAlreadyVoidedException';
+}

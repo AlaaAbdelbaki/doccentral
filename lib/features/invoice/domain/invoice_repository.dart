@@ -44,4 +44,19 @@ abstract class InvoiceRepository {
     required String actorUserId,
     required String invoiceId,
   });
+
+  /// Voids any non-`voided` Invoice with a required [reason]: transitions
+  /// it to `voided` and logs [actorUserId], the reason, and a UTC
+  /// timestamp. Doctor-only. Prior Payments are preserved (not deleted) and
+  /// contribute to a refund owed since the Invoice itself now contributes
+  /// nothing to outstanding balance.
+  ///
+  /// Throws [InvoiceAlreadyVoidedException] if the Invoice is already
+  /// `voided`.
+  Future<void> voidInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+    required String reason,
+  });
 }

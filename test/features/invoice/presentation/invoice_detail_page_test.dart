@@ -127,6 +127,35 @@ class _FakeInvoiceRepository implements InvoiceRepository {
     }
     _changes.add(null);
   }
+
+  final List<({String invoiceId, String reason})> voidedInvoices =
+      <({String invoiceId, String reason})>[];
+  Object? voidInvoiceErrorToThrow;
+
+  @override
+  Future<void> voidInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+    required String reason,
+  }) async {
+    if (voidInvoiceErrorToThrow != null) {
+      throw voidInvoiceErrorToThrow!;
+    }
+    voidedInvoices.add((invoiceId: invoiceId, reason: reason));
+    final InvoiceRecord? existing = _invoice;
+    if (existing != null) {
+      _invoice = InvoiceRecord(
+        id: existing.id,
+        patientId: existing.patientId,
+        visitId: existing.visitId,
+        totalAmount: existing.totalAmount,
+        status: InvoiceStatus.voided,
+        createdByUserId: existing.createdByUserId,
+      );
+    }
+    _changes.add(null);
+  }
 }
 
 class _FakePaymentRepository implements PaymentRepository {
@@ -666,6 +695,196 @@ void main() {
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets('Void invoice button is hidden for an Assistant', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+    );
+
+    expect(find.text('Void invoice'), findsNothing);
+  });
+
+  testWidgets('Void invoice button is hidden once the invoice is voided', (
+    WidgetTester tester,
+  ) async {
+    const InvoiceRecord voided = InvoiceRecord(
+      id: 'invoice-1',
+      patientId: 'patient-1',
+      visitId: 'visit-1',
+      totalAmount: 100,
+      status: InvoiceStatus.voided,
+      createdByUserId: 'dentist-1',
+    );
+
+    await _pumpPage(
+      tester,
+      invoice: voided,
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.doctor,
+    );
+
+    expect(find.text('Void invoice'), findsNothing);
+  });
+
+  testWidgets('cancelling the void dialog does not call voidInvoice', (
+    WidgetTester tester,
+  ) async {
+    final fakeInvoiceRepository = (await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.doctor,
+    )).invoice;
+
+    await tester.tap(find.text('Void invoice'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Void this invoice?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(fakeInvoiceRepository.voidedInvoices, isEmpty);
+  });
+
+  testWidgets('confirming with a blank reason shows a validation error', (
+    WidgetTester tester,
+  ) async {
+    final fakeInvoiceRepository = (await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.doctor,
+    )).invoice;
+
+    await tester.tap(find.text('Void invoice'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('A reason is required to void this invoice.'),
+      findsOneWidget,
+    );
+    expect(fakeInvoiceRepository.voidedInvoices, isEmpty);
+  });
+
+  testWidgets(
+    'confirming Void invoice with a reason calls voidInvoice and shows a '
+    'success snackbar',
+    (WidgetTester tester) async {
+      final fakeInvoiceRepository = (await _pumpPage(
+        tester,
+        invoice: draftInvoice(),
+        items: <InvoiceItem>[treatmentItem()],
+        role: Role.doctor,
+      )).invoice;
+
+      await tester.tap(find.text('Void invoice'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Billed to the wrong patient',
+      );
+      await tester.tap(find.text('Confirm'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        fakeInvoiceRepository.voidedInvoices,
+        <({String invoiceId, String reason})>[
+          (invoiceId: 'invoice-1', reason: 'Billed to the wrong patient'),
+        ],
+      );
+      expect(find.text('Invoice voided.'), findsOneWidget);
+      expect(find.text('Void invoice'), findsNothing);
+    },
+  );
+
+  testWidgets('shows an error snackbar when the invoice is already voided', (
+    WidgetTester tester,
+  ) async {
+    final fakeInvoiceRepository = (await _pumpPage(
+      tester,
+      invoice: draftInvoice(),
+      items: <InvoiceItem>[treatmentItem()],
+      role: Role.doctor,
+    )).invoice;
+    fakeInvoiceRepository.voidInvoiceErrorToThrow =
+        const InvoiceAlreadyVoidedException();
+
+    await tester.tap(find.text('Void invoice'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Reason'),
+      'Test reason',
+    );
+    await tester.tap(find.text('Confirm'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('This invoice has already been voided.'), findsOneWidget);
+  });
+
+  testWidgets('shows refund owed on a voided invoice with prior payments', (
+    WidgetTester tester,
+  ) async {
+    const InvoiceRecord voided = InvoiceRecord(
+      id: 'invoice-1',
+      patientId: 'patient-1',
+      visitId: 'visit-1',
+      totalAmount: 100,
+      status: InvoiceStatus.voided,
+      createdByUserId: 'dentist-1',
+    );
+    final Payment payment = Payment(
+      id: 'payment-1',
+      invoiceId: 'invoice-1',
+      amount: 40,
+      method: PaymentMethod.cash,
+      paymentDate: DateTime(2026, 1, 15),
+      recordedByUserId: 'assistant-1',
+    );
+
+    await _pumpPage(
+      tester,
+      invoice: voided,
+      items: <InvoiceItem>[treatmentItem()],
+      payments: <Payment>[payment],
+    );
+
+    expect(find.textContaining('Refund owed'), findsOneWidget);
+  });
+
+  testWidgets(
+    'does not show refund owed on a voided invoice with no prior payments',
+    (WidgetTester tester) async {
+      const InvoiceRecord voided = InvoiceRecord(
+        id: 'invoice-1',
+        patientId: 'patient-1',
+        visitId: 'visit-1',
+        totalAmount: 100,
+        status: InvoiceStatus.voided,
+        createdByUserId: 'dentist-1',
+      );
+
+      await _pumpPage(
+        tester,
+        invoice: voided,
+        items: <InvoiceItem>[treatmentItem()],
+      );
+
+      expect(find.textContaining('Refund owed'), findsNothing);
     },
   );
 }

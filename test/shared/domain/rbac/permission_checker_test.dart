@@ -16,21 +16,22 @@ void main() {
       Permission.canViewFinances,
       Permission.canUnlockVisit,
       Permission.canDeletePatient,
+      Permission.canVoidInvoice,
     ];
 
-    test('doctor has all 6 restricted permissions', () {
+    test('doctor has all 7 restricted permissions', () {
       for (final p in doctorOnly) {
         expect(hasPermission(Role.doctor, p), isTrue, reason: '$p');
       }
     });
 
-    test('assistant lacks all 6 restricted permissions', () {
+    test('assistant lacks all 7 restricted permissions', () {
       for (final p in doctorOnly) {
         expect(hasPermission(Role.assistant, p), isFalse, reason: '$p');
       }
     });
 
-    test('nurse lacks all 6 restricted permissions', () {
+    test('nurse lacks all 7 restricted permissions', () {
       for (final p in doctorOnly) {
         expect(hasPermission(Role.nurse, p), isFalse, reason: '$p');
       }
