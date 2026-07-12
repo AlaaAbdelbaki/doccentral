@@ -1,4 +1,5 @@
 import 'package:docentral/features/appointment/presentation/providers/linked_planned_treatments_provider.dart';
+import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
 import 'package:docentral/features/invoice/presentation/invoice_detail_page.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
@@ -14,6 +15,7 @@ import 'package:docentral/features/visit/presentation/providers/visit_for_appoin
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
+import 'package:docentral/shared/design_system/widgets/docentral_attachments_section.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +73,9 @@ class VisitDetailPage extends ConsumerWidget {
     final bool canViewInvoice =
         ref.watch(permissionCheckerProvider)(Permission.canEditInvoice) &&
         visit.status == VisitStatus.completed;
+    final bool canManageAttachments = ref.watch(permissionCheckerProvider)(
+      Permission.canManageAttachments,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -131,6 +136,18 @@ class VisitDetailPage extends ConsumerWidget {
             diagnosis: visit.diagnosis,
             clinicalNotes: visit.clinicalNotes,
             editable: visit.status == VisitStatus.inProgress,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: DocCentralAttachmentsSection(
+              title: l10n.visitAttachmentsSection,
+              targetType: AttachmentTargetType.visit,
+              targetId: visit.id,
+              canManage: canManageAttachments,
+            ),
           ),
           if (canEditTreatments)
             _PlannedTreatmentsToPerformSection(

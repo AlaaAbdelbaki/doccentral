@@ -5,6 +5,10 @@ import 'package:docentral/features/appointment/domain/appointment_repository.dar
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/attachment/domain/attachment.dart';
+import 'package:docentral/features/attachment/domain/attachment_repository.dart';
+import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
+import 'package:docentral/features/attachment/presentation/providers/attachment_repository_provider.dart';
 import 'package:docentral/features/invoice/domain/invoice_adjustment_type.dart';
 import 'package:docentral/features/invoice/domain/invoice_item.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
@@ -341,6 +345,24 @@ class _FakePatientRepository implements PatientRepository {
   }
 }
 
+class _FakeAttachmentRepository implements AttachmentRepository {
+  @override
+  Future<String> upload({
+    required Role role,
+    required String actorUserId,
+    required AttachmentTargetType targetType,
+    required String targetId,
+    required String sourceFilePath,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<Attachment>> watchForTarget({
+    required Role role,
+    required AttachmentTargetType targetType,
+    required String targetId,
+  }) => Stream.value(const <Attachment>[]);
+}
+
 Future<ProviderContainer> _pumpPage(
   WidgetTester tester,
   _FakePatientRepository fakeRepository, {
@@ -363,6 +385,9 @@ Future<ProviderContainer> _pumpPage(
       invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
       plannedTreatmentRepositoryProvider.overrideWithValue(
         fakePlannedTreatments,
+      ),
+      attachmentRepositoryProvider.overrideWithValue(
+        _FakeAttachmentRepository(),
       ),
     ],
   );
@@ -487,6 +512,9 @@ void main() {
         invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
         plannedTreatmentRepositoryProvider.overrideWithValue(
           _FakePlannedTreatmentRepository(),
+        ),
+        attachmentRepositoryProvider.overrideWithValue(
+          _FakeAttachmentRepository(),
         ),
       ],
     );

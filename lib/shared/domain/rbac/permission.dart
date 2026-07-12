@@ -24,6 +24,7 @@ enum Permission {
   canViewDayCloseout,
   canManageInventory,
   canConfirmDayCloseout,
+  canManageAttachments,
 
   // Doctor + Assistant + Nurse
   canViewPatients,
@@ -31,4 +32,5 @@ enum Permission {
   canViewAppointments,
   canAddClinicalNotes,
   canViewInventory,
+  canViewAttachments,
 }

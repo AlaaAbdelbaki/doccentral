@@ -364,8 +364,20 @@
   "patientAttachmentsSection": "Attachments",
   "@patientAttachmentsSection": { "description": "Patient detail attachments section title" },
 
-  "patientNoAttachmentsYet": "Attachments aren't available yet",
-  "@patientNoAttachmentsYet": { "description": "Empty state for the attachments section" },
+  "visitAttachmentsSection": "Attachments",
+  "@visitAttachmentsSection": { "description": "Visit detail attachments section title" },
+
+  "attachmentsUploadButton": "Upload file",
+  "@attachmentsUploadButton": { "description": "Button to pick and upload a file as an attachment" },
+
+  "attachmentsEmptyState": "No attachments yet",
+  "@attachmentsEmptyState": { "description": "Empty state shown when a Patient or Visit has no attachments" },
+
+  "attachmentsUnsupportedFileTypeError": "Unsupported file type. Only PDF, JPG, and PNG are allowed.",
+  "@attachmentsUnsupportedFileTypeError": { "description": "Error shown when uploading a file with a disallowed extension" },
+
+  "attachmentsFileTooLargeError": "File exceeds the 10 MB limit.",
+  "@attachmentsFileTooLargeError": { "description": "Error shown when uploading a file larger than 10 MB" },
 
   "calendarPageTitle": "Today's Calendar",
   "@calendarPageTitle": { "description": "Today's Calendar page title" },

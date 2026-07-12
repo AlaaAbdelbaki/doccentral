@@ -5,6 +5,7 @@ import 'package:docentral/shared/data/database/tables/appointment_cancellations_
 import 'package:docentral/shared/data/database/tables/appointment_edit_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/appointment_planned_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
+import 'package:docentral/shared/data/database/tables/attachments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
 import 'package:docentral/shared/data/database/tables/day_closeout_reopen_logs_table.dart';
 import 'package:docentral/shared/data/database/tables/day_closeouts_table.dart';
@@ -59,6 +60,7 @@ part 'app_database.g.dart';
     StockAdjustments,
     DayCloseouts,
     DayCloseoutReopenLogs,
+    Attachments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -66,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -116,6 +118,7 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(dayCloseouts, dayCloseouts.reopenedAt);
         await m.createTable(dayCloseoutReopenLogs);
       }
+      if (from < 24) await m.createTable(attachments);
     },
   );
 }

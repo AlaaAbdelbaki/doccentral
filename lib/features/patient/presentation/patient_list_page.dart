@@ -1,4 +1,5 @@
 import 'package:docentral/features/appointment/presentation/providers/no_show_pattern_provider.dart';
+import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
 import 'package:docentral/features/invoice/presentation/providers/outstanding_balance_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
@@ -16,6 +17,7 @@ import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/data/router/app_routes.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
+import 'package:docentral/shared/design_system/widgets/docentral_attachments_section.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,6 +70,9 @@ class PatientListPage extends ConsumerWidget {
         : ref.watch(outstandingBalanceProvider(selected.id)).value ?? 0;
     final bool canManageTreatmentPlan = ref.watch(permissionCheckerProvider)(
       Permission.canManageTreatmentPlan,
+    );
+    final bool canManageAttachments = ref.watch(permissionCheckerProvider)(
+      Permission.canManageAttachments,
     );
     final List<PlannedTreatment> plannedTreatments = selected == null
         ? const <PlannedTreatment>[]
@@ -149,6 +154,7 @@ class PatientListPage extends ConsumerWidget {
                   _showAddPlannedTreatmentDialog(context, ref, selected.id);
                 }
               },
+              canManageAttachments: canManageAttachments,
             ),
           ),
         ],

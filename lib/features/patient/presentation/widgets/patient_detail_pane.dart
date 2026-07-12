@@ -13,6 +13,7 @@ class _PatientDetailPane extends StatelessWidget {
     required this.plannedTreatments,
     required this.canManageTreatmentPlan,
     required this.onAddPlannedTreatment,
+    required this.canManageAttachments,
   });
 
   final PatientRecord? patient;
@@ -26,6 +27,7 @@ class _PatientDetailPane extends StatelessWidget {
   final List<PlannedTreatment> plannedTreatments;
   final bool canManageTreatmentPlan;
   final VoidCallback onAddPlannedTreatment;
+  final bool canManageAttachments;
 
   @override
   Widget build(BuildContext context) {
@@ -171,9 +173,16 @@ class _PatientDetailPane extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          _SectionCard(
-            title: l10n.patientAttachmentsSection,
-            child: Text(l10n.patientNoAttachmentsYet),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: DocCentralAttachmentsSection(
+                title: l10n.patientAttachmentsSection,
+                targetType: AttachmentTargetType.patient,
+                targetId: p.id,
+                canManage: canManageAttachments,
+              ),
+            ),
           ),
         ],
       ),

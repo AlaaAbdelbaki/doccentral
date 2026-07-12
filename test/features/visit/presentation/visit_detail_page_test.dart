@@ -5,6 +5,10 @@ import 'package:docentral/features/appointment/domain/appointment_repository.dar
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/attachment/domain/attachment.dart';
+import 'package:docentral/features/attachment/domain/attachment_repository.dart';
+import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
+import 'package:docentral/features/attachment/presentation/providers/attachment_repository_provider.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment_exceptions.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
@@ -331,6 +335,24 @@ class _FakeAppointmentRepository implements AppointmentRepository {
   }) => throw UnimplementedError('not exercised by this test');
 }
 
+class _FakeAttachmentRepository implements AttachmentRepository {
+  @override
+  Future<String> upload({
+    required Role role,
+    required String actorUserId,
+    required AttachmentTargetType targetType,
+    required String targetId,
+    required String sourceFilePath,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<Attachment>> watchForTarget({
+    required Role role,
+    required AttachmentTargetType targetType,
+    required String targetId,
+  }) => Stream.value(const <Attachment>[]);
+}
+
 Future<
   ({_FakeVisitRepository visit, _FakePerformedTreatmentRepository treatments})
 >
@@ -356,6 +378,9 @@ _pumpPage(
         _FakeAppointmentRepository(<String, PlannedTreatment>{
           for (final PlannedTreatment t in linkedPlannedTreatments) t.id: t,
         }),
+      ),
+      attachmentRepositoryProvider.overrideWithValue(
+        _FakeAttachmentRepository(),
       ),
     ],
   );
