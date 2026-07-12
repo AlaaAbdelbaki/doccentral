@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:docentral/features/attachment/domain/attachment.dart';
 import 'package:docentral/features/attachment/domain/attachment_exceptions.dart';
 import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
@@ -9,6 +11,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Shared attachments list + upload control, used on both the Patient File
 /// and the Visit detail page.
@@ -111,24 +114,48 @@ class _AttachmentRow extends StatelessWidget {
 
   final Attachment attachment;
 
-  static String _formatSize(int bytes) {
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  Future<void> _open(BuildContext context) async {
+    if (attachment.isImage) {
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext dialogContext) => Dialog(
+          child: InteractiveViewer(
+            child: Image.file(File(attachment.storagePath)),
+          ),
+        ),
+      );
+      return;
+    }
+    if (attachment.isPdf) {
+      await launchUrl(Uri.file(attachment.storagePath));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.attach_file, size: 18),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(attachment.fileName)),
-          Text(_formatSize(attachment.fileSizeBytes)),
-          const SizedBox(width: AppSpacing.sm),
-          Text(DateFormat('dd/MM/yyyy').format(attachment.uploadedAt)),
-        ],
+    return InkWell(
+      onTap: () => _open(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              attachment.isImage
+                  ? Icons.image_outlined
+                  : Icons.description_outlined,
+              size: 18,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(attachment.fileName, overflow: TextOverflow.ellipsis),
+            ),
+            Text(attachment.fileExtension.toUpperCase()),
+            const SizedBox(width: AppSpacing.sm),
+            Text(DateFormat('dd/MM/yyyy').format(attachment.uploadedAt)),
+            const SizedBox(width: AppSpacing.sm),
+            Text(attachment.uploadedByName),
+          ],
+        ),
       ),
     );
   }

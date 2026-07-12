@@ -10,6 +10,7 @@ import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 AppDatabase _createInMemoryDatabase() {
   return AppDatabase(NativeDatabase.memory());
@@ -43,6 +44,30 @@ void main() {
     return file.path;
   }
 
+  Future<String> seedUser({
+    required String firstName,
+    required String lastName,
+  }) async {
+    const Uuid uuid = Uuid();
+    final String userId = uuid.v4();
+    final DateTime now = DateTime.now();
+    await db
+        .into(db.users)
+        .insert(
+          UsersCompanion.insert(
+            id: userId,
+            clinicId: 'clinic-1',
+            firstName: firstName,
+            lastName: lastName,
+            email: '$firstName@example.com',
+            authUserId: 'auth-$userId',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return userId;
+  }
+
   group('AttachmentRepositoryImpl.upload', () {
     test(
       'copies the file into local storage and creates an Attachment record',
@@ -72,7 +97,38 @@ void main() {
         expect(attachments.single.fileName, 'xray.jpg');
         expect(attachments.single.fileSizeBytes, 1024);
         expect(attachments.single.uploadedByUserId, 'actor-1');
+        // No matching Users row seeded: falls back to the raw actor id.
+        expect(attachments.single.uploadedByName, 'actor-1');
         expect(File(attachments.single.storagePath).existsSync(), isTrue);
+      },
+    );
+
+    test(
+      'resolves the uploader\'s display name from the Users table',
+      () async {
+        final String userId = await seedUser(
+          firstName: 'Sami',
+          lastName: 'Gharbi',
+        );
+        final String sourcePath = await createSourceFile('xray.jpg', [1, 2]);
+
+        await repository.upload(
+          role: Role.assistant,
+          actorUserId: userId,
+          targetType: AttachmentTargetType.patient,
+          targetId: 'patient-1',
+          sourceFilePath: sourcePath,
+        );
+
+        final List<Attachment> attachments = await repository
+            .watchForTarget(
+              role: Role.assistant,
+              targetType: AttachmentTargetType.patient,
+              targetId: 'patient-1',
+            )
+            .first;
+
+        expect(attachments.single.uploadedByName, 'Sami Gharbi');
       },
     );
 

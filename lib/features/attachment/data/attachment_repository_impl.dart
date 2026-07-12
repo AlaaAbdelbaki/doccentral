@@ -5,7 +5,6 @@ import 'package:docentral/features/attachment/domain/attachment_exceptions.dart'
 import 'package:docentral/features/attachment/domain/attachment_repository.dart';
 import 'package:docentral/features/attachment/domain/attachment_target_type.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
-import 'package:docentral/shared/data/database/tables/attachments_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -100,31 +99,40 @@ class AttachmentRepositoryImpl implements AttachmentRepository {
   }) {
     requirePermission(role, Permission.canViewAttachments);
 
-    final SimpleSelectStatement<$AttachmentsTable, AttachmentRow> select =
-        _db.select(_db.attachments)
+    final JoinedSelectStatement<HasResultSet, dynamic> query =
+        _db.select(_db.attachments).join([
+            leftOuterJoin(
+              _db.users,
+              _db.users.id.equalsExp(_db.attachments.uploadedByUserId),
+            ),
+          ])
           ..where(
-            (Attachments t) =>
-                t.deletedAt.isNull() &
-                t.targetType.equals(targetType.name) &
-                t.targetId.equals(targetId),
+            _db.attachments.deletedAt.isNull() &
+                _db.attachments.targetType.equals(targetType.name) &
+                _db.attachments.targetId.equals(targetId),
           )
-          ..orderBy([(Attachments t) => OrderingTerm.asc(t.createdAt)]);
+          ..orderBy([OrderingTerm.asc(_db.attachments.createdAt)]);
 
-    return select.watch().map(
-      (List<AttachmentRow> rows) => rows.map(_toDomain).toList(growable: false),
+    return query.watch().map(
+      (List<TypedResult> rows) => rows.map(_toDomain).toList(growable: false),
     );
   }
 
-  Attachment _toDomain(AttachmentRow row) {
+  Attachment _toDomain(TypedResult row) {
+    final AttachmentRow attachment = row.readTable(_db.attachments);
+    final User? uploader = row.readTableOrNull(_db.users);
     return Attachment(
-      id: row.id,
-      targetType: AttachmentTargetType.values.byName(row.targetType),
-      targetId: row.targetId,
-      fileName: row.fileName,
-      storagePath: row.storagePath,
-      fileSizeBytes: row.fileSizeBytes,
-      uploadedByUserId: row.uploadedByUserId,
-      uploadedAt: row.createdAt,
+      id: attachment.id,
+      targetType: AttachmentTargetType.values.byName(attachment.targetType),
+      targetId: attachment.targetId,
+      fileName: attachment.fileName,
+      storagePath: attachment.storagePath,
+      fileSizeBytes: attachment.fileSizeBytes,
+      uploadedByUserId: attachment.uploadedByUserId,
+      uploadedByName: uploader == null
+          ? attachment.uploadedByUserId
+          : '${uploader.firstName} ${uploader.lastName}',
+      uploadedAt: attachment.createdAt,
     );
   }
 }

@@ -91,12 +91,15 @@ void main() {
           storagePath: '/tmp/xray.jpg',
           fileSizeBytes: 2048,
           uploadedByUserId: 'actor-1',
+          uploadedByName: 'Sami Gharbi',
           uploadedAt: DateTime(2026, 6, 8),
         ),
       ],
     );
 
     expect(find.text('xray.jpg'), findsOneWidget);
+    expect(find.text('Sami Gharbi'), findsOneWidget);
+    expect(find.text('JPG'), findsOneWidget);
     expect(find.text('No attachments yet'), findsNothing);
   });
 
@@ -116,3 +119,11 @@ void main() {
     expect(find.text('Upload file'), findsOneWidget);
   });
 }
+
+// Tapping an image attachment to open the inline preview dialog (real
+// Image.file decoding) is NOT covered by an automated widget test: it
+// reliably hangs the test runner for the full 10-minute timeout in this
+// environment, even with a single untimed pump() instead of pumpAndSettle.
+// Coverage for the underlying logic lives in attachment_test.dart
+// (Attachment.isImage/isPdf/fileExtension) and the row-rendering tests
+// above; the actual dialog-opening behavior needs manual/live verification.

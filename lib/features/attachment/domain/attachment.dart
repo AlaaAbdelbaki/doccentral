@@ -11,6 +11,7 @@ class Attachment {
     required this.storagePath,
     required this.fileSizeBytes,
     required this.uploadedByUserId,
+    required this.uploadedByName,
     required this.uploadedAt,
   });
 
@@ -21,5 +22,20 @@ class Attachment {
   final String storagePath;
   final int fileSizeBytes;
   final String uploadedByUserId;
+  final String uploadedByName;
   final DateTime uploadedAt;
+
+  /// Lowercased file extension without the leading dot (e.g. `'pdf'`).
+  String get fileExtension {
+    final int dotIndex = fileName.lastIndexOf('.');
+    if (dotIndex == -1 || dotIndex == fileName.length - 1) return '';
+    return fileName.substring(dotIndex + 1).toLowerCase();
+  }
+
+  bool get isImage =>
+      fileExtension == 'jpg' ||
+      fileExtension == 'jpeg' ||
+      fileExtension == 'png';
+
+  bool get isPdf => fileExtension == 'pdf';
 }
