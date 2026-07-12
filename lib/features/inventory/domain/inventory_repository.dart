@@ -1,6 +1,7 @@
 import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 
 abstract class InventoryRepository {
@@ -38,6 +39,27 @@ abstract class InventoryRepository {
 
   /// Streams the Restock Event history for [inventoryItemId], oldest first.
   Stream<List<RestockEvent>> watchRestockHistory({
+    required Role role,
+    required String inventoryItemId,
+  });
+
+  /// Directly sets [inventoryItemId]'s on-hand quantity to [newQuantity],
+  /// logging the old quantity, new quantity, delta, actor, and [reason].
+  /// Returns the new adjustment's id.
+  ///
+  /// Throws [InventoryValidationException] if [reason] is blank or
+  /// [newQuantity] is negative.
+  Future<String> adjustStock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  });
+
+  /// Streams the Stock Adjustment history for [inventoryItemId], oldest
+  /// first — a distinct audit trail from Restock Events.
+  Stream<List<StockAdjustment>> watchAdjustmentHistory({
     required Role role,
     required String inventoryItemId,
   });

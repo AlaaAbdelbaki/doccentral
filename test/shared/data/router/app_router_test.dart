@@ -14,6 +14,7 @@ import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
 import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
@@ -226,6 +227,21 @@ class _FakeInventoryRepository implements InventoryRepository {
     required Role role,
     required String inventoryItemId,
   }) => Stream.value(const <RestockEvent>[]);
+
+  @override
+  Future<String> adjustStock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<StockAdjustment>> watchAdjustmentHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) => Stream.value(const <StockAdjustment>[]);
 }
 
 Future<GoRouter> _pumpRouter(

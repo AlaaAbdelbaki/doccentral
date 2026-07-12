@@ -4,6 +4,7 @@ import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
 import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
@@ -21,8 +22,11 @@ class _FakeInventoryRepository implements InventoryRepository {
   final List<InventoryItem> _items;
   final List<InventoryItem> created = <InventoryItem>[];
   final List<RestockEvent> restocked = <RestockEvent>[];
+  final List<StockAdjustment> adjusted = <StockAdjustment>[];
   final Map<String, List<RestockEvent>> _historyByItemId =
       <String, List<RestockEvent>>{};
+  final Map<String, List<StockAdjustment>> _adjustmentsByItemId =
+      <String, List<StockAdjustment>>{};
   final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
@@ -105,6 +109,59 @@ class _FakeInventoryRepository implements InventoryRepository {
   }) async* {
     List<RestockEvent> current() =>
         List<RestockEvent>.of(_historyByItemId[inventoryItemId] ?? const []);
+    yield current();
+    await for (final _ in _changes.stream) {
+      yield current();
+    }
+  }
+
+  @override
+  Future<String> adjustStock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  }) async {
+    final int index = _items.indexWhere(
+      (InventoryItem item) => item.id == inventoryItemId,
+    );
+    final InventoryItem existing = _items[index];
+    _items[index] = InventoryItem(
+      id: existing.id,
+      name: existing.name,
+      category: existing.category,
+      unit: existing.unit,
+      onHandQuantity: newQuantity,
+      lowStockThreshold: existing.lowStockThreshold,
+    );
+    final String id = 'adjustment-${adjusted.length}';
+    final StockAdjustment adjustment = StockAdjustment(
+      id: id,
+      inventoryItemId: inventoryItemId,
+      oldQuantity: existing.onHandQuantity,
+      newQuantity: newQuantity,
+      delta: newQuantity - existing.onHandQuantity,
+      reason: reason,
+      actorUserId: actorUserId,
+      recordedAt: DateTime.now(),
+    );
+    adjusted.add(adjustment);
+    _adjustmentsByItemId
+        .putIfAbsent(inventoryItemId, () => <StockAdjustment>[])
+        .add(adjustment);
+    _changes.add(null);
+    return id;
+  }
+
+  @override
+  Stream<List<StockAdjustment>> watchAdjustmentHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) async* {
+    List<StockAdjustment> current() => List<StockAdjustment>.of(
+      _adjustmentsByItemId[inventoryItemId] ?? const [],
+    );
     yield current();
     await for (final _ in _changes.stream) {
       yield current();
@@ -363,5 +420,122 @@ void main() {
 
     expect(find.text('Enter a quantity greater than zero'), findsOneWidget);
     expect(fakeRepository.restocked, isEmpty);
+  });
+
+  testWidgets('the Adjust stock button is hidden for a Nurse', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      role: Role.nurse,
+      items: const <InventoryItem>[
+        InventoryItem(
+          id: '1',
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        ),
+      ],
+    );
+
+    expect(find.byIcon(Icons.tune), findsNothing);
+  });
+
+  testWidgets(
+    'the adjustment form is prefilled with the current on-hand quantity',
+    (WidgetTester tester) async {
+      await _pumpPage(
+        tester,
+        items: const <InventoryItem>[
+          InventoryItem(
+            id: '1',
+            name: 'Gauze',
+            category: InventoryCategory.supply,
+            unit: 'box of 100',
+            onHandQuantity: 20,
+            lowStockThreshold: 5,
+          ),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextFormField, '20'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'adjusting stock sets on-hand to the new quantity and shows it in a separate history line',
+    (WidgetTester tester) async {
+      final _FakeInventoryRepository fakeRepository = await _pumpPage(
+        tester,
+        items: const <InventoryItem>[
+          InventoryItem(
+            id: '1',
+            name: 'Gauze',
+            category: InventoryCategory.supply,
+            unit: 'box of 100',
+            onHandQuantity: 20,
+            lowStockThreshold: 5,
+          ),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.tune));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.widgetWithText(TextFormField, '20'), '18');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Reason'),
+        'Recounted after inventory audit',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.adjusted.single.oldQuantity, 20);
+      expect(fakeRepository.adjusted.single.newQuantity, 18);
+      expect(fakeRepository.adjusted.single.delta, -2);
+      expect(
+        fakeRepository.adjusted.single.reason,
+        'Recounted after inventory audit',
+      );
+      expect(find.text('18'), findsOneWidget);
+      expect(find.textContaining('20→18'), findsOneWidget);
+      expect(
+        find.textContaining('Recounted after inventory audit'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('submitting a blank reason shows a validation error', (
+    WidgetTester tester,
+  ) async {
+    final _FakeInventoryRepository fakeRepository = await _pumpPage(
+      tester,
+      items: const <InventoryItem>[
+        InventoryItem(
+          id: '1',
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        ),
+      ],
+    );
+
+    await tester.tap(find.byIcon(Icons.tune));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.widgetWithText(TextFormField, '20'), '18');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('This field is required'), findsOneWidget);
+    expect(fakeRepository.adjusted, isEmpty);
   });
 }

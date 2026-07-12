@@ -77,4 +77,33 @@ class InventoryController extends _$InventoryController {
           ),
     );
   }
+
+  Future<void> adjustStock({
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canManageInventory),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(inventoryRepositoryProvider)
+          .adjustStock(
+            role: role,
+            actorUserId: actorUserId,
+            inventoryItemId: inventoryItemId,
+            newQuantity: newQuantity,
+            reason: reason,
+          ),
+    );
+  }
 }

@@ -3,9 +3,11 @@ import 'package:docentral/features/inventory/domain/inventory_exceptions.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
 import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/inventory_items_table.dart';
 import 'package:docentral/shared/data/database/tables/restock_events_table.dart';
+import 'package:docentral/shared/data/database/tables/stock_adjustments_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -166,6 +168,95 @@ class InventoryRepositoryImpl implements InventoryRepository {
               recordedAt: row.createdAt,
               supplier: row.supplier,
               notes: row.notes,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  @override
+  Future<String> adjustStock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  }) async {
+    requirePermission(role, Permission.canManageInventory);
+
+    final String trimmedReason = reason.trim();
+    if (trimmedReason.isEmpty) {
+      throw const InventoryValidationException(
+        'A reason is required to adjust stock.',
+      );
+    }
+    if (newQuantity < 0) {
+      throw const InventoryValidationException(
+        'On-hand quantity cannot be negative.',
+      );
+    }
+
+    final String id = _uuid.v4();
+    final DateTime now = DateTime.now().toUtc();
+
+    await _db.transaction(() async {
+      final InventoryItemRow item = await (_db.select(
+        _db.inventoryItems,
+      )..where((InventoryItems t) => t.id.equals(inventoryItemId))).getSingle();
+
+      await _db
+          .into(_db.stockAdjustments)
+          .insert(
+            StockAdjustmentsCompanion.insert(
+              id: id,
+              inventoryItemId: inventoryItemId,
+              oldQuantity: item.onHandQuantity,
+              newQuantity: newQuantity,
+              delta: newQuantity - item.onHandQuantity,
+              reason: trimmedReason,
+              actorUserId: actorUserId,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      await (_db.update(
+        _db.inventoryItems,
+      )..where((InventoryItems t) => t.id.equals(inventoryItemId))).write(
+        InventoryItemsCompanion(
+          onHandQuantity: Value(newQuantity),
+          updatedAt: Value(now),
+        ),
+      );
+    });
+
+    return id;
+  }
+
+  @override
+  Stream<List<StockAdjustment>> watchAdjustmentHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) {
+    requirePermission(role, Permission.canViewInventory);
+
+    final SimpleSelectStatement<$StockAdjustmentsTable, StockAdjustmentRow>
+    select = _db.select(_db.stockAdjustments)
+      ..where((StockAdjustments t) => t.inventoryItemId.equals(inventoryItemId))
+      ..orderBy([(StockAdjustments t) => OrderingTerm.asc(t.createdAt)]);
+
+    return select.watch().map(
+      (List<StockAdjustmentRow> rows) => rows
+          .map(
+            (StockAdjustmentRow row) => StockAdjustment(
+              id: row.id,
+              inventoryItemId: row.inventoryItemId,
+              oldQuantity: row.oldQuantity,
+              newQuantity: row.newQuantity,
+              delta: row.delta,
+              reason: row.reason,
+              actorUserId: row.actorUserId,
+              recordedAt: row.createdAt,
             ),
           )
           .toList(growable: false),

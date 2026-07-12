@@ -3,6 +3,7 @@ import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_exceptions.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -234,6 +235,160 @@ void main() {
           actorUserId: 'actor-1',
           inventoryItemId: itemId,
           quantityAdded: 10,
+        ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
+
+  group('InventoryRepositoryImpl.adjustStock', () {
+    test(
+      'sets on-hand to the new quantity and logs old/new/delta/reason',
+      () async {
+        final String itemId = await repository.create(
+          role: Role.assistant,
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        );
+
+        final String adjustmentId = await repository.adjustStock(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          inventoryItemId: itemId,
+          newQuantity: 18,
+          reason: 'Recounted after inventory audit',
+        );
+
+        final InventoryItem item =
+            (await repository.watchAll(role: Role.assistant).first).single;
+        expect(item.onHandQuantity, 18);
+
+        final List<StockAdjustment> history = await repository
+            .watchAdjustmentHistory(
+              role: Role.assistant,
+              inventoryItemId: itemId,
+            )
+            .first;
+        expect(history.single.id, adjustmentId);
+        expect(history.single.oldQuantity, 20);
+        expect(history.single.newQuantity, 18);
+        expect(history.single.delta, -2);
+        expect(history.single.reason, 'Recounted after inventory audit');
+        expect(history.single.actorUserId, 'actor-1');
+      },
+    );
+
+    test(
+      'adjustment history is a separate audit trail from restock events',
+      () async {
+        final String itemId = await repository.create(
+          role: Role.assistant,
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        );
+
+        await repository.recordRestock(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          inventoryItemId: itemId,
+          quantityAdded: 10,
+        );
+        await repository.adjustStock(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          inventoryItemId: itemId,
+          newQuantity: 25,
+          reason: 'Damaged stock removed',
+        );
+
+        final List<RestockEvent> restocks = await repository
+            .watchRestockHistory(role: Role.assistant, inventoryItemId: itemId)
+            .first;
+        final List<StockAdjustment> adjustments = await repository
+            .watchAdjustmentHistory(
+              role: Role.assistant,
+              inventoryItemId: itemId,
+            )
+            .first;
+
+        expect(restocks, hasLength(1));
+        expect(adjustments, hasLength(1));
+      },
+    );
+
+    test(
+      'throws InventoryValidationException when the reason is blank',
+      () async {
+        final String itemId = await repository.create(
+          role: Role.assistant,
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        );
+
+        expect(
+          () => repository.adjustStock(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            inventoryItemId: itemId,
+            newQuantity: 18,
+            reason: '   ',
+          ),
+          throwsA(isA<InventoryValidationException>()),
+        );
+      },
+    );
+
+    test(
+      'throws InventoryValidationException for a negative new quantity',
+      () async {
+        final String itemId = await repository.create(
+          role: Role.assistant,
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        );
+
+        expect(
+          () => repository.adjustStock(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            inventoryItemId: itemId,
+            newQuantity: -1,
+            reason: 'Correction',
+          ),
+          throwsA(isA<InventoryValidationException>()),
+        );
+      },
+    );
+
+    test('throws PermissionDeniedException for a Nurse', () async {
+      final String itemId = await repository.create(
+        role: Role.assistant,
+        name: 'Gauze',
+        category: InventoryCategory.supply,
+        unit: 'box of 100',
+        onHandQuantity: 20,
+        lowStockThreshold: 5,
+      );
+
+      expect(
+        () => repository.adjustStock(
+          role: Role.nurse,
+          actorUserId: 'actor-1',
+          inventoryItemId: itemId,
+          newQuantity: 18,
+          reason: 'Correction',
         ),
         throwsA(isA<PermissionDeniedException>()),
       );

@@ -199,6 +199,18 @@
   "inventoryRestockHistorySection": "Restock history",
   "@inventoryRestockHistorySection": { "description": "Section label for an item's restock history" },
 
+  "inventoryAdjustStockButton": "Adjust stock",
+  "@inventoryAdjustStockButton": { "description": "Button and dialog title to manually adjust an item's on-hand quantity" },
+
+  "inventoryNewQuantityField": "New quantity",
+  "@inventoryNewQuantityField": { "description": "Label for the new on-hand quantity field on the stock adjustment form" },
+
+  "inventoryAdjustmentReasonField": "Reason",
+  "@inventoryAdjustmentReasonField": { "description": "Label for the required reason field on the stock adjustment form" },
+
+  "inventoryAdjustmentHistorySection": "Adjustment history",
+  "@inventoryAdjustmentHistorySection": { "description": "Section label for an item's manual stock adjustment history, distinct from restock history" },
+
   "navDayCloseout": "Day Closeout",
   "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
 
