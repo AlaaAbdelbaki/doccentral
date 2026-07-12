@@ -194,5 +194,12 @@
   "invoiceVoidReasonRequiredError": "Un motif est requis pour annuler cette facture.",
   "invoiceRefundOwedLabel": "Remboursement dû",
   "invoiceAlreadyVoidedError": "Cette facture a déjà été annulée.",
-  "invoiceVoidedMessage": "Facture annulée."
+  "invoiceVoidedMessage": "Facture annulée.",
+  "patientsWithBalanceButton": "Patients avec solde",
+  "patientsWithBalancePageTitle": "Patients avec solde",
+  "patientsWithBalanceSortByBalance": "Solde",
+  "patientsWithBalanceSortByDaysSinceLastPayment": "Jours depuis le dernier paiement",
+  "patientsWithBalanceEmptyState": "Aucun patient n'a actuellement de solde impayé",
+  "patientsWithBalanceNoPaymentYet": "Aucun paiement effectué",
+  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{Dernier paiement aujourd'hui} =1{Dernier paiement il y a 1 jour} other{Dernier paiement il y a {days} jours}}"
 }

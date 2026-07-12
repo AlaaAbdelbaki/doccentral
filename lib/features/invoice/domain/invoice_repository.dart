@@ -1,6 +1,7 @@
 import 'package:docentral/features/invoice/domain/invoice_adjustment_type.dart';
 import 'package:docentral/features/invoice/domain/invoice_item.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
+import 'package:docentral/features/invoice/domain/patient_balance.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 
 abstract class InvoiceRepository {
@@ -59,4 +60,18 @@ abstract class InvoiceRepository {
     required String invoiceId,
     required String reason,
   });
+
+  /// Streams this patient's current Outstanding Balance: the sum of
+  /// (Invoice.total_amount - sum(Payments)) across all of their non-`voided`
+  /// Invoices, computed at read time (never a stored/cached value) and
+  /// reactive to both Invoice and Payment changes.
+  Stream<double> watchOutstandingBalanceForPatient({
+    required Role role,
+    required String patientId,
+  });
+
+  /// Streams every patient with a current Outstanding Balance greater than
+  /// zero, each paired with their balance and the date of their most recent
+  /// Payment (null if they have never made one). Doctor-only.
+  Stream<List<PatientBalance>> watchPatientsWithBalance({required Role role});
 }

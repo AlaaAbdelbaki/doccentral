@@ -1,4 +1,5 @@
 import 'package:docentral/features/appointment/presentation/providers/no_show_pattern_provider.dart';
+import 'package:docentral/features/invoice/presentation/providers/outstanding_balance_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
@@ -9,10 +10,12 @@ import 'package:docentral/features/patient/presentation/providers/patient_search
 import 'package:docentral/features/patient/presentation/providers/selected_patient_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
+import 'package:docentral/shared/data/router/app_routes.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 part 'widgets/patient_detail_pane.dart';
@@ -43,6 +46,9 @@ class PatientListPage extends ConsumerWidget {
     final bool canDelete = ref.watch(permissionCheckerProvider)(
       Permission.canDeletePatient,
     );
+    final bool canViewFinances = ref.watch(permissionCheckerProvider)(
+      Permission.canViewFinances,
+    );
     final int patientCount = patientsAsync.value?.length ?? 0;
     final bool hasNoShowPattern = selected == null
         ? false
@@ -51,6 +57,9 @@ class PatientListPage extends ConsumerWidget {
         ? const <VisitRecord>[]
         : ref.watch(recentVisitsProvider(selected.id)).value ??
               const <VisitRecord>[];
+    final double outstandingBalance = selected == null
+        ? 0
+        : ref.watch(outstandingBalanceProvider(selected.id)).value ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -66,6 +75,16 @@ class PatientListPage extends ConsumerWidget {
           ],
         ),
         actions: [
+          if (canViewFinances)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              child: IconButton(
+                onPressed: () =>
+                    context.goNamed(AppRoutes.patientsWithBalance.name),
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                tooltip: l10n.patientsWithBalanceButton,
+              ),
+            ),
           if (canCreate)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -109,6 +128,7 @@ class PatientListPage extends ConsumerWidget {
               },
               hasNoShowPattern: hasNoShowPattern,
               recentVisits: recentVisits,
+              outstandingBalance: outstandingBalance,
             ),
           ),
         ],

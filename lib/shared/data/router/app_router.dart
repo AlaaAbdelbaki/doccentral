@@ -6,6 +6,7 @@ import 'package:docentral/features/clinic/presentation/providers/resolved_role_p
 import 'package:docentral/features/clinic/presentation/sign_up_page.dart';
 import 'package:docentral/features/day_closeout/presentation/day_closeout_page.dart';
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
+import 'package:docentral/features/invoice/presentation/patients_with_balance_page.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
 import 'package:docentral/features/settings/presentation/settings_page.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
@@ -96,6 +97,19 @@ GoRouter appRouter(Ref ref) {
         },
         builder: (BuildContext context, GoRouterState state) =>
             const AddStaffUserPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.patientsWithBalance.path,
+        name: AppRoutes.patientsWithBalance.name,
+        redirect: (BuildContext context, GoRouterState state) {
+          return permissionRouteGuard(
+            role: ref.read(currentRoleProvider),
+            required: Permission.canViewFinances,
+            redirectTo: AppRoutes.patients.path,
+          );
+        },
+        builder: (BuildContext context, GoRouterState state) =>
+            const PatientsWithBalancePage(),
       ),
       StatefulShellRoute.indexedStack(
         builder:

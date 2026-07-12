@@ -194,5 +194,12 @@
   "invoiceVoidReasonRequiredError": "السبب مطلوب لإلغاء هذه الفاتورة.",
   "invoiceRefundOwedLabel": "المبلغ المستحق استرداده",
   "invoiceAlreadyVoidedError": "تم إلغاء هذه الفاتورة بالفعل.",
-  "invoiceVoidedMessage": "تم إلغاء الفاتورة."
+  "invoiceVoidedMessage": "تم إلغاء الفاتورة.",
+  "patientsWithBalanceButton": "المرضى ذوو الرصيد",
+  "patientsWithBalancePageTitle": "المرضى ذوو الرصيد",
+  "patientsWithBalanceSortByBalance": "الرصيد",
+  "patientsWithBalanceSortByDaysSinceLastPayment": "الأيام منذ آخر دفعة",
+  "patientsWithBalanceEmptyState": "لا يوجد مرضى لديهم رصيد مستحق حالياً",
+  "patientsWithBalanceNoPaymentYet": "لم يتم تسجيل أي دفعة بعد",
+  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{آخر دفعة اليوم} =1{آخر دفعة قبل يوم واحد} other{آخر دفعة قبل {days} يوماً}}"
 }

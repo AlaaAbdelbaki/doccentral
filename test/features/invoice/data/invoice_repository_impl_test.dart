@@ -3,6 +3,7 @@ import 'package:docentral/features/invoice/domain/invoice_adjustment_type.dart';
 import 'package:docentral/features/invoice/domain/invoice_exceptions.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
 import 'package:docentral/features/invoice/domain/invoice_status.dart';
+import 'package:docentral/features/invoice/domain/patient_balance.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -29,7 +30,10 @@ void main() {
     await db.close();
   });
 
-  Future<String> seedPatient() async {
+  Future<String> seedPatient({
+    String firstName = 'Amine',
+    String lastName = 'Trabelsi',
+  }) async {
     final String id = uuid.v4();
     final DateTime now = DateTime.now();
     await db
@@ -37,8 +41,8 @@ void main() {
         .insert(
           PatientsCompanion.insert(
             id: id,
-            firstName: 'Amine',
-            lastName: 'Trabelsi',
+            firstName: firstName,
+            lastName: lastName,
             dateOfBirth: DateTime(1990),
             phone: '20123456',
             createdAt: now,
@@ -46,6 +50,27 @@ void main() {
           ),
         );
     return id;
+  }
+
+  Future<void> seedPayment({
+    required String invoiceId,
+    required double amount,
+    DateTime? paymentDate,
+  }) async {
+    final DateTime now = DateTime.now();
+    await db
+        .into(db.payments)
+        .insert(
+          PaymentsCompanion.insert(
+            id: uuid.v4(),
+            invoiceId: invoiceId,
+            amount: amount,
+            paymentDate: paymentDate ?? now,
+            recordedByUserId: 'assistant-1',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
   }
 
   Future<({String invoiceId, String visitId})> seedInvoice({
@@ -476,6 +501,163 @@ void main() {
           invoiceId: seeded.invoiceId,
           reason: 'Test reason',
         ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
+
+  group('InvoiceRepositoryImpl.watchOutstandingBalanceForPatient', () {
+    test('sums (total - paid) across non-voided Invoices, computed at read '
+        'time', () async {
+      final String patientId = await seedPatient();
+      final ({String invoiceId, String visitId}) invoiceA = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 100, 1)],
+        status: 'unpaid',
+      );
+      final ({String invoiceId, String visitId}) invoiceB = await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Cleaning', 50, 1)],
+        status: 'unpaid',
+      );
+      await seedPayment(invoiceId: invoiceA.invoiceId, amount: 30);
+
+      final double balance = await repository
+          .watchOutstandingBalanceForPatient(
+            role: Role.assistant,
+            patientId: patientId,
+          )
+          .first;
+
+      expect(balance, 120); // (100 - 30) + (50 - 0)
+
+      await seedPayment(invoiceId: invoiceB.invoiceId, amount: 50);
+
+      final double balanceAfterSecondPayment = await repository
+          .watchOutstandingBalanceForPatient(
+            role: Role.assistant,
+            patientId: patientId,
+          )
+          .first;
+      expect(balanceAfterSecondPayment, 70); // (100 - 30) + (50 - 50)
+    });
+
+    test('excludes voided Invoices entirely', () async {
+      final String patientId = await seedPatient();
+      await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 100, 1)],
+        status: 'voided',
+      );
+
+      final double balance = await repository
+          .watchOutstandingBalanceForPatient(
+            role: Role.assistant,
+            patientId: patientId,
+          )
+          .first;
+
+      expect(balance, 0);
+    });
+
+    test('rejects a Nurse with PermissionDeniedException', () async {
+      final String patientId = await seedPatient();
+
+      expect(
+        () => repository
+            .watchOutstandingBalanceForPatient(
+              role: Role.nurse,
+              patientId: patientId,
+            )
+            .first,
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
+
+  group('InvoiceRepositoryImpl.watchPatientsWithBalance', () {
+    test('lists only patients with a positive balance, with the correct '
+        'balance and most recent payment date', () async {
+      final String patientWithBalance = await seedPatient(
+        firstName: 'Amine',
+        lastName: 'Trabelsi',
+      );
+      final String patientFullyPaid = await seedPatient(
+        firstName: 'Sarra',
+        lastName: 'Ben Youssef',
+      );
+
+      final ({String invoiceId, String visitId}) invoiceA = await seedInvoice(
+        patientId: patientWithBalance,
+        treatmentItems: <(String, double, int)>[('Filling', 100, 1)],
+        status: 'unpaid',
+      );
+      await seedPayment(
+        invoiceId: invoiceA.invoiceId,
+        amount: 20,
+        paymentDate: DateTime(2026, 1, 10),
+      );
+      await seedPayment(
+        invoiceId: invoiceA.invoiceId,
+        amount: 10,
+        paymentDate: DateTime(2026, 1, 20),
+      );
+
+      final ({String invoiceId, String visitId}) invoiceB = await seedInvoice(
+        patientId: patientFullyPaid,
+        treatmentItems: <(String, double, int)>[('Cleaning', 50, 1)],
+        status: 'unpaid',
+      );
+      await seedPayment(invoiceId: invoiceB.invoiceId, amount: 50);
+
+      final List<PatientBalance> balances = await repository
+          .watchPatientsWithBalance(role: Role.doctor)
+          .first;
+
+      expect(balances.length, 1);
+      expect(balances.single.patient.id, patientWithBalance);
+      expect(balances.single.balance, 70);
+      expect(balances.single.lastPaymentDate, DateTime(2026, 1, 20));
+    });
+
+    test(
+      'a patient with a balance but no payments has a null lastPaymentDate',
+      () async {
+        final String patientId = await seedPatient();
+        await seedInvoice(
+          patientId: patientId,
+          treatmentItems: <(String, double, int)>[('Filling', 100, 1)],
+          status: 'unpaid',
+        );
+
+        final List<PatientBalance> balances = await repository
+            .watchPatientsWithBalance(role: Role.doctor)
+            .first;
+
+        expect(balances.single.lastPaymentDate, isNull);
+      },
+    );
+
+    test('excludes a soft-deleted patient', () async {
+      final String patientId = await seedPatient();
+      await seedInvoice(
+        patientId: patientId,
+        treatmentItems: <(String, double, int)>[('Filling', 100, 1)],
+        status: 'unpaid',
+      );
+      await (db.update(db.patients)..where((t) => t.id.equals(patientId)))
+          .write(PatientsCompanion(deletedAt: Value(DateTime.now())));
+
+      final List<PatientBalance> balances = await repository
+          .watchPatientsWithBalance(role: Role.doctor)
+          .first;
+
+      expect(balances, isEmpty);
+    });
+
+    test('rejects an Assistant with PermissionDeniedException', () async {
+      expect(
+        () => repository.watchPatientsWithBalance(role: Role.assistant).first,
         throwsA(isA<PermissionDeniedException>()),
       );
     });

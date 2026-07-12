@@ -8,7 +8,8 @@ enum AppRoutes {
   settings(path: '/settings', name: 'settings'),
   signUp(path: '/sign-up', name: 'signUp'),
   signIn(path: '/sign-in', name: 'signIn'),
-  addStaffUser(path: '/settings/add-staff', name: 'addStaffUser');
+  addStaffUser(path: '/settings/add-staff', name: 'addStaffUser'),
+  patientsWithBalance(path: '/patients/balance', name: 'patientsWithBalance');
 
   const AppRoutes({required this.path, required this.name});
 

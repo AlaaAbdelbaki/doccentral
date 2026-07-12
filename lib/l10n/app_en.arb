@@ -587,5 +587,29 @@
   "@invoiceAlreadyVoidedError": { "description": "Error shown when voiding an invoice that is already voided" },
 
   "invoiceVoidedMessage": "Invoice voided.",
-  "@invoiceVoidedMessage": { "description": "Confirmation message shown after an invoice is voided" }
+  "@invoiceVoidedMessage": { "description": "Confirmation message shown after an invoice is voided" },
+
+  "patientsWithBalanceButton": "Patients with balance",
+  "@patientsWithBalanceButton": { "description": "Button navigating to the patients-with-balance report" },
+
+  "patientsWithBalancePageTitle": "Patients with balance",
+  "@patientsWithBalancePageTitle": { "description": "Patients-with-balance page title" },
+
+  "patientsWithBalanceSortByBalance": "Balance",
+  "@patientsWithBalanceSortByBalance": { "description": "Sort option: by balance descending" },
+
+  "patientsWithBalanceSortByDaysSinceLastPayment": "Days since last payment",
+  "@patientsWithBalanceSortByDaysSinceLastPayment": { "description": "Sort option: by days since last payment descending" },
+
+  "patientsWithBalanceEmptyState": "No patients currently have an outstanding balance",
+  "@patientsWithBalanceEmptyState": { "description": "Empty state for the patients-with-balance list" },
+
+  "patientsWithBalanceNoPaymentYet": "No payment made yet",
+  "@patientsWithBalanceNoPaymentYet": { "description": "Shown for a patient with a balance who has never made a payment" },
+
+  "patientsWithBalanceDaysSinceLastPayment": "{days, plural, =0{Last payment today} =1{Last payment 1 day ago} other{Last payment {days} days ago}}",
+  "@patientsWithBalanceDaysSinceLastPayment": {
+    "description": "Days since the patient's last payment",
+    "placeholders": { "days": { "type": "int" } }
+  }
 }

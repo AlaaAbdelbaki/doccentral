@@ -9,6 +9,7 @@ class _PatientDetailPane extends StatelessWidget {
     required this.onDelete,
     required this.hasNoShowPattern,
     required this.recentVisits,
+    required this.outstandingBalance,
   });
 
   final PatientRecord? patient;
@@ -18,6 +19,7 @@ class _PatientDetailPane extends StatelessWidget {
   final VoidCallback onDelete;
   final bool hasNoShowPattern;
   final List<VisitRecord> recentVisits;
+  final double outstandingBalance;
 
   @override
   Widget build(BuildContext context) {
@@ -138,10 +140,11 @@ class _PatientDetailPane extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           _SectionCard(
             title: l10n.patientOutstandingBalanceSection,
-            // No Invoice/Payment data exists yet (Epic 7) — this is a genuine
-            // zero, not a stubbed placeholder value.
             child: Text(
-              NumberFormat.currency(symbol: 'TND', decimalDigits: 3).format(0),
+              NumberFormat.currency(
+                symbol: 'TND',
+                decimalDigits: 3,
+              ).format(outstandingBalance),
             ),
           ),
           const SizedBox(height: AppSpacing.md),

@@ -6,6 +6,7 @@ import 'package:docentral/features/invoice/domain/invoice_item.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
 import 'package:docentral/features/invoice/domain/invoice_repository.dart';
 import 'package:docentral/features/invoice/domain/invoice_status.dart';
+import 'package:docentral/features/invoice/domain/patient_balance.dart';
 import 'package:docentral/features/invoice/domain/payment.dart';
 import 'package:docentral/features/invoice/domain/payment_exceptions.dart';
 import 'package:docentral/features/invoice/domain/payment_method.dart';
@@ -156,6 +157,16 @@ class _FakeInvoiceRepository implements InvoiceRepository {
     }
     _changes.add(null);
   }
+
+  @override
+  Stream<double> watchOutstandingBalanceForPatient({
+    required Role role,
+    required String patientId,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<PatientBalance>> watchPatientsWithBalance({required Role role}) =>
+      throw UnimplementedError('not exercised by this test');
 }
 
 class _FakePaymentRepository implements PaymentRepository {

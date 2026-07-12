@@ -3,6 +3,12 @@ import 'package:docentral/features/appointment/domain/appointment_repository.dar
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/invoice/domain/invoice_adjustment_type.dart';
+import 'package:docentral/features/invoice/domain/invoice_item.dart';
+import 'package:docentral/features/invoice/domain/invoice_record.dart';
+import 'package:docentral/features/invoice/domain/invoice_repository.dart';
+import 'package:docentral/features/invoice/domain/patient_balance.dart';
+import 'package:docentral/features/invoice/presentation/providers/invoice_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/patient_list_page.dart';
@@ -142,6 +148,54 @@ class _FakeVisitRepository implements VisitRepository {
   }) => throw UnimplementedError('not exercised by this test');
 }
 
+class _FakeInvoiceRepository implements InvoiceRepository {
+  @override
+  Stream<InvoiceRecord?> watchInvoiceForVisit({
+    required Role role,
+    required String visitId,
+  }) => Stream.value(null);
+
+  @override
+  Stream<List<InvoiceItem>> watchItemsForInvoice({
+    required Role role,
+    required String invoiceId,
+  }) => Stream.value(const <InvoiceItem>[]);
+
+  @override
+  Future<String> addAdjustment({
+    required Role role,
+    required String invoiceId,
+    required InvoiceAdjustmentType adjustmentType,
+    required String description,
+    required double amount,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> finalizeInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<void> voidInvoice({
+    required Role role,
+    required String actorUserId,
+    required String invoiceId,
+    required String reason,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<double> watchOutstandingBalanceForPatient({
+    required Role role,
+    required String patientId,
+  }) => Stream.value(0);
+
+  @override
+  Stream<List<PatientBalance>> watchPatientsWithBalance({required Role role}) =>
+      Stream.value(const <PatientBalance>[]);
+}
+
 class _FakePatientRepository implements PatientRepository {
   _FakePatientRepository(this._patients);
 
@@ -240,6 +294,7 @@ Future<ProviderContainer> _pumpPage(
       visitRepositoryProvider.overrideWithValue(
         _FakeVisitRepository(visits: visits),
       ),
+      invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
     ],
   );
   addTearDown(container.dispose);
@@ -358,7 +413,10 @@ void main() {
       seedPatients,
     );
     final ProviderContainer container = ProviderContainer(
-      overrides: [patientRepositoryProvider.overrideWithValue(fakeRepository)],
+      overrides: [
+        patientRepositoryProvider.overrideWithValue(fakeRepository),
+        invoiceRepositoryProvider.overrideWithValue(_FakeInvoiceRepository()),
+      ],
     );
     addTearDown(container.dispose);
     container.read(currentRoleProvider.notifier).setRole(Role.doctor);

@@ -4,6 +4,8 @@ import 'package:docentral/features/invoice/domain/invoice_item.dart';
 import 'package:docentral/features/invoice/domain/invoice_record.dart';
 import 'package:docentral/features/invoice/domain/invoice_repository.dart';
 import 'package:docentral/features/invoice/domain/invoice_status.dart';
+import 'package:docentral/features/invoice/domain/patient_balance.dart';
+import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/invoice_items_table.dart';
 import 'package:docentral/shared/data/database/tables/invoices_table.dart';
@@ -233,5 +235,141 @@ class InvoiceRepositoryImpl implements InvoiceRepository {
             ),
           );
     });
+  }
+
+  @override
+  Stream<double> watchOutstandingBalanceForPatient({
+    required Role role,
+    required String patientId,
+  }) {
+    requirePermission(role, Permission.canEditInvoice);
+
+    final JoinedSelectStatement<HasResultSet, dynamic> query =
+        _db.select(_db.invoices).join([
+          leftOuterJoin(
+            _db.payments,
+            _db.payments.invoiceId.equalsExp(_db.invoices.id),
+          ),
+        ])..where(
+          _db.invoices.patientId.equals(patientId) &
+              _db.invoices.status.equals(InvoiceStatus.voided.name).not() &
+              _db.invoices.deletedAt.isNull(),
+        );
+
+    return query.watch().map(_computeBalance);
+  }
+
+  double _computeBalance(List<TypedResult> rows) {
+    final Map<String, double> totalsByInvoice = <String, double>{};
+    final Map<String, double> paidByInvoice = <String, double>{};
+
+    for (final TypedResult row in rows) {
+      final Invoice invoice = row.readTable(_db.invoices);
+      totalsByInvoice[invoice.id] = invoice.totalAmount;
+      final PaymentRow? payment = row.readTableOrNull(_db.payments);
+      if (payment != null) {
+        paidByInvoice[invoice.id] =
+            (paidByInvoice[invoice.id] ?? 0) + payment.amount;
+      }
+    }
+
+    return totalsByInvoice.entries.fold(
+      0.0,
+      (double sum, MapEntry<String, double> entry) =>
+          sum + (entry.value - (paidByInvoice[entry.key] ?? 0)),
+    );
+  }
+
+  @override
+  Stream<List<PatientBalance>> watchPatientsWithBalance({required Role role}) {
+    requirePermission(role, Permission.canViewFinances);
+
+    final JoinedSelectStatement<HasResultSet, dynamic> query =
+        _db.select(_db.patients).join([
+          innerJoin(
+            _db.invoices,
+            _db.invoices.patientId.equalsExp(_db.patients.id),
+          ),
+          leftOuterJoin(
+            _db.payments,
+            _db.payments.invoiceId.equalsExp(_db.invoices.id),
+          ),
+        ])..where(
+          _db.invoices.status.equals(InvoiceStatus.voided.name).not() &
+              _db.invoices.deletedAt.isNull() &
+              _db.patients.deletedAt.isNull(),
+        );
+
+    return query.watch().map(_groupPatientBalances);
+  }
+
+  List<PatientBalance> _groupPatientBalances(List<TypedResult> rows) {
+    final Map<String, Patient> patientRows = <String, Patient>{};
+    final Map<String, Map<String, double>> totalsByPatientInvoice =
+        <String, Map<String, double>>{};
+    final Map<String, Map<String, double>> paidByPatientInvoice =
+        <String, Map<String, double>>{};
+    final Map<String, DateTime?> lastPaymentByPatient = <String, DateTime?>{};
+
+    for (final TypedResult row in rows) {
+      final Patient patient = row.readTable(_db.patients);
+      final Invoice invoice = row.readTable(_db.invoices);
+      final PaymentRow? payment = row.readTableOrNull(_db.payments);
+
+      patientRows[patient.id] = patient;
+      totalsByPatientInvoice.putIfAbsent(
+        patient.id,
+        () => <String, double>{},
+      )[invoice.id] = invoice.totalAmount;
+
+      if (payment != null) {
+        final Map<String, double> paidMap = paidByPatientInvoice.putIfAbsent(
+          patient.id,
+          () => <String, double>{},
+        );
+        paidMap[invoice.id] = (paidMap[invoice.id] ?? 0) + payment.amount;
+
+        final DateTime? current = lastPaymentByPatient[patient.id];
+        if (current == null || payment.paymentDate.isAfter(current)) {
+          lastPaymentByPatient[patient.id] = payment.paymentDate;
+        }
+      }
+    }
+
+    final List<PatientBalance> results = <PatientBalance>[];
+    for (final MapEntry<String, Map<String, double>> entry
+        in totalsByPatientInvoice.entries) {
+      final String patientId = entry.key;
+      final Map<String, double> paid =
+          paidByPatientInvoice[patientId] ?? const <String, double>{};
+      final double balance = entry.value.entries.fold(
+        0.0,
+        (double sum, MapEntry<String, double> invoiceEntry) =>
+            sum + (invoiceEntry.value - (paid[invoiceEntry.key] ?? 0)),
+      );
+
+      if (balance > 0) {
+        results.add(
+          PatientBalance(
+            patient: _toPatientRecord(patientRows[patientId]!),
+            balance: balance,
+            lastPaymentDate: lastPaymentByPatient[patientId],
+          ),
+        );
+      }
+    }
+    return results;
+  }
+
+  PatientRecord _toPatientRecord(Patient row) {
+    return PatientRecord(
+      id: row.id,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      dateOfBirth: row.dateOfBirth,
+      phone: row.phone,
+      email: row.email,
+      historyNotes: row.historyNotes,
+    );
   }
 }
