@@ -213,5 +213,7 @@
   "treatmentPlanStatusScheduled": "Programmé",
   "treatmentPlanStatusInProgress": "En cours",
   "treatmentPlanStatusDone": "Terminé",
-  "treatmentPlanStatusCancelled": "Annulé"
+  "treatmentPlanStatusCancelled": "Annulé",
+  "appointmentPlannedTreatmentsField": "Traitements planifiés",
+  "appointmentPlannedTreatmentAlreadyBookedError": "L'un des traitements planifiés sélectionnés est déjà réservé sur un autre rendez-vous."
 }

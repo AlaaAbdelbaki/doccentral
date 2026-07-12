@@ -8,6 +8,7 @@ class AppointmentFormResult {
     required this.endTime,
     this.reason,
     this.notes,
+    this.plannedTreatmentIds = const <String>[],
   });
 
   final String patientId;
@@ -16,6 +17,7 @@ class AppointmentFormResult {
   final DateTime endTime;
   final String? reason;
   final String? notes;
+  final List<String> plannedTreatmentIds;
 }
 
 class _AppointmentFormDialog extends ConsumerStatefulWidget {
@@ -27,6 +29,7 @@ class _AppointmentFormDialog extends ConsumerStatefulWidget {
     this.title,
     this.prefillPatientId,
     this.prefillAssignedUserId,
+    this.showPlannedTreatments = true,
   });
 
   final void Function(AppointmentFormResult result) onSubmit;
@@ -41,6 +44,11 @@ class _AppointmentFormDialog extends ConsumerStatefulWidget {
   final String? title;
   final String? prefillPatientId;
   final String? prefillAssignedUserId;
+
+  /// Whether to show the Planned Treatments checklist. Off for the
+  /// reschedule flow, which creates a brand-new appointment via
+  /// `rescheduleAppointment` (out of scope for Story 6.2's linking).
+  final bool showPlannedTreatments;
 
   @override
   ConsumerState<_AppointmentFormDialog> createState() =>
@@ -58,6 +66,8 @@ class _AppointmentFormDialogState
   DateTime? _startTime;
   DateTime? _endTime;
   String? _patientError;
+  Set<String> _selectedPlannedTreatmentIds = <String>{};
+  bool _plannedTreatmentSelectionInitialized = false;
 
   @override
   void initState() {
@@ -184,6 +194,7 @@ class _AppointmentFormDialogState
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
+        plannedTreatmentIds: _selectedPlannedTreatmentIds.toList(),
       ),
     );
     Navigator.of(context).pop();
@@ -194,6 +205,34 @@ class _AppointmentFormDialogState
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final DateTime? startTime = _startTime;
     final DateTime? endTime = _endTime;
+
+    final AppointmentRecord? initial = widget.initial;
+    if (widget.showPlannedTreatments &&
+        initial != null &&
+        !_plannedTreatmentSelectionInitialized) {
+      final AsyncValue<List<PlannedTreatment>> linkedAsync = ref.watch(
+        linkedPlannedTreatmentsProvider(initial.id),
+      );
+      if (linkedAsync.hasValue) {
+        _selectedPlannedTreatmentIds = linkedAsync.value!
+            .map((PlannedTreatment t) => t.id)
+            .toSet();
+        _plannedTreatmentSelectionInitialized = true;
+      }
+    }
+
+    final PatientRecord? selectedPatient = _selectedPatient;
+    final List<PlannedTreatment> selectablePlannedTreatments =
+        !widget.showPlannedTreatments || selectedPatient == null
+        ? const <PlannedTreatment>[]
+        : (ref.watch(plannedTreatmentsProvider(selectedPatient.id)).value ??
+                  const <PlannedTreatment>[])
+              .where(
+                (PlannedTreatment t) =>
+                    t.status == PlannedTreatmentStatus.planned ||
+                    _selectedPlannedTreatmentIds.contains(t.id),
+              )
+              .toList();
 
     return AlertDialog(
       title: Text(
@@ -290,6 +329,37 @@ class _AppointmentFormDialogState
                   ),
                   maxLines: 3,
                 ),
+                if (selectablePlannedTreatments.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppSpacing.sm),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      l10n.appointmentPlannedTreatmentsField,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  for (final PlannedTreatment treatment
+                      in selectablePlannedTreatments)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _selectedPlannedTreatmentIds.contains(
+                        treatment.id,
+                      ),
+                      title: Text(
+                        '${treatment.procedureName} '
+                        '(${l10n.treatmentPlanToothNumberField}: ${treatment.toothNumber})',
+                      ),
+                      onChanged: (bool? checked) {
+                        setState(() {
+                          if (checked ?? false) {
+                            _selectedPlannedTreatmentIds.add(treatment.id);
+                          } else {
+                            _selectedPlannedTreatmentIds.remove(treatment.id);
+                          }
+                        });
+                      },
+                    ),
+                ],
               ],
             ),
           ),

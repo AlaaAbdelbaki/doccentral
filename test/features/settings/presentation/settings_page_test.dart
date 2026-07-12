@@ -4,6 +4,7 @@ import 'package:docentral/features/appointment/domain/appointment_repository.dar
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
@@ -44,6 +45,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) => throw UnimplementedError('not exercised by this test');
 
   @override
@@ -57,6 +59,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) => throw UnimplementedError('not exercised by this test');
 
   @override
@@ -85,6 +88,12 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     required Role role,
     required String patientId,
   }) => Stream.value(0);
+
+  @override
+  Stream<List<PlannedTreatment>> watchLinkedPlannedTreatments({
+    required Role role,
+    required String appointmentId,
+  }) => Stream.value(const <PlannedTreatment>[]);
 }
 
 class _FakeClinicRepository implements ClinicRepository {

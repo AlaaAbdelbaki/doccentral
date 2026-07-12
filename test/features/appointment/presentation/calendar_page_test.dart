@@ -11,6 +11,10 @@ import 'package:docentral/features/appointment/presentation/providers/appointmen
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_repository.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
+import 'package:docentral/features/treatment_plan/presentation/providers/planned_treatment_repository_provider.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_repository.dart';
@@ -68,14 +72,24 @@ class _FakeAppointmentRepository implements AppointmentRepository {
   _FakeAppointmentRepository(
     List<AppointmentRecord> appointments, {
     this.assignableUsers = const <AssignableUser>[],
-  }) : _appointments = List<AppointmentRecord>.of(appointments);
+    Map<String, PlannedTreatment> plannedTreatmentsById =
+        const <String, PlannedTreatment>{},
+    Map<String, List<String>> initialLinks = const <String, List<String>>{},
+  }) : _appointments = List<AppointmentRecord>.of(appointments),
+       _plannedTreatmentsById = plannedTreatmentsById,
+       linkedTreatmentIdsByAppointment = Map<String, List<String>>.of(
+         initialLinks,
+       );
 
   final List<AppointmentRecord> _appointments;
   final List<AssignableUser> assignableUsers;
+  final Map<String, PlannedTreatment> _plannedTreatmentsById;
+  final Map<String, List<String>> linkedTreatmentIdsByAppointment;
   final List<AppointmentRecord> created = <AppointmentRecord>[];
   final List<AppointmentRecord> updatedCalls = <AppointmentRecord>[];
   final List<CancellationReason> cancelledReasons = <CancellationReason>[];
   final List<AppointmentRecord> rescheduledTo = <AppointmentRecord>[];
+  Object? plannedTreatmentErrorToThrow;
   final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
@@ -134,9 +148,13 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     if (!overrideOverlap && _overlaps(assignedUserId, startTime, endTime)) {
       throw const AppointmentOverlapException();
+    }
+    if (plannedTreatmentErrorToThrow != null) {
+      throw plannedTreatmentErrorToThrow!;
     }
     final String id = 'new-${_appointments.length}';
     final AppointmentRecord record = AppointmentRecord(
@@ -152,6 +170,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     );
     _appointments.add(record);
     created.add(record);
+    linkedTreatmentIdsByAppointment[id] = plannedTreatmentIds;
     _changes.add(null);
     return id;
   }
@@ -167,6 +186,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     final int index = _appointments.indexWhere(
       (AppointmentRecord a) => a.id == appointmentId,
@@ -184,6 +204,9 @@ class _FakeAppointmentRepository implements AppointmentRepository {
         )) {
       throw const AppointmentOverlapException();
     }
+    if (plannedTreatmentErrorToThrow != null) {
+      throw plannedTreatmentErrorToThrow!;
+    }
     final AppointmentRecord updated = AppointmentRecord(
       id: existing.id,
       patientId: existing.patientId,
@@ -197,6 +220,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     );
     _appointments[index] = updated;
     updatedCalls.add(updated);
+    linkedTreatmentIdsByAppointment[appointmentId] = plannedTreatmentIds;
     _changes.add(null);
   }
 
@@ -288,6 +312,22 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     required Role role,
     required String patientId,
   }) => Stream.value(0);
+
+  @override
+  Stream<List<PlannedTreatment>> watchLinkedPlannedTreatments({
+    required Role role,
+    required String appointmentId,
+  }) async* {
+    List<PlannedTreatment> current() =>
+        (linkedTreatmentIdsByAppointment[appointmentId] ?? const <String>[])
+            .map((String id) => _plannedTreatmentsById[id])
+            .whereType<PlannedTreatment>()
+            .toList();
+    yield current();
+    await for (final _ in _changes.stream) {
+      yield current();
+    }
+  }
 
   void markCheckedIn(String appointmentId) {
     final int index = _appointments.indexWhere(
@@ -401,16 +441,51 @@ class _FakeVisitRepository implements VisitRepository {
   }) => throw UnimplementedError('not exercised by this test');
 }
 
+class _FakePlannedTreatmentRepository implements PlannedTreatmentRepository {
+  _FakePlannedTreatmentRepository([
+    List<PlannedTreatment> treatments = const [],
+  ]) : _treatments = List<PlannedTreatment>.of(treatments);
+
+  final List<PlannedTreatment> _treatments;
+
+  @override
+  Stream<List<PlannedTreatment>> watchForPatient({
+    required Role role,
+    required String patientId,
+  }) => Stream.value(
+    _treatments
+        .where((PlannedTreatment t) => t.patientId == patientId)
+        .toList(),
+  );
+
+  @override
+  Future<String> addPlannedTreatment({
+    required Role role,
+    required String patientId,
+    required String procedureName,
+    required String toothNumber,
+    required double estimatedUnitPrice,
+    DateTime? targetDate,
+  }) => throw UnimplementedError('not exercised by this test');
+}
+
 Future<_FakeAppointmentRepository> _pumpPage(
   WidgetTester tester,
   List<AppointmentRecord> appointments, {
   List<AssignableUser> assignableUsers = const <AssignableUser>[],
   List<PatientRecord> patients = const <PatientRecord>[],
+  List<PlannedTreatment> plannedTreatments = const <PlannedTreatment>[],
+  Map<String, List<String>> initialLinks = const <String, List<String>>{},
   Role role = Role.assistant,
 }) async {
+  final Map<String, PlannedTreatment> plannedTreatmentsById = {
+    for (final PlannedTreatment t in plannedTreatments) t.id: t,
+  };
   final _FakeAppointmentRepository fakeRepository = _FakeAppointmentRepository(
     appointments,
     assignableUsers: assignableUsers,
+    plannedTreatmentsById: plannedTreatmentsById,
+    initialLinks: initialLinks,
   );
   addTearDown(() => fakeRepository._changes.close());
   final _FakeVisitRepository fakeVisitRepository = _FakeVisitRepository(
@@ -424,6 +499,9 @@ Future<_FakeAppointmentRepository> _pumpPage(
         _FakePatientRepository(patients),
       ),
       visitRepositoryProvider.overrideWithValue(fakeVisitRepository),
+      plannedTreatmentRepositoryProvider.overrideWithValue(
+        _FakePlannedTreatmentRepository(plannedTreatments),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -937,4 +1015,241 @@ void main() {
 
     expect(find.text('Clear all'), findsNothing);
   });
+
+  testWidgets('the day view shows a summary of linked planned treatments', (
+    WidgetTester tester,
+  ) async {
+    final DateTime start = DateTime.now();
+    await _pumpPage(
+      tester,
+      <AppointmentRecord>[
+        AppointmentRecord(
+          id: '1',
+          patientId: 'p1',
+          patientName: 'Amine Trabelsi',
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          status: AppointmentStatus.scheduled,
+        ),
+      ],
+      plannedTreatments: const <PlannedTreatment>[
+        PlannedTreatment(
+          id: 'pt1',
+          patientId: 'p1',
+          procedureName: 'Root canal',
+          toothNumber: '14',
+          estimatedUnitPrice: 250,
+          sequenceNumber: 1,
+          status: PlannedTreatmentStatus.scheduled,
+        ),
+      ],
+      initialLinks: const <String, List<String>>{
+        '1': <String>['pt1'],
+      },
+    );
+
+    expect(find.text('Root canal'), findsOneWidget);
+  });
+
+  testWidgets(
+    'editing an appointment for a patient with planned treatments shows the checklist pre-selected with already-linked treatments',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now().add(const Duration(days: 1));
+      final AppointmentRecord existing = AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      );
+
+      await _pumpPage(
+        tester,
+        <AppointmentRecord>[existing],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        ],
+        patients: <PatientRecord>[
+          PatientRecord(
+            id: 'p1',
+            firstName: 'Amine',
+            lastName: 'Trabelsi',
+            dateOfBirth: DateTime(1990),
+            phone: '20123456',
+          ),
+        ],
+        plannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt1',
+            patientId: 'p1',
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: PlannedTreatmentStatus.scheduled,
+          ),
+          PlannedTreatment(
+            id: 'pt2',
+            patientId: 'p1',
+            procedureName: 'Filling',
+            toothNumber: '22',
+            estimatedUnitPrice: 100,
+            sequenceNumber: 2,
+            status: PlannedTreatmentStatus.planned,
+          ),
+        ],
+        initialLinks: const <String, List<String>>{
+          '1': <String>['pt1'],
+        },
+      );
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Planned treatments'), findsOneWidget);
+      final CheckboxListTile rootCanalTile = tester.widget<CheckboxListTile>(
+        find.ancestor(
+          of: find.text('Root canal (Tooth number: 14)'),
+          matching: find.byType(CheckboxListTile),
+        ),
+      );
+      expect(rootCanalTile.value, isTrue);
+      final CheckboxListTile fillingTile = tester.widget<CheckboxListTile>(
+        find.ancestor(
+          of: find.text('Filling (Tooth number: 22)'),
+          matching: find.byType(CheckboxListTile),
+        ),
+      );
+      expect(fillingTile.value, isFalse);
+    },
+  );
+
+  testWidgets(
+    'selecting an additional planned treatment and saving links it to the appointment',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now().add(const Duration(days: 1));
+      final AppointmentRecord existing = AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      );
+
+      final _FakeAppointmentRepository fakeRepository = await _pumpPage(
+        tester,
+        <AppointmentRecord>[existing],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        ],
+        patients: <PatientRecord>[
+          PatientRecord(
+            id: 'p1',
+            firstName: 'Amine',
+            lastName: 'Trabelsi',
+            dateOfBirth: DateTime(1990),
+            phone: '20123456',
+          ),
+        ],
+        plannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt2',
+            patientId: 'p1',
+            procedureName: 'Filling',
+            toothNumber: '22',
+            estimatedUnitPrice: 100,
+            sequenceNumber: 2,
+            status: PlannedTreatmentStatus.planned,
+          ),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Filling (Tooth number: 22)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Filling (Tooth number: 22)'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.linkedTreatmentIdsByAppointment['1'], <String>[
+        'pt2',
+      ]);
+    },
+  );
+
+  testWidgets(
+    'linking a planned treatment already booked elsewhere shows an error',
+    (WidgetTester tester) async {
+      final DateTime start = DateTime.now().add(const Duration(days: 1));
+      final AppointmentRecord existing = AppointmentRecord(
+        id: '1',
+        patientId: 'p1',
+        patientName: 'Amine Trabelsi',
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        status: AppointmentStatus.scheduled,
+      );
+
+      final _FakeAppointmentRepository fakeRepository = await _pumpPage(
+        tester,
+        <AppointmentRecord>[existing],
+        assignableUsers: const <AssignableUser>[
+          AssignableUser(id: 'dentist-1', name: 'Dr. Sami', role: Role.doctor),
+        ],
+        patients: <PatientRecord>[
+          PatientRecord(
+            id: 'p1',
+            firstName: 'Amine',
+            lastName: 'Trabelsi',
+            dateOfBirth: DateTime(1990),
+            phone: '20123456',
+          ),
+        ],
+        plannedTreatments: const <PlannedTreatment>[
+          PlannedTreatment(
+            id: 'pt2',
+            patientId: 'p1',
+            procedureName: 'Filling',
+            toothNumber: '22',
+            estimatedUnitPrice: 100,
+            sequenceNumber: 2,
+            status: PlannedTreatmentStatus.planned,
+          ),
+        ],
+      );
+      fakeRepository.plannedTreatmentErrorToThrow =
+          const PlannedTreatmentAlreadyBookedException();
+
+      await tester.tap(find.byIcon(Icons.edit_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Filling (Tooth number: 22)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Filling (Tooth number: 22)'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'One of the selected planned treatments is already booked on another appointment.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

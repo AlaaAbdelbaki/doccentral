@@ -22,6 +22,7 @@ class AppointmentController extends _$AppointmentController {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     final Role? role = ref.read(currentRoleProvider);
     if (role == null) {
@@ -45,6 +46,7 @@ class AppointmentController extends _$AppointmentController {
             reason: reason,
             notes: notes,
             overrideOverlap: overrideOverlap,
+            plannedTreatmentIds: plannedTreatmentIds,
           ),
     );
   }
@@ -57,6 +59,7 @@ class AppointmentController extends _$AppointmentController {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     final Role? role = ref.read(currentRoleProvider);
     final String? actorUserId = ref.read(currentUserIdProvider);
@@ -82,6 +85,7 @@ class AppointmentController extends _$AppointmentController {
             reason: reason,
             notes: notes,
             overrideOverlap: overrideOverlap,
+            plannedTreatmentIds: plannedTreatmentIds,
           ),
     );
   }

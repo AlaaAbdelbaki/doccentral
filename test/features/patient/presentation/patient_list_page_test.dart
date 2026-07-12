@@ -57,6 +57,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) => throw UnimplementedError('not exercised by this test');
 
   @override
@@ -70,6 +71,7 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) => throw UnimplementedError('not exercised by this test');
 
   @override
@@ -98,6 +100,12 @@ class _FakeAppointmentRepository implements AppointmentRepository {
     required Role role,
     required String patientId,
   }) => Stream.value(0);
+
+  @override
+  Stream<List<PlannedTreatment>> watchLinkedPlannedTreatments({
+    required Role role,
+    required String appointmentId,
+  }) => Stream.value(const <PlannedTreatment>[]);
 }
 
 class _FakeVisitRepository implements VisitRepository {

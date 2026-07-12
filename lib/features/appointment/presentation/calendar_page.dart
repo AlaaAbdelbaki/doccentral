@@ -11,10 +11,14 @@ import 'package:docentral/features/appointment/presentation/providers/assignable
 import 'package:docentral/features/appointment/presentation/providers/calendar_view_mode_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/calendar_week_anchor_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/filtered_appointments_provider.dart';
+import 'package:docentral/features/appointment/presentation/providers/linked_planned_treatments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/todays_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/presentation/providers/selected_patient_provider.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
+import 'package:docentral/features/treatment_plan/presentation/providers/planned_treatments_provider.dart';
 import 'package:docentral/features/visit/domain/visit_exceptions.dart';
 import 'package:docentral/features/visit/domain/visit_record.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
@@ -189,6 +193,7 @@ Future<void> _handleSubmit(
       endTime: result.endTime,
       reason: result.reason,
       notes: result.notes,
+      plannedTreatmentIds: result.plannedTreatmentIds,
     );
   } else {
     await controller.updateAppointment(
@@ -198,6 +203,7 @@ Future<void> _handleSubmit(
       endTime: result.endTime,
       reason: result.reason,
       notes: result.notes,
+      plannedTreatmentIds: result.plannedTreatmentIds,
     );
   }
 
@@ -216,6 +222,7 @@ Future<void> _handleSubmit(
         reason: result.reason,
         notes: result.notes,
         overrideOverlap: true,
+        plannedTreatmentIds: result.plannedTreatmentIds,
       );
     } else {
       await controller.updateAppointment(
@@ -226,6 +233,7 @@ Future<void> _handleSubmit(
         reason: result.reason,
         notes: result.notes,
         overrideOverlap: true,
+        plannedTreatmentIds: result.plannedTreatmentIds,
       );
     }
   } else if (error is AppointmentNotEditableException) {
@@ -234,6 +242,14 @@ Future<void> _handleSubmit(
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.appointmentNotEditableError)));
+  } else if (error is PlannedTreatmentAlreadyBookedException) {
+    if (!context.mounted) return;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.appointmentPlannedTreatmentAlreadyBookedError),
+      ),
+    );
   }
 }
 
@@ -293,6 +309,7 @@ Future<void> _showRescheduleDialog(
         assignableUsers: assignableUsers,
         prefillPatientId: original.patientId,
         prefillAssignedUserId: original.assignedUserId,
+        showPlannedTreatments: false,
         onSubmit: (AppointmentFormResult result) {
           _handleReschedule(context, ref, original: original, result: result);
         },

@@ -63,6 +63,27 @@ class _AppointmentRow extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      Consumer(
+                        builder: (BuildContext context, WidgetRef ref, _) {
+                          final List<PlannedTreatment> linked =
+                              ref
+                                  .watch(
+                                    linkedPlannedTreatmentsProvider(
+                                      appointment.id,
+                                    ),
+                                  )
+                                  .value ??
+                              const <PlannedTreatment>[];
+                          if (linked.isEmpty) return const SizedBox.shrink();
+                          return Text(
+                            linked
+                                .map((PlannedTreatment t) => t.procedureName)
+                                .join(', '),
+                            style: Theme.of(context).textTheme.labelSmall,
+                            overflow: TextOverflow.ellipsis,
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),

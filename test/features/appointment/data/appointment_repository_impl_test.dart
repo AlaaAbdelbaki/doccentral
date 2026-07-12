@@ -4,6 +4,7 @@ import 'package:docentral/features/appointment/domain/appointment_record.dart';
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
@@ -94,6 +95,30 @@ void main() {
           ),
         );
     return userId;
+  }
+
+  Future<String> seedPlannedTreatment({
+    required String patientId,
+    String status = 'planned',
+  }) async {
+    final String id = uuid.v4();
+    final DateTime now = DateTime.now();
+    await db
+        .into(db.plannedTreatments)
+        .insert(
+          PlannedTreatmentsCompanion.insert(
+            id: id,
+            patientId: patientId,
+            procedureName: 'Root canal',
+            toothNumber: '14',
+            estimatedUnitPrice: 250,
+            sequenceNumber: 1,
+            status: Value(status),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return id;
   }
 
   Future<String> seedAppointment({
@@ -717,6 +742,147 @@ void main() {
           .first;
 
       expect(count, 2);
+    });
+  });
+
+  group('AppointmentRepositoryImpl planned-treatment linking', () {
+    test(
+      'createAppointment with plannedTreatmentIds links them and marks them scheduled',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String treatmentId = await seedPlannedTreatment(
+          patientId: patientId,
+        );
+        final DateTime start = DateTime(2026, 6, 8, 9);
+
+        final String appointmentId = await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          plannedTreatmentIds: <String>[treatmentId],
+        );
+
+        final List<PlannedTreatment> linked = await repository
+            .watchLinkedPlannedTreatments(
+              role: Role.assistant,
+              appointmentId: appointmentId,
+            )
+            .first;
+        expect(linked.single.id, treatmentId);
+
+        final PlannedTreatmentRow treatment = await (db.select(
+          db.plannedTreatments,
+        )..where((t) => t.id.equals(treatmentId))).getSingle();
+        expect(treatment.status, 'scheduled');
+      },
+    );
+
+    test(
+      'createAppointment throws PlannedTreatmentAlreadyBookedException when '
+      'the treatment is already linked to another non-cancelled appointment',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String treatmentId = await seedPlannedTreatment(
+          patientId: patientId,
+        );
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          plannedTreatmentIds: <String>[treatmentId],
+        );
+
+        expect(
+          () => repository.createAppointment(
+            role: Role.assistant,
+            patientId: patientId,
+            assignedUserId: 'dentist-2',
+            startTime: start.add(const Duration(hours: 2)),
+            endTime: start.add(const Duration(hours: 2, minutes: 30)),
+            plannedTreatmentIds: <String>[treatmentId],
+          ),
+          throwsA(isA<PlannedTreatmentAlreadyBookedException>()),
+        );
+      },
+    );
+
+    test(
+      'updateAppointment removing a link reverts the treatment to planned',
+      () async {
+        final String patientId = await seedPatient('Amine', 'Trabelsi');
+        final String treatmentId = await seedPlannedTreatment(
+          patientId: patientId,
+        );
+        final DateTime start = DateTime(2026, 6, 8, 9);
+        final String appointmentId = await repository.createAppointment(
+          role: Role.assistant,
+          patientId: patientId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+          plannedTreatmentIds: <String>[treatmentId],
+        );
+
+        await repository.updateAppointment(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          appointmentId: appointmentId,
+          assignedUserId: 'dentist-1',
+          startTime: start,
+          endTime: start.add(const Duration(minutes: 30)),
+        );
+
+        final List<PlannedTreatment> linked = await repository
+            .watchLinkedPlannedTreatments(
+              role: Role.assistant,
+              appointmentId: appointmentId,
+            )
+            .first;
+        expect(linked, isEmpty);
+
+        final PlannedTreatmentRow treatment = await (db.select(
+          db.plannedTreatments,
+        )..where((t) => t.id.equals(treatmentId))).getSingle();
+        expect(treatment.status, 'planned');
+      },
+    );
+
+    test('updateAppointment can add a new link', () async {
+      final String patientId = await seedPatient('Amine', 'Trabelsi');
+      final String treatmentId = await seedPlannedTreatment(
+        patientId: patientId,
+      );
+      final DateTime start = DateTime(2026, 6, 8, 9);
+      final String appointmentId = await repository.createAppointment(
+        role: Role.assistant,
+        patientId: patientId,
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+      );
+
+      await repository.updateAppointment(
+        role: Role.assistant,
+        actorUserId: 'actor-1',
+        appointmentId: appointmentId,
+        assignedUserId: 'dentist-1',
+        startTime: start,
+        endTime: start.add(const Duration(minutes: 30)),
+        plannedTreatmentIds: <String>[treatmentId],
+      );
+
+      final List<PlannedTreatment> linked = await repository
+          .watchLinkedPlannedTreatments(
+            role: Role.assistant,
+            appointmentId: appointmentId,
+          )
+          .first;
+      expect(linked.single.id, treatmentId);
     });
   });
 }

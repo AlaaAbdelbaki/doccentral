@@ -647,5 +647,11 @@
   "@treatmentPlanStatusDone": { "description": "Planned treatment status: done" },
 
   "treatmentPlanStatusCancelled": "Cancelled",
-  "@treatmentPlanStatusCancelled": { "description": "Planned treatment status: cancelled" }
+  "@treatmentPlanStatusCancelled": { "description": "Planned treatment status: cancelled" },
+
+  "appointmentPlannedTreatmentsField": "Planned treatments",
+  "@appointmentPlannedTreatmentsField": { "description": "Label for the planned-treatments checklist in the appointment form" },
+
+  "appointmentPlannedTreatmentAlreadyBookedError": "One of the selected planned treatments is already booked on another appointment.",
+  "@appointmentPlannedTreatmentAlreadyBookedError": { "description": "Error shown when linking a planned treatment already booked elsewhere" }
 }

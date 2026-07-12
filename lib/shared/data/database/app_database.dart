@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:docentral/shared/data/database/database_key_service.dart';
 import 'package:docentral/shared/data/database/tables/appointment_cancellations_table.dart';
 import 'package:docentral/shared/data/database/tables/appointment_edit_logs_table.dart';
+import 'package:docentral/shared/data/database/tables/appointment_planned_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
 import 'package:docentral/shared/data/database/tables/clinics_table.dart';
 import 'package:docentral/shared/data/database/tables/invoice_finalizations_table.dart';
@@ -47,6 +48,7 @@ part 'app_database.g.dart';
     Payments,
     InvoiceVoids,
     PlannedTreatments,
+    AppointmentPlannedTreatments,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -54,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -95,6 +97,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 15) await m.createTable(payments);
       if (from < 16) await m.createTable(invoiceVoids);
       if (from < 17) await m.createTable(plannedTreatments);
+      if (from < 18) await m.createTable(appointmentPlannedTreatments);
     },
   );
 }

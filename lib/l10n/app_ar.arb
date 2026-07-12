@@ -213,5 +213,7 @@
   "treatmentPlanStatusScheduled": "مجدول",
   "treatmentPlanStatusInProgress": "قيد التنفيذ",
   "treatmentPlanStatusDone": "منجز",
-  "treatmentPlanStatusCancelled": "ملغى"
+  "treatmentPlanStatusCancelled": "ملغى",
+  "appointmentPlannedTreatmentsField": "العلاجات المخططة",
+  "appointmentPlannedTreatmentAlreadyBookedError": "أحد العلاجات المخططة المحددة محجوز بالفعل في موعد آخر."
 }

@@ -27,3 +27,12 @@ class AppointmentNotEditableException implements Exception {
   @override
   String toString() => 'AppointmentNotEditableException: $code';
 }
+
+/// Thrown when linking a Planned Treatment that is already linked to a
+/// different, non-cancelled appointment.
+class PlannedTreatmentAlreadyBookedException implements Exception {
+  const PlannedTreatmentAlreadyBookedException();
+
+  @override
+  String toString() => 'PlannedTreatmentAlreadyBookedException';
+}

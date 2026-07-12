@@ -4,8 +4,12 @@ import 'package:docentral/features/appointment/domain/appointment_repository.dar
 import 'package:docentral/features/appointment/domain/appointment_status.dart';
 import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
+import 'package:docentral/features/treatment_plan/domain/planned_treatment_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
+import 'package:docentral/shared/data/database/tables/appointment_planned_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/appointments_table.dart';
+import 'package:docentral/shared/data/database/tables/planned_treatments_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -135,6 +139,7 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     requirePermission(role, Permission.canManageAppointments);
 
@@ -147,25 +152,110 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
       if (overlaps) throw const AppointmentOverlapException();
     }
 
-    final String id = _uuid.v4();
+    return _db.transaction(() async {
+      final String id = _uuid.v4();
+      final DateTime now = DateTime.now().toUtc();
+      await _db
+          .into(_db.appointments)
+          .insert(
+            AppointmentsCompanion.insert(
+              id: id,
+              patientId: patientId,
+              assignedUserId: assignedUserId,
+              startTime: startTime,
+              endTime: endTime,
+              status: Value(AppointmentStatus.scheduled.name),
+              reason: Value(reason?.trim()),
+              notes: Value(notes?.trim()),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      for (final String plannedTreatmentId in plannedTreatmentIds) {
+        await _linkPlannedTreatment(
+          appointmentId: id,
+          plannedTreatmentId: plannedTreatmentId,
+        );
+      }
+
+      return id;
+    });
+  }
+
+  /// Throws [PlannedTreatmentAlreadyBookedException] if
+  /// [plannedTreatmentId] is already linked to a different, non-cancelled
+  /// appointment. Must run inside a transaction.
+  Future<void> _linkPlannedTreatment({
+    required String appointmentId,
+    required String plannedTreatmentId,
+  }) async {
+    final JoinedSelectStatement<HasResultSet, dynamic> existingLinkQuery =
+        _db.select(_db.appointmentPlannedTreatments).join([
+          innerJoin(
+            _db.appointments,
+            _db.appointments.id.equalsExp(
+              _db.appointmentPlannedTreatments.appointmentId,
+            ),
+          ),
+        ])..where(
+          _db.appointmentPlannedTreatments.plannedTreatmentId.equals(
+                plannedTreatmentId,
+              ) &
+              _db.appointments.status
+                  .equals(AppointmentStatus.cancelled.name)
+                  .not() &
+              _db.appointmentPlannedTreatments.appointmentId
+                  .equals(appointmentId)
+                  .not(),
+        );
+    final bool alreadyBooked = (await existingLinkQuery.get()).isNotEmpty;
+    if (alreadyBooked) throw const PlannedTreatmentAlreadyBookedException();
+
     final DateTime now = DateTime.now().toUtc();
     await _db
-        .into(_db.appointments)
+        .into(_db.appointmentPlannedTreatments)
         .insert(
-          AppointmentsCompanion.insert(
-            id: id,
-            patientId: patientId,
-            assignedUserId: assignedUserId,
-            startTime: startTime,
-            endTime: endTime,
-            status: Value(AppointmentStatus.scheduled.name),
-            reason: Value(reason?.trim()),
-            notes: Value(notes?.trim()),
+          AppointmentPlannedTreatmentsCompanion.insert(
+            id: _uuid.v4(),
+            appointmentId: appointmentId,
+            plannedTreatmentId: plannedTreatmentId,
             createdAt: now,
             updatedAt: now,
           ),
         );
-    return id;
+
+    await (_db.update(
+      _db.plannedTreatments,
+    )..where((PlannedTreatments t) => t.id.equals(plannedTreatmentId))).write(
+      PlannedTreatmentsCompanion(
+        status: Value(PlannedTreatmentStatus.scheduled.name),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  /// Must run inside a transaction.
+  Future<void> _unlinkPlannedTreatment({
+    required String appointmentId,
+    required String plannedTreatmentId,
+  }) async {
+    await (_db.delete(_db.appointmentPlannedTreatments)..where(
+          (AppointmentPlannedTreatments t) =>
+              t.appointmentId.equals(appointmentId) &
+              t.plannedTreatmentId.equals(plannedTreatmentId),
+        ))
+        .go();
+
+    final DateTime now = DateTime.now().toUtc();
+    await (_db.update(
+      _db.plannedTreatments,
+    )..where((PlannedTreatments t) => t.id.equals(plannedTreatmentId))).write(
+      PlannedTreatmentsCompanion(
+        status: Value(PlannedTreatmentStatus.planned.name),
+        updatedAt: Value(now),
+      ),
+    );
   }
 
   @override
@@ -179,6 +269,7 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
     String? reason,
     String? notes,
     bool overrideOverlap = false,
+    List<String> plannedTreatmentIds = const <String>[],
   }) async {
     requirePermission(role, Permission.canManageAppointments);
 
@@ -240,6 +331,30 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
                 updatedAt: now,
               ),
             );
+      }
+
+      final List<AppointmentPlannedTreatment> currentLinks =
+          await (_db.select(_db.appointmentPlannedTreatments)..where(
+                (AppointmentPlannedTreatments t) =>
+                    t.appointmentId.equals(appointmentId),
+              ))
+              .get();
+      final Set<String> currentIds = currentLinks
+          .map((AppointmentPlannedTreatment link) => link.plannedTreatmentId)
+          .toSet();
+      final Set<String> newIds = plannedTreatmentIds.toSet();
+
+      for (final String toRemove in currentIds.difference(newIds)) {
+        await _unlinkPlannedTreatment(
+          appointmentId: appointmentId,
+          plannedTreatmentId: toRemove,
+        );
+      }
+      for (final String toAdd in newIds.difference(currentIds)) {
+        await _linkPlannedTreatment(
+          appointmentId: appointmentId,
+          plannedTreatmentId: toAdd,
+        );
       }
     });
   }
@@ -394,5 +509,45 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
         );
 
     return query.watch().map((List<TypedResult> rows) => rows.length);
+  }
+
+  @override
+  Stream<List<PlannedTreatment>> watchLinkedPlannedTreatments({
+    required Role role,
+    required String appointmentId,
+  }) {
+    requirePermission(role, Permission.canViewAppointments);
+
+    final JoinedSelectStatement<HasResultSet, dynamic> query =
+        _db.select(_db.appointmentPlannedTreatments).join([
+          innerJoin(
+            _db.plannedTreatments,
+            _db.plannedTreatments.id.equalsExp(
+              _db.appointmentPlannedTreatments.plannedTreatmentId,
+            ),
+          ),
+        ])..where(
+          _db.appointmentPlannedTreatments.appointmentId.equals(appointmentId),
+        );
+
+    return query.watch().map(
+      (List<TypedResult> rows) => rows
+          .map((TypedResult row) {
+            final PlannedTreatmentRow treatment = row.readTable(
+              _db.plannedTreatments,
+            );
+            return PlannedTreatment(
+              id: treatment.id,
+              patientId: treatment.patientId,
+              procedureName: treatment.procedureName,
+              toothNumber: treatment.toothNumber,
+              estimatedUnitPrice: treatment.estimatedUnitPrice,
+              sequenceNumber: treatment.sequenceNumber,
+              status: PlannedTreatmentStatus.values.byName(treatment.status),
+              targetDate: treatment.targetDate,
+            );
+          })
+          .toList(growable: false),
+    );
   }
 }
