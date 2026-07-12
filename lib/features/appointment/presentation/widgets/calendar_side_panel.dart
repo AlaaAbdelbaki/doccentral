@@ -1,15 +1,12 @@
 part of '../calendar_page.dart';
 
-class _CalendarSidePanel extends StatelessWidget {
+class _CalendarSidePanel extends ConsumerWidget {
   const _CalendarSidePanel();
 
-  // No Inventory data exists yet (Epic 8) — this is a genuine zero, not a
-  // stubbed placeholder value.
-  static const int _lowStockCount = 0;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final int lowStockCount = ref.watch(lowStockCountProvider);
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -21,17 +18,24 @@ class _CalendarSidePanel extends StatelessWidget {
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: AppSpacing.md),
-          Row(
-            children: <Widget>[
-              Expanded(child: Text(l10n.calendarLowStockLabel)),
-              CircleAvatar(
-                radius: 12,
-                child: Text(
-                  '$_lowStockCount',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
+          InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (BuildContext context) => const LowStockPage(),
               ),
-            ],
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(child: Text(l10n.calendarLowStockLabel)),
+                CircleAvatar(
+                  radius: 12,
+                  child: Text(
+                    '$lowStockCount',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

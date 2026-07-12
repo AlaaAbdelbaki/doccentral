@@ -71,6 +71,7 @@
   "inventoryNewQuantityField": "الكمية الجديدة",
   "inventoryAdjustmentReasonField": "السبب",
   "inventoryAdjustmentHistorySection": "سجل التعديلات",
+  "lowStockEmptyState": "لا توجد عناصر منخفضة المخزون",
   "navDayCloseout": "إغلاق اليوم",
   "dayCloseoutCompletedVisits": "الزيارات المكتملة",
   "dayCloseoutNewInvoicesTotal": "إجمالي الفواتير الجديدة",

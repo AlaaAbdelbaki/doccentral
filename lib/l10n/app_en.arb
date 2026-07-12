@@ -211,6 +211,9 @@
   "inventoryAdjustmentHistorySection": "Adjustment history",
   "@inventoryAdjustmentHistorySection": { "description": "Section label for an item's manual stock adjustment history, distinct from restock history" },
 
+  "lowStockEmptyState": "No items are low on stock",
+  "@lowStockEmptyState": { "description": "Empty state shown on the Low Stock view when no items are at or below their threshold" },
+
   "navDayCloseout": "Day Closeout",
   "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
 

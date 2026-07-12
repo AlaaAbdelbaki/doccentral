@@ -8,6 +8,12 @@ import 'package:docentral/features/appointment/domain/assignable_user.dart';
 import 'package:docentral/features/appointment/domain/cancellation_reason.dart';
 import 'package:docentral/features/appointment/presentation/calendar_page.dart';
 import 'package:docentral/features/appointment/presentation/providers/appointment_repository_provider.dart';
+import 'package:docentral/features/inventory/domain/inventory_category.dart';
+import 'package:docentral/features/inventory/domain/inventory_item.dart';
+import 'package:docentral/features/inventory/domain/inventory_repository.dart';
+import 'package:docentral/features/inventory/domain/restock_event.dart';
+import 'package:docentral/features/inventory/domain/stock_adjustment.dart';
+import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
@@ -469,6 +475,58 @@ class _FakePlannedTreatmentRepository implements PlannedTreatmentRepository {
   }) => throw UnimplementedError('not exercised by this test');
 }
 
+class _FakeInventoryRepository implements InventoryRepository {
+  _FakeInventoryRepository([this._items = const <InventoryItem>[]]);
+
+  final List<InventoryItem> _items;
+
+  @override
+  Stream<List<InventoryItem>> watchAll({required Role role}) =>
+      Stream.value(_items);
+
+  @override
+  Future<String> create({
+    required Role role,
+    required String name,
+    required InventoryCategory category,
+    required String unit,
+    required int onHandQuantity,
+    required int lowStockThreshold,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> recordRestock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int quantityAdded,
+    DateTime? restockDate,
+    String? supplier,
+    String? notes,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<RestockEvent>> watchRestockHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) => Stream.value(const <RestockEvent>[]);
+
+  @override
+  Future<String> adjustStock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int newQuantity,
+    required String reason,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<StockAdjustment>> watchAdjustmentHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) => Stream.value(const <StockAdjustment>[]);
+}
+
 Future<_FakeAppointmentRepository> _pumpPage(
   WidgetTester tester,
   List<AppointmentRecord> appointments, {
@@ -476,6 +534,7 @@ Future<_FakeAppointmentRepository> _pumpPage(
   List<PatientRecord> patients = const <PatientRecord>[],
   List<PlannedTreatment> plannedTreatments = const <PlannedTreatment>[],
   Map<String, List<String>> initialLinks = const <String, List<String>>{},
+  List<InventoryItem> inventoryItems = const <InventoryItem>[],
   Role role = Role.assistant,
 }) async {
   final Map<String, PlannedTreatment> plannedTreatmentsById = {
@@ -501,6 +560,9 @@ Future<_FakeAppointmentRepository> _pumpPage(
       visitRepositoryProvider.overrideWithValue(fakeVisitRepository),
       plannedTreatmentRepositoryProvider.overrideWithValue(
         _FakePlannedTreatmentRepository(plannedTreatments),
+      ),
+      inventoryRepositoryProvider.overrideWithValue(
+        _FakeInventoryRepository(inventoryItems),
       ),
     ],
   );
@@ -572,6 +634,60 @@ void main() {
     expect(find.text("Today's alerts"), findsOneWidget);
     expect(find.text('Low-stock items'), findsOneWidget);
     expect(find.text('0'), findsOneWidget);
+  });
+
+  testWidgets(
+    'the low-stock badge reflects the count of items at or under their threshold',
+    (WidgetTester tester) async {
+      await _pumpPage(
+        tester,
+        const <AppointmentRecord>[],
+        inventoryItems: const <InventoryItem>[
+          InventoryItem(
+            id: '1',
+            name: 'Gauze',
+            category: InventoryCategory.supply,
+            unit: 'box of 100',
+            onHandQuantity: 2,
+            lowStockThreshold: 5,
+          ),
+          InventoryItem(
+            id: '2',
+            name: 'Bleach',
+            category: InventoryCategory.cleaning,
+            unit: 'bottle',
+            onHandQuantity: 10,
+            lowStockThreshold: 2,
+          ),
+        ],
+      );
+
+      expect(find.text('1'), findsOneWidget);
+    },
+  );
+
+  testWidgets('tapping the low-stock badge navigates to the Low Stock view', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      const <AppointmentRecord>[],
+      inventoryItems: const <InventoryItem>[
+        InventoryItem(
+          id: '1',
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 2,
+          lowStockThreshold: 5,
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('Low-stock items'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gauze'), findsOneWidget);
   });
 
   testWidgets(

@@ -14,6 +14,8 @@ import 'package:docentral/features/appointment/presentation/providers/filtered_a
 import 'package:docentral/features/appointment/presentation/providers/linked_planned_treatments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/todays_appointments_provider.dart';
 import 'package:docentral/features/appointment/presentation/providers/week_appointments_provider.dart';
+import 'package:docentral/features/inventory/presentation/low_stock_page.dart';
+import 'package:docentral/features/inventory/presentation/providers/low_stock_count_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/presentation/providers/selected_patient_provider.dart';
 import 'package:docentral/features/treatment_plan/domain/planned_treatment.dart';
