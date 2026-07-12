@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
+import 'package:docentral/features/inventory/domain/restock_event.dart';
 import 'package:docentral/features/inventory/presentation/inventory_list_page.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +20,9 @@ class _FakeInventoryRepository implements InventoryRepository {
 
   final List<InventoryItem> _items;
   final List<InventoryItem> created = <InventoryItem>[];
+  final List<RestockEvent> restocked = <RestockEvent>[];
+  final Map<String, List<RestockEvent>> _historyByItemId =
+      <String, List<RestockEvent>>{};
   final StreamController<void> _changes = StreamController<void>.broadcast();
 
   @override
@@ -51,6 +56,60 @@ class _FakeInventoryRepository implements InventoryRepository {
     _changes.add(null);
     return id;
   }
+
+  @override
+  Future<String> recordRestock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int quantityAdded,
+    DateTime? restockDate,
+    String? supplier,
+    String? notes,
+  }) async {
+    final int index = _items.indexWhere(
+      (InventoryItem item) => item.id == inventoryItemId,
+    );
+    final InventoryItem existing = _items[index];
+    _items[index] = InventoryItem(
+      id: existing.id,
+      name: existing.name,
+      category: existing.category,
+      unit: existing.unit,
+      onHandQuantity: existing.onHandQuantity + quantityAdded,
+      lowStockThreshold: existing.lowStockThreshold,
+    );
+    final String id = 'restock-${restocked.length}';
+    final RestockEvent event = RestockEvent(
+      id: id,
+      inventoryItemId: inventoryItemId,
+      quantityAdded: quantityAdded,
+      restockDate: restockDate ?? DateTime.now(),
+      actorUserId: actorUserId,
+      recordedAt: DateTime.now(),
+      supplier: supplier,
+      notes: notes,
+    );
+    restocked.add(event);
+    _historyByItemId
+        .putIfAbsent(inventoryItemId, () => <RestockEvent>[])
+        .add(event);
+    _changes.add(null);
+    return id;
+  }
+
+  @override
+  Stream<List<RestockEvent>> watchRestockHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) async* {
+    List<RestockEvent> current() =>
+        List<RestockEvent>.of(_historyByItemId[inventoryItemId] ?? const []);
+    yield current();
+    await for (final _ in _changes.stream) {
+      yield current();
+    }
+  }
 }
 
 Future<_FakeInventoryRepository> _pumpPage(
@@ -67,6 +126,7 @@ Future<_FakeInventoryRepository> _pumpPage(
   );
   addTearDown(container.dispose);
   container.read(currentRoleProvider.notifier).setRole(role);
+  container.read(currentUserIdProvider.notifier).setUserId('actor-1');
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -213,4 +273,95 @@ void main() {
       expect(fakeRepository.created, isEmpty);
     },
   );
+
+  testWidgets('the Restock button is hidden for a Nurse', (
+    WidgetTester tester,
+  ) async {
+    await _pumpPage(
+      tester,
+      role: Role.nurse,
+      items: const <InventoryItem>[
+        InventoryItem(
+          id: '1',
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        ),
+      ],
+    );
+
+    expect(find.byIcon(Icons.add_box_outlined), findsNothing);
+  });
+
+  testWidgets(
+    'recording a restock increases on-hand quantity and shows it in history',
+    (WidgetTester tester) async {
+      final _FakeInventoryRepository fakeRepository = await _pumpPage(
+        tester,
+        items: const <InventoryItem>[
+          InventoryItem(
+            id: '1',
+            name: 'Gauze',
+            category: InventoryCategory.supply,
+            unit: 'box of 100',
+            onHandQuantity: 20,
+            lowStockThreshold: 5,
+          ),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.add_box_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Quantity added'),
+        '15',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Supplier'),
+        'Acme Supplies',
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepository.restocked.single.quantityAdded, 15);
+      expect(fakeRepository.restocked.single.supplier, 'Acme Supplies');
+      expect(find.text('35'), findsOneWidget);
+      expect(find.textContaining('+15'), findsOneWidget);
+      expect(find.textContaining('Acme Supplies'), findsOneWidget);
+    },
+  );
+
+  testWidgets('submitting a zero restock quantity shows a validation error', (
+    WidgetTester tester,
+  ) async {
+    final _FakeInventoryRepository fakeRepository = await _pumpPage(
+      tester,
+      items: const <InventoryItem>[
+        InventoryItem(
+          id: '1',
+          name: 'Gauze',
+          category: InventoryCategory.supply,
+          unit: 'box of 100',
+          onHandQuantity: 20,
+          lowStockThreshold: 5,
+        ),
+      ],
+    );
+
+    await tester.tap(find.byIcon(Icons.add_box_outlined));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Quantity added'),
+      '0',
+    );
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter a quantity greater than zero'), findsOneWidget);
+    expect(fakeRepository.restocked, isEmpty);
+  });
 }

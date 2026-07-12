@@ -1,16 +1,20 @@
 import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
+import 'package:docentral/features/inventory/domain/restock_event.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_controller_provider.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_items_provider.dart';
+import 'package:docentral/features/inventory/presentation/providers/restock_history_provider.dart';
 import 'package:docentral/l10n/app_localizations.dart';
 import 'package:docentral/shared/data/providers/permission_provider.dart';
 import 'package:docentral/shared/design_system/app_spacing.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 part 'widgets/inventory_item_form_dialog.dart';
 part 'widgets/inventory_item_row.dart';
+part 'widgets/restock_form_dialog.dart';
 
 class InventoryListPage extends ConsumerWidget {
   const InventoryListPage({super.key});
@@ -82,7 +86,12 @@ class InventoryListPage extends ConsumerWidget {
                     ),
                   ),
                   for (final InventoryItem item in byCategory[category]!)
-                    _InventoryItemRow(item: item),
+                    _InventoryItemRow(
+                      item: item,
+                      canManageInventory: canManageInventory,
+                      onRestock: (String itemId) =>
+                          _showRestockFormDialog(context, ref, itemId),
+                    ),
                   const SizedBox(height: AppSpacing.md),
                 ],
             ],
@@ -109,6 +118,31 @@ class InventoryListPage extends ConsumerWidget {
                   unit: result.unit,
                   onHandQuantity: result.onHandQuantity,
                   lowStockThreshold: result.lowStockThreshold,
+                );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showRestockFormDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String inventoryItemId,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return _RestockFormDialog(
+          onSubmit: (_RestockFormResult result) {
+            ref
+                .read(inventoryControllerProvider.notifier)
+                .recordRestock(
+                  inventoryItemId: inventoryItemId,
+                  quantityAdded: result.quantityAdded,
+                  restockDate: result.restockDate,
+                  supplier: result.supplier,
+                  notes: result.notes,
                 );
           },
         );

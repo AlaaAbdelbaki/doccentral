@@ -178,6 +178,27 @@
   "inventoryEmptyState": "No inventory items yet",
   "@inventoryEmptyState": { "description": "Empty state shown when there are no inventory items" },
 
+  "inventoryRestockButton": "Restock",
+  "@inventoryRestockButton": { "description": "Button and dialog title to record a restock event" },
+
+  "inventoryQuantityAddedField": "Quantity added",
+  "@inventoryQuantityAddedField": { "description": "Label for the restock quantity-added field" },
+
+  "inventoryRestockDateField": "Restock date",
+  "@inventoryRestockDateField": { "description": "Label for the restock date field" },
+
+  "inventorySupplierField": "Supplier",
+  "@inventorySupplierField": { "description": "Label for the optional restock supplier field" },
+
+  "inventoryRestockNotesField": "Notes",
+  "@inventoryRestockNotesField": { "description": "Label for the optional restock notes field" },
+
+  "inventoryInvalidQuantityAddedError": "Enter a quantity greater than zero",
+  "@inventoryInvalidQuantityAddedError": { "description": "Validation error for a non-positive restock quantity" },
+
+  "inventoryRestockHistorySection": "Restock history",
+  "@inventoryRestockHistorySection": { "description": "Section label for an item's restock history" },
+
   "navDayCloseout": "Day Closeout",
   "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
 

@@ -16,6 +16,7 @@ import 'package:docentral/shared/data/database/tables/patients_table.dart';
 import 'package:docentral/shared/data/database/tables/payments_table.dart';
 import 'package:docentral/shared/data/database/tables/performed_treatments_table.dart';
 import 'package:docentral/shared/data/database/tables/planned_treatments_table.dart';
+import 'package:docentral/shared/data/database/tables/restock_events_table.dart';
 import 'package:docentral/shared/data/database/tables/roles_table.dart';
 import 'package:docentral/shared/data/database/tables/user_roles_table.dart';
 import 'package:docentral/shared/data/database/tables/users_table.dart';
@@ -51,6 +52,7 @@ part 'app_database.g.dart';
     PlannedTreatments,
     AppointmentPlannedTreatments,
     InventoryItems,
+    RestockEvents,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -58,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openEncryptedConnection());
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -101,6 +103,7 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) await m.createTable(plannedTreatments);
       if (from < 18) await m.createTable(appointmentPlannedTreatments);
       if (from < 19) await m.createTable(inventoryItems);
+      if (from < 20) await m.createTable(restockEvents);
     },
   );
 }

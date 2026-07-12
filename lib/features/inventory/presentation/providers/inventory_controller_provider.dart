@@ -1,6 +1,7 @@
 import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/shared/data/providers/current_role_provider.dart';
+import 'package:docentral/shared/data/providers/current_user_id_provider.dart';
 import 'package:docentral/shared/domain/exceptions/permission_denied_exception.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -40,6 +41,39 @@ class InventoryController extends _$InventoryController {
             unit: unit,
             onHandQuantity: onHandQuantity,
             lowStockThreshold: lowStockThreshold,
+          ),
+    );
+  }
+
+  Future<void> recordRestock({
+    required String inventoryItemId,
+    required int quantityAdded,
+    DateTime? restockDate,
+    String? supplier,
+    String? notes,
+  }) async {
+    final Role? role = ref.read(currentRoleProvider);
+    final String? actorUserId = ref.read(currentUserIdProvider);
+    if (role == null || actorUserId == null) {
+      state = AsyncError(
+        const PermissionDeniedException(Permission.canManageInventory),
+        StackTrace.current,
+      );
+      return;
+    }
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref
+          .read(inventoryRepositoryProvider)
+          .recordRestock(
+            role: role,
+            actorUserId: actorUserId,
+            inventoryItemId: inventoryItemId,
+            quantityAdded: quantityAdded,
+            restockDate: restockDate,
+            supplier: supplier,
+            notes: notes,
           ),
     );
   }

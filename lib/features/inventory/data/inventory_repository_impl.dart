@@ -2,8 +2,10 @@ import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_exceptions.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
+import 'package:docentral/features/inventory/domain/restock_event.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
 import 'package:docentral/shared/data/database/tables/inventory_items_table.dart';
+import 'package:docentral/shared/data/database/tables/restock_events_table.dart';
 import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
@@ -81,5 +83,92 @@ class InventoryRepositoryImpl implements InventoryRepository {
           ),
         );
     return id;
+  }
+
+  @override
+  Future<String> recordRestock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int quantityAdded,
+    DateTime? restockDate,
+    String? supplier,
+    String? notes,
+  }) async {
+    requirePermission(role, Permission.canManageInventory);
+
+    if (quantityAdded <= 0) {
+      throw const InventoryValidationException(
+        'Quantity added must be positive.',
+      );
+    }
+
+    final String id = _uuid.v4();
+    final DateTime now = DateTime.now().toUtc();
+
+    await _db.transaction(() async {
+      await _db
+          .into(_db.restockEvents)
+          .insert(
+            RestockEventsCompanion.insert(
+              id: id,
+              inventoryItemId: inventoryItemId,
+              quantityAdded: quantityAdded,
+              restockDate: restockDate ?? now,
+              actorUserId: actorUserId,
+              supplier: Value(supplier?.trim()),
+              notes: Value(notes?.trim()),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+      final InventoryItemRow item = await (_db.select(
+        _db.inventoryItems,
+      )..where((InventoryItems t) => t.id.equals(inventoryItemId))).getSingle();
+
+      await (_db.update(
+        _db.inventoryItems,
+      )..where((InventoryItems t) => t.id.equals(inventoryItemId))).write(
+        InventoryItemsCompanion(
+          onHandQuantity: Value(item.onHandQuantity + quantityAdded),
+          updatedAt: Value(now),
+        ),
+      );
+    });
+
+    return id;
+  }
+
+  @override
+  Stream<List<RestockEvent>> watchRestockHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) {
+    requirePermission(role, Permission.canViewInventory);
+
+    final SimpleSelectStatement<$RestockEventsTable, RestockEventRow> select =
+        _db.select(_db.restockEvents)
+          ..where(
+            (RestockEvents t) => t.inventoryItemId.equals(inventoryItemId),
+          )
+          ..orderBy([(RestockEvents t) => OrderingTerm.asc(t.createdAt)]);
+
+    return select.watch().map(
+      (List<RestockEventRow> rows) => rows
+          .map(
+            (RestockEventRow row) => RestockEvent(
+              id: row.id,
+              inventoryItemId: row.inventoryItemId,
+              quantityAdded: row.quantityAdded,
+              restockDate: row.restockDate,
+              actorUserId: row.actorUserId,
+              recordedAt: row.createdAt,
+              supplier: row.supplier,
+              notes: row.notes,
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 }

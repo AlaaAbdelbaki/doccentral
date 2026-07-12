@@ -13,6 +13,7 @@ import 'package:docentral/features/invoice/domain/payment_method.dart';
 import 'package:docentral/features/inventory/domain/inventory_category.dart';
 import 'package:docentral/features/inventory/domain/inventory_item.dart';
 import 'package:docentral/features/inventory/domain/inventory_repository.dart';
+import 'package:docentral/features/inventory/domain/restock_event.dart';
 import 'package:docentral/features/inventory/presentation/providers/inventory_repository_provider.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
@@ -208,6 +209,23 @@ class _FakeInventoryRepository implements InventoryRepository {
     required int onHandQuantity,
     required int lowStockThreshold,
   }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Future<String> recordRestock({
+    required Role role,
+    required String actorUserId,
+    required String inventoryItemId,
+    required int quantityAdded,
+    DateTime? restockDate,
+    String? supplier,
+    String? notes,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<List<RestockEvent>> watchRestockHistory({
+    required Role role,
+    required String inventoryItemId,
+  }) => Stream.value(const <RestockEvent>[]);
 }
 
 Future<GoRouter> _pumpRouter(
