@@ -25,6 +25,7 @@ const assistantPermissions = {
   Permission.canRecordPayment,
   Permission.canManageAppointments,
   Permission.canCheckInPatient,
+  Permission.canViewDayCloseout,
 };
 
 const nursePermissions = {

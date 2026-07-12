@@ -142,6 +142,27 @@
   "navDayCloseout": "Day Closeout",
   "@navDayCloseout": { "description": "Navigation label for the day closeout destination" },
 
+  "dayCloseoutCompletedVisits": "Completed visits",
+  "@dayCloseoutCompletedVisits": { "description": "Label for the completed-visits count on the Day Closeout summary" },
+
+  "dayCloseoutNewInvoicesTotal": "New invoices total",
+  "@dayCloseoutNewInvoicesTotal": { "description": "Label for the sum of new invoices on the Day Closeout summary" },
+
+  "dayCloseoutOutstandingInvoices": "Outstanding invoices",
+  "@dayCloseoutOutstandingInvoices": { "description": "Label for the count of outstanding invoices on the Day Closeout summary" },
+
+  "dayCloseoutPaymentsByMethod": "Payments by method",
+  "@dayCloseoutPaymentsByMethod": { "description": "Section title for per-method payment totals on the Day Closeout summary" },
+
+  "dayCloseoutNoPaymentsYet": "No payments recorded today",
+  "@dayCloseoutNoPaymentsYet": { "description": "Empty state for the payments-by-method section" },
+
+  "dayCloseoutTotalPayments": "Total payments",
+  "@dayCloseoutTotalPayments": { "description": "Label for the grand total of all payments on the Day Closeout summary" },
+
+  "dayCloseoutPermissionDeniedMessage": "You don't have permission to view the Day Closeout summary.",
+  "@dayCloseoutPermissionDeniedMessage": { "description": "Shown on the Day Closeout page to a role without permission to view it" },
+
   "navSettings": "Settings",
   "@navSettings": { "description": "Navigation label for the settings destination" },
 

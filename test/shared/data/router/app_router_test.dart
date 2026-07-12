@@ -6,6 +6,10 @@ import 'package:docentral/features/appointment/presentation/providers/appointmen
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_repository.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
+import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_repository_provider.dart';
+import 'package:docentral/features/invoice/domain/payment_method.dart';
 import 'package:docentral/features/patient/domain/patient_record.dart';
 import 'package:docentral/features/patient/domain/patient_repository.dart';
 import 'package:docentral/features/patient/presentation/providers/patient_repository_provider.dart';
@@ -171,6 +175,21 @@ class _FakeClinicRepository implements ClinicRepository {
   }) => throw UnimplementedError('not exercised by this test');
 }
 
+class _FakeDayCloseoutRepository implements DayCloseoutRepository {
+  @override
+  Stream<DayCloseoutSummary> watchSummary({
+    required Role role,
+    required DateTime day,
+  }) => Stream.value(
+    const DayCloseoutSummary(
+      completedVisitsCount: 0,
+      paymentTotalsByMethod: <PaymentMethod, double>{},
+      newInvoicesTotal: 0,
+      outstandingInvoicesCount: 0,
+    ),
+  );
+}
+
 Future<GoRouter> _pumpRouter(
   WidgetTester tester, {
   bool hasClinic = true,
@@ -188,6 +207,9 @@ Future<GoRouter> _pumpRouter(
       patientRepositoryProvider.overrideWithValue(_FakePatientRepository()),
       appointmentRepositoryProvider.overrideWithValue(
         _FakeAppointmentRepository(),
+      ),
+      dayCloseoutRepositoryProvider.overrideWithValue(
+        _FakeDayCloseoutRepository(),
       ),
       sharedPreferencesProvider.overrideWithValue(prefs),
     ],
