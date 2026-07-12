@@ -6,6 +6,7 @@ import 'package:docentral/features/appointment/presentation/providers/appointmen
 import 'package:docentral/features/clinic/domain/clinic_repository.dart';
 import 'package:docentral/features/clinic/presentation/providers/clinic_repository_provider.dart';
 import 'package:docentral/features/clinic/presentation/providers/resolved_role_provider.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_record.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_repository.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
 import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_repository_provider.dart';
@@ -194,6 +195,20 @@ class _FakeDayCloseoutRepository implements DayCloseoutRepository {
       outstandingInvoicesCount: 0,
     ),
   );
+
+  @override
+  Future<String> confirmCloseout({
+    required Role role,
+    required String actorUserId,
+    required DateTime day,
+    required double countedCash,
+  }) => throw UnimplementedError('not exercised by this test');
+
+  @override
+  Stream<DayCloseoutRecord?> watchCloseoutForDay({
+    required Role role,
+    required DateTime day,
+  }) => Stream.value(null);
 }
 
 class _FakeInventoryRepository implements InventoryRepository {

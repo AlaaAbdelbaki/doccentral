@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:docentral/features/day_closeout/domain/day_closeout_exceptions.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_record.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_repository.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
 import 'package:docentral/features/invoice/domain/invoice_status.dart';
 import 'package:docentral/features/invoice/domain/payment_method.dart';
 import 'package:docentral/features/visit/domain/visit_status.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
+import 'package:docentral/shared/data/database/tables/day_closeouts_table.dart';
 import 'package:docentral/shared/data/database/tables/invoices_table.dart';
 import 'package:docentral/shared/data/database/tables/payments_table.dart';
 import 'package:docentral/shared/data/database/tables/visits_table.dart';
@@ -13,11 +16,14 @@ import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:docentral/shared/domain/rbac/permission_guard.dart';
 import 'package:docentral/shared/domain/rbac/role.dart';
 import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
 
 class DayCloseoutRepositoryImpl implements DayCloseoutRepository {
-  DayCloseoutRepositoryImpl(this._db);
+  DayCloseoutRepositoryImpl(this._db, {Uuid uuid = const Uuid()})
+    : _uuid = uuid;
 
   final AppDatabase _db;
+  final Uuid _uuid;
 
   @override
   Stream<DayCloseoutSummary> watchSummary({
@@ -45,6 +51,92 @@ class DayCloseoutRepositoryImpl implements DayCloseoutRepository {
         newInvoicesTotal: invoiceTotal,
         outstandingInvoicesCount: outstanding,
       ),
+    );
+  }
+
+  @override
+  Future<String> confirmCloseout({
+    required Role role,
+    required String actorUserId,
+    required DateTime day,
+    required double countedCash,
+  }) async {
+    requirePermission(role, Permission.canConfirmDayCloseout);
+
+    final DateTime closeoutDate = DateTime(day.year, day.month, day.day);
+
+    return _db.transaction(() async {
+      final DayCloseout? existing =
+          await (_db.select(
+                _db.dayCloseouts,
+              )..where((DayCloseouts t) => t.closeoutDate.equals(closeoutDate)))
+              .getSingleOrNull();
+      if (existing != null) {
+        throw const DayCloseoutAlreadyExistsException();
+      }
+
+      final double expectedCash = await _computeExpectedCash(
+        closeoutDate,
+        closeoutDate.add(const Duration(days: 1)),
+      );
+
+      final String id = _uuid.v4();
+      final DateTime now = DateTime.now().toUtc();
+      await _db
+          .into(_db.dayCloseouts)
+          .insert(
+            DayCloseoutsCompanion.insert(
+              id: id,
+              closeoutDate: closeoutDate,
+              expectedCash: expectedCash,
+              countedCash: countedCash,
+              delta: expectedCash - countedCash,
+              actorUserId: actorUserId,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      return id;
+    });
+  }
+
+  Future<double> _computeExpectedCash(DateTime start, DateTime end) async {
+    final SimpleSelectStatement<$PaymentsTable, PaymentRow> select =
+        _db.select(_db.payments)..where(
+          (Payments t) =>
+              t.deletedAt.isNull() &
+              t.method.equals(PaymentMethod.cash.name) &
+              t.paymentDate.isBiggerOrEqualValue(start) &
+              t.paymentDate.isSmallerThanValue(end),
+        );
+    final List<PaymentRow> rows = await select.get();
+    return rows.fold<double>(0, (double sum, PaymentRow r) => sum + r.amount);
+  }
+
+  @override
+  Stream<DayCloseoutRecord?> watchCloseoutForDay({
+    required Role role,
+    required DateTime day,
+  }) {
+    requirePermission(role, Permission.canViewDayCloseout);
+
+    final DateTime closeoutDate = DateTime(day.year, day.month, day.day);
+    final SimpleSelectStatement<$DayCloseoutsTable, DayCloseout> select =
+        _db.select(_db.dayCloseouts)
+          ..where((DayCloseouts t) => t.closeoutDate.equals(closeoutDate));
+
+    return select.watchSingleOrNull().map(
+      (DayCloseout? row) => row == null
+          ? null
+          : DayCloseoutRecord(
+              id: row.id,
+              closeoutDate: row.closeoutDate,
+              expectedCash: row.expectedCash,
+              countedCash: row.countedCash,
+              delta: row.delta,
+              actorUserId: row.actorUserId,
+              recordedAt: row.createdAt,
+            ),
     );
   }
 

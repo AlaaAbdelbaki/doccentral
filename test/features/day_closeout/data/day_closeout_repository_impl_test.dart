@@ -1,4 +1,6 @@
 import 'package:docentral/features/day_closeout/data/day_closeout_repository_impl.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_exceptions.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_record.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
 import 'package:docentral/features/invoice/domain/payment_method.dart';
 import 'package:docentral/shared/data/database/app_database.dart';
@@ -237,5 +239,112 @@ void main() {
         );
       },
     );
+  });
+
+  group('DayCloseoutRepositoryImpl.confirmCloseout', () {
+    test(
+      'expected cash is the sum of today\'s cash Payments and delta is always computed, never manually set',
+      () async {
+        await seedPayment(
+          paymentDate: today.add(const Duration(hours: 9)),
+          amount: 50,
+        );
+        await seedPayment(
+          paymentDate: today.add(const Duration(hours: 10)),
+          amount: 30,
+        );
+        await seedPayment(
+          paymentDate: today.add(const Duration(hours: 11)),
+          amount: 999,
+          method: 'card',
+        ); // non-cash, excluded from expected cash
+        await seedPayment(
+          paymentDate: yesterday.add(const Duration(hours: 9)),
+          amount: 999,
+        ); // different day, excluded
+
+        final String id = await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 75,
+        );
+
+        final DayCloseoutRecord? closeout = await repository
+            .watchCloseoutForDay(role: Role.assistant, day: today)
+            .first;
+        expect(closeout, isNotNull);
+        expect(closeout!.id, id);
+        expect(closeout.expectedCash, 80);
+        expect(closeout.countedCash, 75);
+        expect(closeout.delta, 5);
+        expect(closeout.actorUserId, 'actor-1');
+      },
+    );
+
+    test(
+      'throws DayCloseoutAlreadyExistsException for a second closeout on the same date',
+      () async {
+        await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 0,
+        );
+
+        expect(
+          () => repository.confirmCloseout(
+            role: Role.assistant,
+            actorUserId: 'actor-1',
+            day: today,
+            countedCash: 10,
+          ),
+          throwsA(isA<DayCloseoutAlreadyExistsException>()),
+        );
+      },
+    );
+
+    test(
+      'allows a closeout on a different date after one exists for today',
+      () async {
+        await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 0,
+        );
+
+        final String id = await repository.confirmCloseout(
+          role: Role.assistant,
+          actorUserId: 'actor-1',
+          day: yesterday,
+          countedCash: 0,
+        );
+
+        expect(id, isNotEmpty);
+      },
+    );
+
+    test('throws PermissionDeniedException for a Nurse', () async {
+      expect(
+        () => repository.confirmCloseout(
+          role: Role.nurse,
+          actorUserId: 'actor-1',
+          day: today,
+          countedCash: 0,
+        ),
+        throwsA(isA<PermissionDeniedException>()),
+      );
+    });
+  });
+
+  group('DayCloseoutRepositoryImpl.watchCloseoutForDay', () {
+    test('returns null before a closeout has been confirmed', () async {
+      final DayCloseoutRecord? closeout = await repository
+          .watchCloseoutForDay(role: Role.assistant, day: today)
+          .first;
+
+      expect(closeout, isNull);
+    });
   });
 }

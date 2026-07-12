@@ -1,4 +1,8 @@
+import 'package:docentral/features/day_closeout/domain/day_closeout_exceptions.dart';
+import 'package:docentral/features/day_closeout/domain/day_closeout_record.dart';
 import 'package:docentral/features/day_closeout/domain/day_closeout_summary.dart';
+import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_controller_provider.dart';
+import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_for_today_provider.dart';
 import 'package:docentral/features/day_closeout/presentation/providers/day_closeout_summary_provider.dart';
 import 'package:docentral/features/invoice/domain/payment_method.dart';
 import 'package:docentral/l10n/app_localizations.dart';
@@ -8,6 +12,8 @@ import 'package:docentral/shared/domain/rbac/permission.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+part 'widgets/confirm_closeout_dialog.dart';
 
 class DayCloseoutPage extends ConsumerWidget {
   const DayCloseoutPage({super.key});
@@ -46,9 +52,28 @@ class DayCloseoutPage extends ConsumerWidget {
     final AsyncValue<DayCloseoutSummary> summaryAsync = ref.watch(
       dayCloseoutSummaryProvider,
     );
+    final AsyncValue<DayCloseoutRecord?> closeoutAsync = ref.watch(
+      dayCloseoutForTodayProvider,
+    );
+    final bool canConfirm = ref.watch(permissionCheckerProvider)(
+      Permission.canConfirmDayCloseout,
+    );
+    final DayCloseoutRecord? closeout = closeoutAsync.value;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navDayCloseout)),
+      appBar: AppBar(
+        title: Text(l10n.navDayCloseout),
+        actions: <Widget>[
+          if (canConfirm && closeout == null)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: FilledButton(
+                onPressed: () => _showConfirmDialog(context, ref),
+                child: Text(l10n.dayCloseoutConfirmButton),
+              ),
+            ),
+        ],
+      ),
       body: summaryAsync.when(
         data: (DayCloseoutSummary summary) => ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -88,6 +113,27 @@ class DayCloseoutPage extends ConsumerWidget {
               value: currency.format(summary.totalPayments),
               emphasize: true,
             ),
+            if (closeout != null) ...<Widget>[
+              const Divider(height: AppSpacing.xl),
+              Text(
+                l10n.dayCloseoutRecordSection,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              _SummaryTile(
+                label: l10n.dayCloseoutExpectedCashLabel,
+                value: currency.format(closeout.expectedCash),
+              ),
+              _SummaryTile(
+                label: l10n.dayCloseoutCountedCashLabel,
+                value: currency.format(closeout.countedCash),
+              ),
+              _SummaryTile(
+                label: l10n.dayCloseoutDeltaLabel,
+                value: currency.format(closeout.delta),
+                emphasize: true,
+                warn: closeout.delta != 0,
+              ),
+            ],
           ],
         ),
         error: (Object error, StackTrace stackTrace) =>
@@ -96,6 +142,34 @@ class DayCloseoutPage extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _showConfirmDialog(BuildContext context, WidgetRef ref) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return _ConfirmCloseoutDialog(
+          onSubmit: (double countedCash) {
+            ref
+                .read(dayCloseoutControllerProvider.notifier)
+                .confirmCloseout(day: DateTime.now(), countedCash: countedCash);
+          },
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+    final Object? error = ref.read(dayCloseoutControllerProvider).error;
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    if (error is DayCloseoutAlreadyExistsException) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.dayCloseoutAlreadyClosedMessage)),
+      );
+    } else if (error == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.dayCloseoutConfirmedMessage)));
+    }
+  }
 }
 
 class _SummaryTile extends StatelessWidget {
@@ -103,17 +177,20 @@ class _SummaryTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.emphasize = false,
+    this.warn = false,
   });
 
   final String label;
   final String value;
   final bool emphasize;
+  final bool warn;
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle? style = emphasize
+    TextStyle? style = emphasize
         ? Theme.of(context).textTheme.titleMedium
         : Theme.of(context).textTheme.bodyMedium;
+    if (warn) style = style?.copyWith(color: Colors.orange);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(

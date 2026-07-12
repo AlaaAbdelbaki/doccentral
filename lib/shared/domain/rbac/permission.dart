@@ -22,6 +22,7 @@ enum Permission {
   canCheckInPatient,
   canViewDayCloseout,
   canManageInventory,
+  canConfirmDayCloseout,
 
   // Doctor + Assistant + Nurse
   canViewPatients,

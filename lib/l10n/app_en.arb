@@ -238,6 +238,33 @@
   "dayCloseoutPermissionDeniedMessage": "You don't have permission to view the Day Closeout summary.",
   "@dayCloseoutPermissionDeniedMessage": { "description": "Shown on the Day Closeout page to a role without permission to view it" },
 
+  "dayCloseoutConfirmButton": "Confirm closeout",
+  "@dayCloseoutConfirmButton": { "description": "Button and dialog title to confirm the Day Closeout" },
+
+  "dayCloseoutCountedCashField": "Counted cash",
+  "@dayCloseoutCountedCashField": { "description": "Label for the counted-cash field on the Day Closeout confirm form" },
+
+  "dayCloseoutInvalidCountedCashError": "Enter a valid amount",
+  "@dayCloseoutInvalidCountedCashError": { "description": "Validation error for an invalid counted-cash amount" },
+
+  "dayCloseoutExpectedCashLabel": "Expected cash",
+  "@dayCloseoutExpectedCashLabel": { "description": "Label for the expected cash amount on the confirmed Day Closeout summary" },
+
+  "dayCloseoutCountedCashLabel": "Counted cash",
+  "@dayCloseoutCountedCashLabel": { "description": "Label for the counted cash amount on the confirmed Day Closeout summary" },
+
+  "dayCloseoutDeltaLabel": "Delta",
+  "@dayCloseoutDeltaLabel": { "description": "Label for the delta (expected minus counted) on the confirmed Day Closeout summary" },
+
+  "dayCloseoutAlreadyClosedMessage": "This day has already been closed out.",
+  "@dayCloseoutAlreadyClosedMessage": { "description": "Shown when confirming a closeout for a day that already has one" },
+
+  "dayCloseoutConfirmedMessage": "Day closeout confirmed.",
+  "@dayCloseoutConfirmedMessage": { "description": "Success message shown after confirming a Day Closeout" },
+
+  "dayCloseoutRecordSection": "Closeout record",
+  "@dayCloseoutRecordSection": { "description": "Section title for the confirmed Day Closeout record (expected/counted/delta)" },
+
   "navSettings": "Settings",
   "@navSettings": { "description": "Navigation label for the settings destination" },
 
